@@ -5,7 +5,9 @@
   "main": "./src/index.js",
   "scripts": {
     "build:css": "postcss css/styles.css -o build/styles.css",
-    "build": "webpack --config webpack.config.js",
+    "build:webpack": "webpack --config webpack.config.js",
+    "build": "NODE_ENV=production npm run build:css && npm run build:webpack",
+    "prestart": "npm run build:css",
     "start": "webpack serve --mode development --env development"
   },
   "author": "Moritz Eck",

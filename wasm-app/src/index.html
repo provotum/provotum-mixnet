@@ -6,21 +6,25 @@
     <title>Provotum Mixnet Testing App</title>
   </head>
   <body>
-    <h1 class="p-4 mx-4 mt-4 text-2xl font-bold">Title</h1>
     <div class="p-4 mx-4">
-      <div class="mb-4">
-        <label class="mr-2">Number 1</label>
-        <input id="nr1" class="border rounded" type="number" />
+      <h1 class="mt-4 text-3xl font-bold ">Web Assembly / Javascript</h1>
+      <h2 class="mt-4 text-2xl font-bold ">Multiplication with WASM</h1>
+      <p class="text-base italic">Multiplication of two Javascript numbers using Web Assembly</p>
+      <div class="">
+        <div class="my-4">
+          <label for="nr1" class="mr-2">Number 1</label>
+          <input id="nr1" class="border rounded" type="number" />
+        </div>
+        <div>
+          <label for="nr2" class="mr-2">Number 2</label>
+          <input id="nr2" class="border rounded" type="number" />
+        </div>
       </div>
-      <div>
-        <label class="mr-2">Number 2</label>
-        <input id="nr2" class="border rounded" type="number" />
+      <div class="flex items-center justify-start mt-4">
+        <button id="button" class="p-2 mr-4 border rounded">Multiply</button>
+        <label for="result" class="mr-2 font-semibold">Result:</label>
+        <div id="result" class=""></div>
       </div>
-    </div>
-    <div class="flex items-center justify-start p-4 mx-4">
-      <button id="button" class="p-2 mr-4 border rounded">Multiply</button>
-      <label for="result" class="mr-2 font-semibold">Result:</label>
-      <p id="result" class=""></p>
     </div>
   </body>
 </html>
