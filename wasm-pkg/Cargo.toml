@@ -1,6 +1,6 @@
 [package]
-name = "wasm-pack-webpack-test"
-description = "wasm-pack-webpack-test"
+name = "wasm-package"
+description = "wasm-package"
 version = "0.1.0"
 authors = ["Moritz Eck <moritz.eck@gmail.com>"]
 edition = "2018"

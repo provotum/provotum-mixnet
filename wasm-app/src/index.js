@@ -1,3 +1,8 @@
-import * as wasm from "wasm-pack-webpack-test";
+import * as wasm from "wasm-package";
 
-wasm.greet("What is your name?");
+function greetMe() {
+  wasm.greet("What is your name?");
+}
+
+const button = document.getElementById("button");
+button.addEventListener("click", greetMe);

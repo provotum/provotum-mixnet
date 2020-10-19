@@ -1,11 +1,26 @@
-<!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <meta charset="utf-8">
-    <title>Hello wasm-pack!</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" type="text/css" href="styles.css" />
+    <title>Provotum Mixnet Testing App</title>
   </head>
   <body>
-    <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
-    <script src="./bootstrap.js"></script>
+    <h1 class="p-4 mx-4 mt-4 text-2xl font-bold">Title</h1>
+    <div class="p-4 mx-4">
+      <div class="mb-4">
+        <label class="mr-2">Number 1</label>
+        <input id="nr1" class="border rounded" type="number" />
+      </div>
+      <div>
+        <label class="mr-2">Number 2</label>
+        <input id="nr2" class="border rounded" type="number" />
+      </div>
+    </div>
+    <div class="flex items-center justify-start p-4 mx-4">
+      <button id="button" class="p-2 mr-4 border rounded">Multiply</button>
+      <label for="result" class="mr-2 font-semibold">Result:</label>
+      <p id="result" class=""></p>
+    </div>
   </body>
 </html>
