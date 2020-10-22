@@ -6,10 +6,10 @@ authors = ["Moritz Eck <moritz.eck@gmail.com>"]
 edition = "2018"
 license = "MIT"
 
-# `wasm-opt` is on by default in for the release profile, but it can be
-# disabled by setting it to `false`
+# `wasm-opt` is on for the release profile
+# only works with custom: wasm-pack (built from source)
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = false
+wasm-opt = ["-Oz", "--enable-mutable-globals"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -31,6 +31,14 @@ wee_alloc = { version = "0.4.5", optional = true }
 
 # bigint library (developed by Parity)
 primitive-types = "0.7.2"
+uint = "0.8.5"
+js-sys = "0.3.45"
+
+[dependencies.web-sys]
+version = "0.3.45"
+features = [
+  "console"
+]
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.18"
