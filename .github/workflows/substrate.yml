@@ -1,0 +1,64 @@
+name: substrate dev
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "bc-node/**"
+  pull_request:
+    branches: [master]
+    paths:
+      - "bc-node/**"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+    
+    runs-on: ${{ matrix.os }}
+    
+    defaults:
+      run:
+        working-directory: bc-node
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Cache Dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-dev
+
+      - name: Setup Unix
+        run: |
+          curl https://getsubstrate.io -sSf | bash -s -- --fast
+
+      - name: Setup Rust toolchain
+        run: |
+          rustup default stable
+          rustup toolchain install nightly-2020-10-06
+          rustup target add wasm32-unknown-unknown --toolchain nightly-2020-10-06
+          rustup update
+
+      - name: Build Dev Binary
+        run: cargo +nightly-2020-10-06 build --verbose
+
+      # this step uploads the built dev binary as an artifact (output)
+      - name: Upload Dev Binary
+        uses: actions/upload-artifact@v2
+        with: 
+          name: node-template-dev-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ github.workspace }}/bc-node/target/debug/node-template
+          retention-days: 7
+
+      - name: Test Dev Binary
+        run: cargo +nightly-2020-10-06 test --verbose
