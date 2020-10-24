@@ -1,7 +1,19 @@
 {
   "folders": [
     {
-      "path": "."
+      "path": "bc-node"
+    },
+    {
+      "path": ".github"
+    },
+    {
+      "path": "crypto"
+    },
+    {
+      "path": "wasm-app"
+    },
+    {
+      "path": "wasm-pkg"
     }
   ],
   "settings": {}
