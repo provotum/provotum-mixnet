@@ -40,6 +40,7 @@ pub use pallet_timestamp::Call as TimestampCall;
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
+// TODO: change/rename
 /// Import the template pallet.
 pub use pallet_template;
 
@@ -93,6 +94,7 @@ pub mod opaque {
     }
 }
 
+// TODO: rename runtime name of node
 pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("node-template"),
     impl_name: create_runtime_str!("node-template"),
@@ -263,6 +265,7 @@ impl pallet_sudo::Trait for Runtime {
     type Call = Call;
 }
 
+// TODO: update naming
 /// Configure the template pallet in pallets/template.
 impl pallet_template::Trait for Runtime {
     type Event = Event;
@@ -283,6 +286,8 @@ construct_runtime!(
         Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
         TransactionPayment: pallet_transaction_payment::{Module, Storage},
         Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
+
+        // TODO: update naming
         // Include the custom logic from the template pallet in the runtime.
         TemplateModule: pallet_template::{Module, Call, Storage, Event<T>},
     }

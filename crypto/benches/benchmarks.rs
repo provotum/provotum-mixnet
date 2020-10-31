@@ -1,60 +1,37 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use crypto::elgamal::{
-    encryption::ElGamal,
-    system::{ElGamalParams, Helper},
-};
+use crypto::elgamal::{encryption::ElGamal, helper::Helper};
 use num_bigint::BigUint;
 
 fn criterion_benchmark(c: &mut Criterion) {
     // benchmark congig
-    let mut group = c.benchmark_group("encryption/decryption");
+    let mut group = c.benchmark_group("elgamal");
     group.sample_size(500);
 
-    group.bench_function("encrypt", |b| {
+    group.bench_function("encryption", |b| {
         b.iter_with_setup(
             || {
-                let params = ElGamalParams {
-                    p: BigUint::from(23 as u32),
-                    // and, therefore, q -> 11
-                    g: BigUint::from(2 as u32),
-                };
-
-                // generate a public/private key pair
-                let r = BigUint::from(9 as u32);
-                let (pk, _sk) = Helper::generate_key_pair(&params, &r);
-
-                // the value of the message: 2
-                let message = BigUint::from(2 as u32);
-
-                // a new random value for the encryption
-                let r_ = BigUint::from(5 as u32);
-                (message, r_, pk)
+                let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
+                b"2", 
+                b"1701411834604692317316873037");
+                let message = BigUint::from(1u32);
+                let random = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+                (message, random, pk)
             },
             |(m, r, pk)| ElGamal::encrypt(&m, &r, &pk),
         )
     });
 
-    group.bench_function("decrypt", |b| {
+    group.bench_function("decryption", |b| {
         b.iter_with_setup(
             || {
-                let params = ElGamalParams {
-                    p: BigUint::from(23 as u32),
-                    // and, therefore, q -> 11
-                    g: BigUint::from(2 as u32),
-                };
-
-                // generate a public/private key pair
-                let r = BigUint::from(9 as u32);
-                let (pk, sk) = Helper::generate_key_pair(&params, &r);
-
-                // the value of the message: 2
-                let message = BigUint::from(2 as u32);
-
-                // a new random value for the encryption
-                let r_ = BigUint::from(5 as u32);
+                let (_, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
+                b"2", 
+                b"1701411834604692317316873037");
+                let message = BigUint::from(1u32);
+                let random = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
 
                 // encrypt the message
-                let encrypted_message = ElGamal::encrypt(&message, &r_, &pk);
+                let encrypted_message = ElGamal::encrypt(&message, &random, &pk);
                 (encrypted_message, sk)
             },
             |(encrypted_message, sk)| ElGamal::decrypt(&encrypted_message, &sk),

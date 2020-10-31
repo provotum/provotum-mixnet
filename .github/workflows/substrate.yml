@@ -5,10 +5,12 @@ on:
     branches: [master]
     paths:
       - "bc-node/**"
+      - "!**.md"
   pull_request:
     branches: [master]
     paths:
       - "bc-node/**"
+      - "!**.md"
 
 env:
   CARGO_TERM_COLOR: always
@@ -52,6 +54,9 @@ jobs:
       - name: Build Dev Binary
         run: cargo +nightly-2020-10-06 build --verbose
 
+      - name: Test Dev Binary
+        run: cargo +nightly-2020-10-06 test --verbose -- --nocapture
+
       # this step uploads the built dev binary as an artifact (output)
       - name: Upload Dev Binary
         uses: actions/upload-artifact@v2
@@ -59,6 +64,3 @@ jobs:
           name: node-template-dev-${{ github.sha }}-${{ github.run_id }}
           path: ${{ github.workspace }}/bc-node/target/debug/node-template
           retention-days: 7
-
-      - name: Test Dev Binary
-        run: cargo +nightly-2020-10-06 test --verbose

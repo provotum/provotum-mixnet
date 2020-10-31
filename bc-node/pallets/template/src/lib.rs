@@ -1,10 +1,16 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-/// Edit this file to define custom logic or remove it if it is not needed.
-/// Learn more about FRAME and the core library of Substrate FRAME pallets:
-/// https://substrate.dev/docs/en/knowledgebase/runtime/frame
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, dispatch, traits::Get};
+use frame_support::{
+    codec::Encode, debug, decl_error, decl_event, decl_module, decl_storage, dispatch, traits::Get,
+    weights::Pays,
+};
 use frame_system::ensure_signed;
+use sp_std::if_std;
+use sp_std::vec::Vec;
+
+use crate::types::Ballot;
+
+mod types;
 
 #[cfg(test)]
 mod mock;
@@ -14,25 +20,20 @@ mod tests;
 
 /// Configure the pallet by specifying the parameters and types on which it depends.
 pub trait Trait: frame_system::Trait {
-    /// Because this pallet emits events, it depends on the runtime's definition of an event.
     type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 }
 
 // The pallet's runtime storage items.
-// https://substrate.dev/docs/en/knowledgebase/runtime/storage
 decl_storage! {
-    // A unique name is used to ensure that the pallet's storage items are isolated.
-    // This name may be updated, but each pallet in the runtime must use a unique name.
-    // ---------------------------------vvvvvvvvvvvvvv
+    // TODO: update name TemplateModule
     trait Store for Module<T: Trait> as TemplateModule {
-        // Learn more about declaring storage items:
-        // https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
         Something get(fn something): Option<u32>;
+        Ballots get(fn ballots): Vec<Ballot>;
+        Voters get(fn voters): Vec<T::AccountId>;
     }
 }
 
 // Pallets use events to inform users when important changes are made.
-// https://substrate.dev/docs/en/knowledgebase/runtime/events
 decl_event!(
     pub enum Event<T>
     where
@@ -41,6 +42,9 @@ decl_event!(
         /// Event documentation should end with an array that provides descriptive names for event
         /// parameters. [something, who]
         SomethingStored(u32, AccountId),
+
+        /// vote submission event -> [from/who, encrypted vote]
+        VoteSubmitted(AccountId, Ballot),
     }
 );
 
@@ -100,6 +104,54 @@ decl_module! {
                     Ok(())
                 },
             }
+        }
+
+        #[weight = (10000, Pays::No)]
+        fn cast_encrypted_ballot(origin, vote: Ballot) -> dispatch::DispatchResult {
+            // check that the extrinsic was signed and get the signer.
+            let who = ensure_signed(origin)?;
+            let address_bytes = who.encode();
+            debug::info!("Voter {:?} (encoded: {:?}) cast a vote.", &who, address_bytes);
+
+            if_std! {
+                // This code is only being compiled and executed when the `std` feature is enabled.
+                println!("Voter {:?} (encoded: {:?}) cast a vote.", &who, address_bytes);
+            }
+
+            // store the vote
+            Self::store_encrypted_ballot(who.clone(), vote.clone());
+
+            // notify that the vote has been submitted and successfully stored
+            Self::deposit_event(RawEvent::VoteSubmitted(who, vote));
+
+            // Return a successful DispatchResult
+            Ok(())
+        }
+    }
+}
+
+impl<T: Trait> Module<T> {
+    fn store_encrypted_ballot(from: T::AccountId, vote: Ballot) {
+        // store the vote
+        let mut ballots: Vec<Ballot> = Ballots::get();
+        ballots.push(vote.clone());
+        Ballots::put(ballots);
+        debug::info!("Encrypted Ballot: {:?} has been stored.", vote);
+
+        if_std! {
+            // This code is only being compiled and executed when the `std` feature is enabled.
+            println!("Encrypted Ballot: {:?} has been stored.", vote);
+        }
+
+        // update the list of voters
+        let mut voters: Vec<T::AccountId> = Voters::<T>::get();
+        voters.push(from.clone());
+        Voters::<T>::put(voters);
+        debug::info!("Voter {:?} has been stored.", from);
+
+        if_std! {
+            // This code is only being compiled and executed when the `std` feature is enabled.
+            println!("Voter {:?} has been stored.", from);
         }
     }
 }

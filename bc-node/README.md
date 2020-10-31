@@ -27,7 +27,7 @@ Once the development environment is set up, build the node template. This comman
 [native](https://substrate.dev/docs/en/knowledgebase/advanced/executor#native-execution) code:
 
 ```bash
-cargo build --release
+WASM_BUILD_TOOLCHAIN=nightly-2020-10-06 cargo build --release
 ```
 
 ## Run

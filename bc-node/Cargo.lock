@@ -882,6 +882,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 
 [[package]]
+name = "crypto"
+version = "0.1.0"
+dependencies = [
+ "num-bigint 0.3.0",
+ "num-traits",
+]
+
+[[package]]
 name = "crypto-mac"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3334,6 +3342,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-bigint"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7f3fc75e3697059fb1bc465e3d8cca6cf92f56854f201158b3f9c77d5a3cfa0"
+dependencies = [
+ "autocfg 1.0.0",
+ "num-integer",
+ "num-traits",
+ "rand 0.7.3",
+]
+
+[[package]]
 name = "num-complex"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3360,7 +3380,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c000134b5dbf44adc5cb772486d335293351644b801551abe8f75c84cfa4aef"
 dependencies = [
  "autocfg 1.0.0",
- "num-bigint",
+ "num-bigint 0.2.6",
  "num-integer",
  "num-traits",
 ]
@@ -3592,12 +3612,16 @@ dependencies = [
 name = "pallet-template"
 version = "2.0.0"
 dependencies = [
+ "crypto",
  "frame-support",
  "frame-system",
+ "num-bigint 0.3.0",
+ "num-traits",
  "parity-scale-codec",
  "sp-core",
  "sp-io",
  "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -6642,9 +6666,9 @@ dependencies = [
 
 [[package]]
 name = "substrate-wasm-builder-runner"
-version = "1.0.6"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2a965994514ab35d3893e9260245f2947fd1981cdd4fffd2c6e6d1a9ce02e6a"
+checksum = "54cab12167e32b38a62c5ea5825aa0874cde315f907a46aad2b05aa8ef3d862f"
 
 [[package]]
 name = "subtle"

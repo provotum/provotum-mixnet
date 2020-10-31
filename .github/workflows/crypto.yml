@@ -5,10 +5,12 @@ on:
     branches: [master]
     paths:
       - "crypto/**"
+      - "!**.md"
   pull_request:
     branches: [master]
     paths:
       - "crypto/**"
+      - "!**.md"
 
 env:
   CARGO_TERM_COLOR: always
@@ -67,5 +69,5 @@ jobs:
           override: true
           components: clippy          
       - name: lint
-        run: cargo +nightly clippy
+        run: cargo +nightly clippy -- -D warnings
       
