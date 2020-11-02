@@ -2,9 +2,9 @@ use core::ops::{AddAssign, Sub};
 use num_bigint::{BigUint, RandBigInt};
 use num_traits::{One, Zero};
 
-pub struct Prime;
+pub struct Random;
 
-impl Prime {
+impl Random {
     // generate a random value: 0 < x < number
     pub fn random_lt_number(number: &BigUint) -> BigUint {
         assert!(*number > BigUint::zero(), "q must be greater than zero!");
@@ -84,14 +84,14 @@ impl Prime {
 
 #[cfg(test)]
 mod tests {
-    use crate::elgamal::prime::Prime;
+    use crate::elgamal::random::Random;
     use num_bigint::BigUint;
 
     #[test]
     fn it_should_generate_random_number() {
         let number = BigUint::parse_bytes(b"123", 10).unwrap();
         for _ in 0..20 {
-            let random = Prime::random_lt_number(&number);
+            let random = Random::random_lt_number(&number);
             assert!(random < number);
         }
     }
@@ -99,28 +99,28 @@ mod tests {
     #[test]
     fn check_that_2_is_prime() {
         let number = BigUint::parse_bytes(b"2", 10).unwrap();
-        let is_prime = Prime::is_prime(&number, 20);
+        let is_prime = Random::is_prime(&number, 20);
         assert!(is_prime);
     }
 
     #[test]
     fn check_that_11_is_prime() {
         let number = BigUint::from(11u32);
-        let is_prime = Prime::is_prime(&number, 20);
+        let is_prime = Random::is_prime(&number, 20);
         assert!(is_prime);
     }
 
     #[test]
     fn check_that_84532559_is_prime() {
         let number = BigUint::parse_bytes(b"84532559", 10).unwrap();
-        let is_prime = Prime::is_prime(&number, 20);
+        let is_prime = Random::is_prime(&number, 20);
         assert!(is_prime);
     }
 
     #[test]
     fn check_that_84532560_is_not_prime() {
         let number = BigUint::parse_bytes(b"84532560", 10).unwrap();
-        let is_prime = Prime::is_prime(&number, 20);
+        let is_prime = Random::is_prime(&number, 20);
         assert!(!is_prime);
     }
 
@@ -129,7 +129,7 @@ mod tests {
         let bit_size = 256;
         let byte_size = 32;
 
-        let prime = Prime::generate_random_prime(bit_size);
+        let prime = Random::generate_random_prime(bit_size);
 
         // check that the prime is in range bit_size - 8 <= prime <= bit_size
         assert!(prime.bits().le(&bit_size));
@@ -138,7 +138,7 @@ mod tests {
         // check that the prime has the same number of bytes as requested
         assert!(prime.to_bytes_le().len().eq(&byte_size));
 
-        let is_prime = Prime::is_prime(&prime, 128);
+        let is_prime = Random::is_prime(&prime, 128);
         assert!(is_prime);
     }
 }
