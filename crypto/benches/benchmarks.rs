@@ -61,6 +61,48 @@ fn criterion_benchmark(c: &mut Criterion) {
         )
     });
 
+    group.bench_function("re_encryption", |b| {
+        b.iter_with_setup(
+            || {
+                let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
+                b"2", 
+                b"1701411834604692317316873037");
+                let one = BigUint::one();
+                
+                // encrypt the message
+                let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+                let encryption = ElGamal::encrypt(&one, &r, &pk);
+
+                // use another random value for the re_encryption
+                let r_ = BigUint::parse_bytes(b"170141183460469231731687303712342", 10).unwrap();
+
+                (encryption, r_, pk)
+            },
+            |(encryption, r_, pk)| ElGamal::re_encrypt(&encryption, &r_, &pk),
+        )
+    });
+
+    group.bench_function("re_encryption by homomorphic addition zero (g^0)", |b| {
+        b.iter_with_setup(
+            || {
+                let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
+                b"2", 
+                b"1701411834604692317316873037");
+                let one = BigUint::one();
+                
+                // encrypt the message
+                let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+                let encryption = ElGamal::encrypt(&one, &r, &pk);
+
+                // use another random value for the re_encryption
+                let r_ = BigUint::parse_bytes(b"170141183460469231731687303712342", 10).unwrap();
+
+                (encryption, r_, pk)
+            },
+            |(encryption, r_, pk)| ElGamal::re_encrypt_via_addition(&encryption, &r_, &pk),
+        )
+    });
+
     group.bench_function("shuffling (permutation + re-encryption)", |b| {
         b.iter_with_setup(
             || {

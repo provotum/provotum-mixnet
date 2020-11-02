@@ -112,6 +112,25 @@ impl ElGamal {
     }
 
     /// Returns an ElGamal re-encryption of a message
+    /// - message:      (a, b)   = (g^r, h^r * g^m)
+    /// - reencryption: (a', b') = (a * g^r', b * h^r') = (g^(r * r'), h^(r * r') * g^m)
+    ///
+    /// ## Arguments
+    ///
+    /// * `cipher` - An ElGamal Encryption { a: BigUint, b: BigUint }
+    /// * `r`      - The random number used to re-encrypt the vote    
+    /// * `pk`     - The public key used to re-encrypt the vote
+    pub fn re_encrypt(cipher: &Cipher, r: &BigUint, pk: &PublicKey) -> Cipher {
+        let p = &pk.params.p;
+        let a_ = pk.params.g.modpow(r, p);
+        let b_ = pk.h.modpow(r, p);
+        Cipher {
+            a: cipher.a.modmul(&a_, p),
+            b: cipher.b.modmul(&b_, p),
+        }
+    }
+
+    /// Returns an ElGamal re-encryption of a message
     /// - message:      (a, b)      = (g^r, h^r * g^m)
     /// - zero:         (a', b')    = (g^r', h^r' * g^0) = (g^r', h^r')
     /// - reencryption: (a'', b'')  = (a * a', b * b')     = (g^(r * r'), h^(r * r') * g^m)
@@ -123,9 +142,9 @@ impl ElGamal {
     /// * `cipher` - An ElGamal Encryption { a: BigUint, b: BigUint }
     /// * `r`      - The random number used to re-encrypt the vote    
     /// * `pk`     - The public key used to re-encrypt the vote
-    pub fn re_encrypt(cipher: &Cipher, r: &BigUint, pk: &PublicKey) -> Cipher {
+    pub fn re_encrypt_via_addition(cipher: &Cipher, r: &BigUint, pk: &PublicKey) -> Cipher {
         let zero = Self::encrypt(&BigUint::zero(), &r, &pk);
-        ElGamal::add(cipher, &zero, &pk.params.p)
+        Self::add(cipher, &zero, &pk.params.p)
     }
 
     /// Returns a shuffled (permuted & re-encrypted) list of ElGamal encryptions.
@@ -357,29 +376,77 @@ mod tests {
         );
 
         let q = params.q();
-        let zero = BigUint::zero();
         let five = BigUint::from(5u32);
 
-        // encryption of zero
         // use a random number < q
         let r = Random::random_lt_number(&q);
-        let encrypted_zero = ElGamal::encrypt(&zero, &r, &pk);
-
-        // option 1: homomorphic addition
-        // use a random number < q
+        let encrypted_five = ElGamal::encrypt(&five, &r, &pk);
         let r_ = Random::random_lt_number(&q);
-        let encrypted_five = ElGamal::encrypt(&five, &r_, &pk);
 
-        // homomorphic addition with zero: 5 + 0 = 5
-        let addition = ElGamal::add(&encrypted_five, &encrypted_zero, &params.p);
-        let decrypted_addition = ElGamal::decrypt(&addition, &sk);
+        // re-encryption + check that encryption != re-encryption
+        let re_encrypted_five = ElGamal::re_encrypt(&encrypted_five, &r_, &pk);
+        assert!(encrypted_five != re_encrypted_five);
+
+        // check that decryption is still the same as the initial value
+        let decrypted_re_encryption = ElGamal::decrypt(&re_encrypted_five, &sk);
+        assert_eq!(decrypted_re_encryption, five);
+    }
+
+    #[test]
+    fn it_should_re_encrypt_five_by_addition() {
+        let (params, sk, pk) = Helper::setup_system(
+            b"170141183460469231731687303715884105727",
+            b"2",
+            b"1701411834604692317316",
+        );
+
+        let q = params.q();
+        let five = BigUint::from(5u32);
+
+        // use a random number < q
+        let r = Random::random_lt_number(&q);
+        let encrypted_five = ElGamal::encrypt(&five, &r, &pk);
+        let r_ = Random::random_lt_number(&q);
+
+        // homomorphic addition with zero: 5 + 0 = 5 + check that encryption != re-encryption
+        let re_encrypted_addition = ElGamal::re_encrypt_via_addition(&encrypted_five, &r_, &pk);
+        assert!(encrypted_five != re_encrypted_addition);
+
+        // check that decryption is still the same as the initial value
+        let decrypted_addition = ElGamal::decrypt(&re_encrypted_addition, &sk);
+        assert_eq!(decrypted_addition, five);
+    }
+
+    #[test]
+    fn it_should_show_that_both_re_encryptions_are_equal() {
+        let (params, sk, pk) = Helper::setup_system(
+            b"170141183460469231731687303715884105727",
+            b"2",
+            b"1701411834604692317316",
+        );
+
+        let q = params.q();
+        let five = BigUint::from(5u32);
+
+        // use a random number < q
+        let r = Random::random_lt_number(&q);
+        let encrypted_five = ElGamal::encrypt(&five, &r, &pk);
+
+        // option one: homomorphic addition with zero: 5 + 0 = 5
+        let r_ = Random::random_lt_number(&q);
+        let re_encrypted_addition = ElGamal::re_encrypt_via_addition(&encrypted_five, &r_, &pk);
+        let decrypted_addition = ElGamal::decrypt(&re_encrypted_addition, &sk);
         assert_eq!(decrypted_addition, five);
 
         // option two: re-encryption
-        let r__ = Random::random_lt_number(&q);
-        let re_encrypted_five = ElGamal::re_encrypt(&encrypted_five, &r__, &pk);
+        let re_encrypted_five = ElGamal::re_encrypt(&encrypted_five, &r_, &pk);
+        assert_eq!(re_encrypted_addition, re_encrypted_five);
+
+        // check that both variants produce the same re-encryptions, when using the same random!
         let decrypted_re_encryption = ElGamal::decrypt(&re_encrypted_five, &sk);
         assert_eq!(decrypted_re_encryption, five);
+
+        // check that both re-encryptions produce the same decrypted value
         assert_eq!(decrypted_addition, decrypted_re_encryption);
     }
 
