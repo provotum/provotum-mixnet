@@ -36,11 +36,6 @@ impl Helper {
         (params, sk, pk)
     }
 
-    pub fn is_p_valid(_p: &BigUint) -> bool {
-        // check if p is prime
-        unimplemented!()
-    }
-
     pub fn is_generator(params: &ElGamalParams) -> bool {
         let q = params.q();
 
@@ -51,6 +46,11 @@ impl Helper {
         params.g != q
             && params.g != BigUint::one()
             && (params.g.modpow(&q, &params.p) == BigUint::one())
+    }
+
+    pub fn is_p_valid(_p: &BigUint) -> bool {
+        // check if p is prime
+        unimplemented!()
     }
 
     pub fn get_generator_candidates(_p: &BigUint) -> Vec<BigUint> {
