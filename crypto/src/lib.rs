@@ -16,4 +16,5 @@ extern crate alloc;
 
 // crates which this library exposes
 #[allow(clippy::many_single_char_names)]
+#[macro_use]
 pub mod elgamal;

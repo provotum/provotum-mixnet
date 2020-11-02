@@ -1,10 +1,45 @@
+use alloc::vec::Vec;
 use core::ops::{AddAssign, Sub};
 use num_bigint::{BigUint, RandBigInt};
 use num_traits::{One, Zero};
+use rand::Rng;
 
 pub struct Random;
 
 impl Random {
+    pub fn generate_permutation(size: &usize) -> Vec<usize> {
+        assert!(*size > 0, "size must be greater than zero!");
+
+        let mut rng = rand::thread_rng();
+        let mut permutation: Vec<usize> = Vec::new();
+
+        // vector containing the range of values from 0 up to the size of the vector - 1
+        let mut range: Vec<usize> = (0..*size).collect();
+
+        for index in 0..*size {
+            // get random integer
+            let random = rng.gen_range(index, size);
+
+            // get the element in the range at the random position
+            let value = range.get(random);
+
+            match value {
+                Some(value) => {
+                    // store the value of the element at the random position
+                    permutation.push(*value);
+
+                    // swap positions
+                    range[random] = range[index];
+                }
+                None => panic!(
+                    "Index out of bounds: index: {:?}, upper bound: {:?}",
+                    random, size
+                ),
+            }
+        }
+        permutation
+    }
+
     // generate a random value: 0 < x < number
     pub fn random_lt_number(number: &BigUint) -> BigUint {
         assert!(*number > BigUint::zero(), "q must be greater than zero!");
@@ -65,15 +100,15 @@ impl Random {
             let a = rng.gen_biguint_range(&two, num);
             let mut x = a.modpow(&d, num);
             if x != one.clone() && x != num_less_one {
-                let mut r = zero.clone();
+                let mut random = zero.clone();
                 loop {
                     x = x.modpow(&two, num);
                     if x == num_less_one {
                         break;
-                    } else if x == one.clone() || r == (s.clone() - one.clone()) {
+                    } else if x == one.clone() || random == (s.clone() - one.clone()) {
                         return false;
                     }
-                    r += one.clone();
+                    random += one.clone();
                 }
             }
             k += 2;
@@ -125,7 +160,7 @@ mod tests {
     }
 
     #[test]
-    fn should_generate_random_prime() {
+    fn it_should_generate_a_random_prime() {
         let bit_size = 256;
         let byte_size = 32;
 
@@ -136,9 +171,30 @@ mod tests {
         assert!(prime.bits().ge(&(bit_size - 8)));
 
         // check that the prime has the same number of bytes as requested
-        assert!(prime.to_bytes_le().len().eq(&byte_size));
+        assert!(prime.to_bytes_le().len() == byte_size);
 
         let is_prime = Random::is_prime(&prime, 128);
         assert!(is_prime);
+    }
+
+    #[test]
+    #[should_panic(expected = "size must be greater than zero!")]
+    fn permutation_size_zero_should_panic() {
+        let size = 0;
+        Random::generate_permutation(&size);
+    }
+
+    #[test]
+    fn it_should_generate_a_permutation_for_three_numbers() {
+        let size = 3;
+        let permutation = Random::generate_permutation(&size);
+
+        // check that the permutation has the expected size
+        assert!(permutation.len() == (size as usize));
+
+        // check that 0, 1, 2 occur at least once each
+        assert!(permutation.iter().any(|&value| value == 0));
+        assert!(permutation.iter().any(|&value| value == 1));
+        assert!(permutation.iter().any(|&value| value == 2));
     }
 }

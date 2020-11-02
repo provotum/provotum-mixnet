@@ -1,4 +1,6 @@
+use crate::elgamal::random::Random;
 use crate::elgamal::types::{Cipher, ModuloOperations, PrivateKey, PublicKey};
+use alloc::vec::Vec;
 use num_bigint::BigUint;
 use num_traits::Zero;
 
@@ -125,11 +127,42 @@ impl ElGamal {
         let zero = Self::encrypt(&BigUint::zero(), &r, &pk);
         ElGamal::add(cipher, &zero, &pk.params.p)
     }
+
+    /// Returns a shuffled (permuted & re-encrypted) list of ElGamal encryptions.
+    ///
+    /// ## Arguments
+    ///
+    /// * `cipher` - An ElGamal Encryption { a: BigUint, b: BigUint }
+    /// * `r`      - The random number used to re-encrypt the vote    
+    /// * `pk`     - The public key used to re-encrypt the vote
+    pub fn shuffle(encryptions: &[Cipher], randoms: &[BigUint], pk: &PublicKey) -> Vec<Cipher> {
+        assert!(
+            encryptions.len() == randoms.len(),
+            "encryptions and randoms need to have the same length!"
+        );
+        assert!(!encryptions.is_empty(), "vectors cannot be empty!");
+        // generate a permutatinon of size of the encryptions
+        let size = encryptions.len();
+        let permutation: Vec<usize> = Random::generate_permutation(&size);
+        let mut re_encryptions: Vec<Cipher> = Vec::new();
+
+        for position in permutation {
+            // get the encryption and the random value at the permutation position
+            let encryption = &encryptions[position];
+            let random = &randoms[position];
+
+            // re-encrypt
+            let re_encryption = ElGamal::re_encrypt(&encryption, &random, pk);
+            re_encryptions.push(re_encryption);
+        }
+        re_encryptions
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::elgamal::{encryption::ElGamal, helper::Helper, random::Random};
+    use alloc::vec::Vec;
     use num_bigint::BigUint;
     use num_traits::{One, Zero};
 
@@ -142,7 +175,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_decode_0() {
+    fn it_should_decode_zero() {
         let (params, _, _) = Helper::setup_system(b"7", b"2", b"2");
         let zero = BigUint::zero();
         let message = zero.clone();
@@ -152,7 +185,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_decode_1() {
+    fn it_should_decode_one() {
         let (params, _, _) = Helper::setup_system(b"7", b"2", b"2");
         let one = BigUint::one();
         let message = one.clone();
@@ -189,14 +222,14 @@ mod tests {
         // check that a = g^r_ = 2^1 mod 7 = 2
         assert_eq!(encrypted_message.a, BigUint::from(2u32));
 
-        // check that b = h^r_*g^m = (g^r)^r_ * g^m
+        // check that b = h^r_ * g^m = (g^r)^r_ * g^m
         // b = ((2^2)^1 mod 7 * 2^1 mod 7) mod 7
         // b = (4 mod 7 * 2 mod 7) mod 7 = 1
         assert_eq!(encrypted_message.b, BigUint::from(1u32));
     }
 
     #[test]
-    fn it_should_encrypt_decrypt_2() {
+    fn it_should_encrypt_decrypt_two() {
         let (_, sk, pk) = Helper::setup_system(b"23", b"2", b"9");
 
         // the value of the message: 2
@@ -316,7 +349,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_reencrypt_a_message() {
+    fn it_should_re_encrypt_five() {
         let (params, sk, pk) = Helper::setup_system(
             b"170141183460469231731687303715884105727",
             b"2",
@@ -348,5 +381,87 @@ mod tests {
         let decrypted_re_encryption = ElGamal::decrypt(&re_encrypted_five, &sk);
         assert_eq!(decrypted_re_encryption, five);
         assert_eq!(decrypted_addition, decrypted_re_encryption);
+    }
+
+    #[test]
+    #[should_panic(expected = "encryptions and randoms need to have the same length!")]
+    fn shuffle_vectors_different_size_should_panic() {
+        let (_, _, pk) = Helper::setup_system(
+            b"170141183460469231731687303715884105727",
+            b"2",
+            b"1701411834604692317316",
+        );
+        let encryptions = vec![];
+        let randoms = vec![BigUint::one()];
+        ElGamal::shuffle(&encryptions, &randoms, &pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "vectors cannot be empty!")]
+    fn shuffle_vectors_size_zero_should_panic() {
+        let (_, _, pk) = Helper::setup_system(
+            b"170141183460469231731687303715884105727",
+            b"2",
+            b"1701411834604692317316",
+        );
+        let encryptions = vec![];
+        let randoms = vec![];
+        ElGamal::shuffle(&encryptions, &randoms, &pk);
+    }
+
+    #[test]
+    fn it_should_shuffle_a_list_of_encrypted_votes() {
+        let (params, sk, pk) = Helper::setup_system(
+            b"170141183460469231731687303715884105727",
+            b"2",
+            b"1701411834604692317316",
+        );
+
+        let q = params.q();
+
+        // encryption of zero
+        let zero = BigUint::zero();
+        let r = Random::random_lt_number(&q);
+        let enc_zero = ElGamal::encrypt(&zero, &r, &pk);
+
+        // encryption of one
+        let one = BigUint::one();
+        let r_ = Random::random_lt_number(&q);
+        let enc_one = ElGamal::encrypt(&one, &r_, &pk);
+
+        // encryption of two
+        let two = BigUint::from(2u32);
+        let r__ = Random::random_lt_number(&q);
+        let enc_two = ElGamal::encrypt(&two, &r__, &pk);
+
+        let encryptions = vec![enc_zero, enc_one, enc_two];
+
+        // create three random values < q
+        let randoms = vec![
+            Random::random_lt_number(&q),
+            Random::random_lt_number(&q),
+            Random::random_lt_number(&q),
+        ];
+
+        // shuffle (permute + re-encrypt) the encryptions
+        let shuffle = ElGamal::shuffle(&encryptions, &randoms, &pk);
+        assert!(shuffle.len() == 3usize);
+
+        // decrypt the shuffled encryptions
+        let mut decryptions = Vec::new();
+
+        for entry in shuffle {
+            // check that entry (permuted & re-encrypted) is not the same as an existing encryption
+            assert!(encryptions.iter().any(|value| value.clone() != entry));
+
+            // decrypt the entry
+            let decryption = ElGamal::decrypt(&entry, &sk);
+            decryptions.push(decryption);
+        }
+
+        // check that at least one value is 0, 1, 2
+        assert!(decryptions.iter().any(|value| value.clone() == zero));
+        assert!(decryptions.iter().any(|value| value.clone() == one));
+        assert!(decryptions.iter().any(|value| value.clone() == two));
     }
 }
