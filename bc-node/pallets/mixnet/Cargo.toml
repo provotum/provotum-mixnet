@@ -1,11 +1,11 @@
 [package]
-authors = ['Substrate DevHub <https://github.com/substrate-developer-hub>']
-description = 'FRAME pallet template for defining custom runtime logic.'
+authors = ['Moritz Eck']
+description = 'Mixnet Logic for Provotum E-Voting System.'
 edition = '2018'
-homepage = 'https://substrate.dev'
+homepage = 'https://github.com/meck93/provotum-mixnet'
 license = 'Unlicense'
-name = 'pallet-template'
-repository = 'https://github.com/substrate-developer-hub/substrate-node-template/'
+name = 'pallet-mixnet'
+repository = 'https://github.com/meck93/provotum-mixnet/bc-node'
 version = '2.0.0'
 
 [package.metadata.docs.rs]

@@ -1,12 +1,15 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use crypto::elgamal::{encryption::ElGamal, types::Cipher};
 use frame_support::{
     codec::Encode, debug, decl_error, decl_event, decl_module, decl_storage, dispatch, traits::Get,
     weights::Pays,
 };
 use frame_system::ensure_signed;
+use num_bigint::BigUint;
 use sp_std::if_std;
 use sp_std::vec::Vec;
+use types::PublicKey;
 
 use crate::types::Ballot;
 
@@ -16,6 +19,7 @@ mod types;
 mod mock;
 
 #[cfg(test)]
+#[macro_use]
 mod tests;
 
 /// Configure the pallet by specifying the parameters and types on which it depends.
@@ -25,8 +29,7 @@ pub trait Trait: frame_system::Trait {
 
 // The pallet's runtime storage items.
 decl_storage! {
-    // TODO: update name TemplateModule
-    trait Store for Module<T: Trait> as TemplateModule {
+    trait Store for Module<T: Trait> as MixnetModule {
         Something get(fn something): Option<u32>;
         Ballots get(fn ballots): Vec<Ballot>;
         Voters get(fn voters): Vec<T::AccountId>;
@@ -43,8 +46,11 @@ decl_event!(
         /// parameters. [something, who]
         SomethingStored(u32, AccountId),
 
-        /// vote submission event -> [from/who, encrypted vote]
+        /// ballot submission event -> [from/who, encrypted ballot]
         VoteSubmitted(AccountId, Ballot),
+
+        /// ballots shuffled event -> [from/who]
+        BallotsShuffled(AccountId),
     }
 );
 
@@ -107,22 +113,51 @@ decl_module! {
         }
 
         #[weight = (10000, Pays::No)]
-        fn cast_encrypted_ballot(origin, vote: Ballot) -> dispatch::DispatchResult {
+        fn cast_ballot(origin, ballot: Ballot) -> dispatch::DispatchResult {
             // check that the extrinsic was signed and get the signer.
             let who = ensure_signed(origin)?;
             let address_bytes = who.encode();
-            debug::info!("Voter {:?} (encoded: {:?}) cast a vote.", &who, address_bytes);
+            debug::info!("Voter {:?} (encoded: {:?}) cast a ballot.", &who, address_bytes);
 
             if_std! {
                 // This code is only being compiled and executed when the `std` feature is enabled.
-                println!("Voter {:?} (encoded: {:?}) cast a vote.", &who, address_bytes);
+                println!("Voter {:?} (encoded: {:?}) cast a ballot.", &who, address_bytes);
             }
 
-            // store the vote
-            Self::store_encrypted_ballot(who.clone(), vote.clone());
+            // store the ballot
+            Self::store_ballot(who.clone(), ballot.clone());
 
-            // notify that the vote has been submitted and successfully stored
-            Self::deposit_event(RawEvent::VoteSubmitted(who, vote));
+            // notify that the ballot has been submitted and successfully stored
+            Self::deposit_event(RawEvent::VoteSubmitted(who, ballot));
+
+            // Return a successful DispatchResult
+            Ok(())
+        }
+
+        #[weight = (10000, Pays::No)]
+        fn trigger_shuffle(origin, pk: PublicKey) -> dispatch::DispatchResult {
+            // check that the extrinsic was signed and get the signer.
+            let who = ensure_signed(origin)?;
+            let address_bytes = who.encode();
+            debug::info!("Voter {:?} (encoded: {:?}) cast a ballot.", &who, address_bytes);
+
+            if_std! {
+                // This code is only being compiled and executed when the `std` feature is enabled.
+                println!("Voter {:?} (encoded: {:?}) cast a ballot.", &who, address_bytes);
+            }
+
+            debug::info!("Shuffle requested!");
+
+            if_std! {
+                // This code is only being compiled and executed when the `std` feature is enabled.
+                println!("Shuffle requested!");
+            }
+
+            // shuffle all ballots
+            Self::shuffle_ballots(pk);
+
+            // notify that the ballots have been shuffled successfully
+            Self::deposit_event(RawEvent::BallotsShuffled(who));
 
             // Return a successful DispatchResult
             Ok(())
@@ -131,16 +166,16 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {
-    fn store_encrypted_ballot(from: T::AccountId, vote: Ballot) {
-        // store the vote
+    fn store_ballot(from: T::AccountId, ballot: Ballot) {
+        // store the encrypted ballot
         let mut ballots: Vec<Ballot> = Ballots::get();
-        ballots.push(vote.clone());
+        ballots.push(ballot.clone());
         Ballots::put(ballots);
-        debug::info!("Encrypted Ballot: {:?} has been stored.", vote);
+        debug::info!("Encrypted Ballot: {:?} has been stored.", ballot);
 
         if_std! {
             // This code is only being compiled and executed when the `std` feature is enabled.
-            println!("Encrypted Ballot: {:?} has been stored.", vote);
+            println!("Encrypted Ballot: {:?} has been stored.", ballot);
         }
 
         // update the list of voters
@@ -152,6 +187,47 @@ impl<T: Trait> Module<T> {
         if_std! {
             // This code is only being compiled and executed when the `std` feature is enabled.
             println!("Voter {:?} has been stored.", from);
+        }
+    }
+
+    fn shuffle_ballots(pk: PublicKey) {
+        // get all encrypted ballots
+        let ballots: Vec<Ballot> = Ballots::get();
+
+        // transform all ballots to crypto crate ciphers
+        let mut ciphers: Vec<Cipher> = Vec::new();
+
+        for ballot in ballots {
+            ciphers.push(ballot.into());
+        }
+
+        // fake randoms
+        let randoms = [
+            BigUint::from(123123u32),
+            BigUint::from(1200002u32),
+            BigUint::from(91293u32),
+        ];
+
+        // fake permutation
+        let permutations = [2, 0, 1];
+
+        // shuffle the ballots
+        let shuffled = ElGamal::shuffle(&ciphers, &permutations, &randoms, &pk.into());
+
+        // store the shuffled ballots
+        let mut shuffled_ballots: Vec<Ballot> = Vec::new();
+
+        for cipher in shuffled {
+            shuffled_ballots.push(cipher.into());
+        }
+
+        // store the shuffled ballots again
+        Ballots::put(shuffled_ballots);
+        debug::info!("Ballots have been shuffled!");
+
+        if_std! {
+            // This code is only being compiled and executed when the `std` feature is enabled.
+            println!("Ballots have been shuffled!");
         }
     }
 }

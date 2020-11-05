@@ -50,7 +50,7 @@ if [[ -z ${bootnode_ip} ]]; then
   exit 0
 fi
 
-$projectDir/target/$mode/node-template \
+$projectDir/target/$mode/provotum \
   --chain $projectDir/customLocalChainSpecRaw.json \
   --validator \
   --port 30334 \

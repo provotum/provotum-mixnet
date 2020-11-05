@@ -37,19 +37,19 @@ WASM_BUILD_TOOLCHAIN=nightly-2020-10-06 cargo build --release
 Purge any existing dev chain state:
 
 ```bash
-./target/release/node-template purge-chain --dev
+./target/release/provotum purge-chain --dev
 ```
 
 Start a dev chain:
 
 ```bash
-./target/release/node-template --dev
+./target/release/provotum --dev
 ```
 
 Or, start a dev chain with detailed logging:
 
 ```bash
-RUST_LOG=debug RUST_BACKTRACE=1 ./target/release/node-template -lruntime=debug --dev
+RUST_LOG=debug RUST_BACKTRACE=1 ./target/release/provotum -lruntime=debug --dev
 ```
 
 ### Multi-Node Local Testnet
@@ -100,7 +100,7 @@ After the node has been [built](#build), refer to the embedded documentation to 
 capabilities and configuration parameters that it exposes:
 
 ```shell
-./target/release/node-template --help
+./target/release/provotum --help
 ```
 
 ### Runtime
@@ -132,7 +132,7 @@ the following:
 
 The runtime in this project is constructed using many FRAME pallets that ship with the
 [core Substrate repository](https://github.com/paritytech/substrate/tree/master/frame) and a
-template pallet that is [defined in the `pallets`](./pallets/template/src/lib.rs) directory.
+template pallet that is [defined in the `pallets`](./pallets/mixnet/src/lib.rs) directory.
 
 A FRAME pallet is compromised of a number of blockchain primitives:
 
@@ -160,15 +160,15 @@ Then run the following command to start a single node development chain.
 ```
 
 This command will firstly compile your code, and then start a local development network. You can
-also replace the default command (`cargo build --release && ./target/release/node-template --dev --ws-external`)
+also replace the default command (`cargo build --release && ./target/release/provotum --dev --ws-external`)
 by appending your own. A few useful ones are as follow.
 
 ```bash
 # Run Substrate node without re-compiling
-./scripts/docker_run.sh ./target/release/node-template --dev --ws-external
+./scripts/docker_run.sh ./target/release/provotum --dev --ws-external
 
 # Purge the local dev chain
-./scripts/docker_run.sh ./target/release/node-template purge-chain --dev
+./scripts/docker_run.sh ./target/release/provotum purge-chain --dev
 
 # Check whether the code is compilable
 ./scripts/docker_run.sh cargo check

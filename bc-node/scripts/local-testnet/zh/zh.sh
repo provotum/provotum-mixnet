@@ -42,7 +42,7 @@ do
 done
 
 # start the node
-$projectDir/target/$mode/node-template \
+$projectDir/target/$mode/provotum \
   --chain $projectDir/customLocalChainSpecRaw.json \
   --validator \
   --port 30333 \

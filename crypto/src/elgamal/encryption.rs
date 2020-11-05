@@ -1,4 +1,3 @@
-use crate::elgamal::random::Random;
 use crate::elgamal::types::{Cipher, ModuloOperations, PrivateKey, PublicKey};
 use alloc::vec::Vec;
 use num_bigint::BigUint;
@@ -154,21 +153,29 @@ impl ElGamal {
     /// * `cipher` - An ElGamal Encryption { a: BigUint, b: BigUint }
     /// * `r`      - The random number used to re-encrypt the vote    
     /// * `pk`     - The public key used to re-encrypt the vote
-    pub fn shuffle(encryptions: &[Cipher], randoms: &[BigUint], pk: &PublicKey) -> Vec<Cipher> {
+    pub fn shuffle(
+        encryptions: &[Cipher],
+        permutations: &[usize],
+        randoms: &[BigUint],
+        pk: &PublicKey,
+    ) -> Vec<Cipher> {
         assert!(
             encryptions.len() == randoms.len(),
             "encryptions and randoms need to have the same length!"
         );
+        assert!(
+            encryptions.len() == permutations.len(),
+            "encryptions and permutations need to have the same length!"
+        );
         assert!(!encryptions.is_empty(), "vectors cannot be empty!");
+
         // generate a permutatinon of size of the encryptions
-        let size = encryptions.len();
-        let permutation: Vec<usize> = Random::generate_permutation(&size);
         let mut re_encryptions: Vec<Cipher> = Vec::new();
 
-        for position in permutation {
+        for permutation in permutations {
             // get the encryption and the random value at the permutation position
-            let encryption = &encryptions[position];
-            let random = &randoms[position];
+            let encryption = &encryptions[*permutation];
+            let random = &randoms[*permutation];
 
             // re-encrypt
             let re_encryption = ElGamal::re_encrypt(&encryption, &random, pk);
@@ -452,7 +459,7 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "encryptions and randoms need to have the same length!")]
-    fn shuffle_vectors_different_size_should_panic() {
+    fn shuffle_vectors_encryptions_randoms_different_size_should_panic() {
         let (_, _, pk) = Helper::setup_system(
             b"170141183460469231731687303715884105727",
             b"2",
@@ -460,7 +467,24 @@ mod tests {
         );
         let encryptions = vec![];
         let randoms = vec![BigUint::one()];
-        ElGamal::shuffle(&encryptions, &randoms, &pk);
+        let size = 1;
+        let permutations = Random::generate_permutation(&size);
+        ElGamal::shuffle(&encryptions, &permutations, &randoms, &pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "encryptions and permutations need to have the same length!")]
+    fn shuffle_vectors_encryptions_permutations_different_size_should_panic() {
+        let (_, _, pk) = Helper::setup_system(
+            b"170141183460469231731687303715884105727",
+            b"2",
+            b"1701411834604692317316",
+        );
+        let encryptions = vec![];
+        let randoms = vec![];
+        let size = 1;
+        let permutations = Random::generate_permutation(&size);
+        ElGamal::shuffle(&encryptions, &permutations, &randoms, &pk);
     }
 
     #[test]
@@ -473,7 +497,8 @@ mod tests {
         );
         let encryptions = vec![];
         let randoms = vec![];
-        ElGamal::shuffle(&encryptions, &randoms, &pk);
+        let permutations = vec![];
+        ElGamal::shuffle(&encryptions, &permutations, &randoms, &pk);
     }
 
     #[test]
@@ -510,8 +535,12 @@ mod tests {
             Random::random_lt_number(&q),
         ];
 
+        // create a permutation of size 3
+        let size = encryptions.len();
+        let permutations = Random::generate_permutation(&size);
+
         // shuffle (permute + re-encrypt) the encryptions
-        let shuffle = ElGamal::shuffle(&encryptions, &randoms, &pk);
+        let shuffle = ElGamal::shuffle(&encryptions, &permutations, &randoms, &pk);
         assert!(shuffle.len() == 3usize);
 
         // decrypt the shuffled encryptions
