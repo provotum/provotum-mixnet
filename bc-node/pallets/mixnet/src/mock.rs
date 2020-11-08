@@ -9,13 +9,12 @@ use sp_runtime::{
 };
 
 impl_outer_origin! {
-    pub enum Origin for Test {}
+    pub enum Origin for TestRuntime {}
 }
 
-// Configure a mock runtime to test the pallet.
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub struct TestRuntime;
 
-#[derive(Clone, Eq, PartialEq)]
-pub struct Test;
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub const MaximumBlockWeight: Weight = 1024;
@@ -23,7 +22,7 @@ parameter_types! {
     pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
 }
 
-impl system::Trait for Test {
+impl system::Trait for TestRuntime {
     type BaseCallFilter = ();
     type Origin = Origin;
     type Call = ();
@@ -51,16 +50,16 @@ impl system::Trait for Test {
     type SystemWeightInfo = ();
 }
 
-impl Trait for Test {
+impl Trait for TestRuntime {
     type Event = ();
 }
 
-pub type MixnetModule = Module<Test>;
+pub type MixnetModule = Module<TestRuntime>;
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
     system::GenesisConfig::default()
-        .build_storage::<Test>()
+        .build_storage::<TestRuntime>()
         .unwrap()
         .into()
 }

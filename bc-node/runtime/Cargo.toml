@@ -25,7 +25,11 @@ hex-literal = { optional = true, version = '0.3.1' }
 serde = { features = ['derive'], optional = true, version = '1.0.101' }
 
 # local dependencies
+## on-chain
 pallet-mixnet = { path = '../pallets/mixnet', default-features = false, version = '2.0.0' }
+
+## off-chain worker
+pallet-offchain-mixer = { path = '../pallets/mixer', default-features = false, version = '2.0.0' }
 
 # Substrate dependencies
 frame-benchmarking = { default-features = false, optional = true, version = '2.0.0' }
@@ -79,6 +83,7 @@ std = [
     'pallet-randomness-collective-flip/std',
     'pallet-sudo/std',
     'pallet-mixnet/std',
+    'pallet-offchain-mixer/std',
     'pallet-timestamp/std',
     'pallet-transaction-payment/std',
     'pallet-transaction-payment-rpc-runtime-api/std',

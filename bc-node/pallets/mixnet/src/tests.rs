@@ -1,11 +1,10 @@
 use crate::types::Ballot;
 use crate::{mock::*, Error};
 use crypto::elgamal::encryption::ElGamal;
-use crypto::elgamal::types::{Cipher};
 use crypto::elgamal::helper::Helper;
+use crypto::elgamal::types::Cipher;
 use frame_support::{assert_noop, assert_ok};
 use num_bigint::BigUint;
-
 
 #[test]
 fn it_works_for_default_value() {
@@ -23,7 +22,7 @@ fn correct_error_for_none_value() {
         // Ensure the expected error is thrown when no value is present.
         assert_noop!(
             MixnetModule::cause_error(Origin::signed(1)),
-            Error::<Test>::NoneValue
+            Error::<TestRuntime>::NoneValue
         );
     });
 }
@@ -54,7 +53,7 @@ fn store_small_dummy_vote() {
         let vote_from_chain: Ballot = votes_from_chain[0].clone();
         assert_eq!(encrypted_vote, vote_from_chain);
         println!("Encrypted Ballot: {:?}", vote_from_chain);
-        
+
         // transform the Ballot -> Cipher
         let cipher_from_chain: Cipher = vote_from_chain.into();
         assert_eq!(cipher, cipher_from_chain);

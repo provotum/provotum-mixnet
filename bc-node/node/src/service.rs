@@ -1,6 +1,6 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use provotum_runtime::{self, opaque::Block, RuntimeApi};
+use provotum_runtime::{self, opaque::Block, pallet_offchain_mixer, RuntimeApi};
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
@@ -56,6 +56,16 @@ pub fn new_partial(
     let (client, backend, keystore, task_manager) =
         sc_service::new_full_parts::<Block, RuntimeApi, Executor>(&config)?;
     let client = Arc::new(client);
+
+    // Initialize seed for signing transaction using off-chain workers
+    // FIXME: this shall be done at runtime via an RPC call
+    keystore
+        .write()
+        .insert_ephemeral_from_seed_by_type::<pallet_offchain_mixer::keys::Pair>(
+            "//Alice",
+            pallet_offchain_mixer::keys::KEY_TYPE,
+        )
+        .expect("Creating key with account Alice should succeed.");
 
     let select_chain = sc_consensus::LongestChain::new(backend.clone());
 

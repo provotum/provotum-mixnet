@@ -3504,6 +3504,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-offchain-mixer"
+version = "2.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "parking_lot 0.10.2",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-randomness-collective-flip"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4171,6 +4187,7 @@ dependencies = [
  "pallet-balances",
  "pallet-grandpa",
  "pallet-mixnet",
+ "pallet-offchain-mixer",
  "pallet-randomness-collective-flip",
  "pallet-sudo",
  "pallet-timestamp",
