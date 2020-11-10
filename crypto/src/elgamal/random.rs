@@ -41,7 +41,7 @@ impl Random {
     }
 
     // generate a random value: 0 < x < number
-    pub fn random_lt_number(number: &BigUint) -> BigUint {
+    pub fn get_random_less_than(number: &BigUint) -> BigUint {
         assert!(*number > BigUint::zero(), "q must be greater than zero!");
         let one = BigUint::one();
         let upper_bound = number.clone().sub(one);
@@ -126,7 +126,7 @@ mod tests {
     fn it_should_generate_random_number() {
         let number = BigUint::parse_bytes(b"123", 10).unwrap();
         for _ in 0..20 {
-            let random = Random::random_lt_number(&number);
+            let random = Random::get_random_less_than(&number);
             assert!(random < number);
         }
     }

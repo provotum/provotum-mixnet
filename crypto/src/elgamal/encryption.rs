@@ -352,19 +352,19 @@ mod tests {
 
         // start with an encryption of zero
         // use a random number < q
-        let r = Random::random_lt_number(&q);
+        let r = Random::get_random_less_than(&q);
         let mut base = ElGamal::encrypt(&zero, &r, &pk);
 
         // add five encryptions of one
         for _ in 0..5 {
-            let r = Random::random_lt_number(&q);
+            let r = Random::get_random_less_than(&q);
             let encryption_of_one = ElGamal::encrypt(&one, &r, &pk);
             base = ElGamal::add(&base, &encryption_of_one, &params.p);
         }
 
         // add five encryptions of zero
         for _ in 0..5 {
-            let r = Random::random_lt_number(&q);
+            let r = Random::get_random_less_than(&q);
             let encryption_of_zero = ElGamal::encrypt(&zero, &r, &pk);
             base = ElGamal::add(&base, &encryption_of_zero, &params.p);
         }
@@ -386,9 +386,9 @@ mod tests {
         let five = BigUint::from(5u32);
 
         // use a random number < q
-        let r = Random::random_lt_number(&q);
+        let r = Random::get_random_less_than(&q);
         let encrypted_five = ElGamal::encrypt(&five, &r, &pk);
-        let r_ = Random::random_lt_number(&q);
+        let r_ = Random::get_random_less_than(&q);
 
         // re-encryption + check that encryption != re-encryption
         let re_encrypted_five = ElGamal::re_encrypt(&encrypted_five, &r_, &pk);
@@ -411,9 +411,9 @@ mod tests {
         let five = BigUint::from(5u32);
 
         // use a random number < q
-        let r = Random::random_lt_number(&q);
+        let r = Random::get_random_less_than(&q);
         let encrypted_five = ElGamal::encrypt(&five, &r, &pk);
-        let r_ = Random::random_lt_number(&q);
+        let r_ = Random::get_random_less_than(&q);
 
         // homomorphic addition with zero: 5 + 0 = 5 + check that encryption != re-encryption
         let re_encrypted_addition = ElGamal::re_encrypt_via_addition(&encrypted_five, &r_, &pk);
@@ -436,11 +436,11 @@ mod tests {
         let five = BigUint::from(5u32);
 
         // use a random number < q
-        let r = Random::random_lt_number(&q);
+        let r = Random::get_random_less_than(&q);
         let encrypted_five = ElGamal::encrypt(&five, &r, &pk);
 
         // option one: homomorphic addition with zero: 5 + 0 = 5
-        let r_ = Random::random_lt_number(&q);
+        let r_ = Random::get_random_less_than(&q);
         let re_encrypted_addition = ElGamal::re_encrypt_via_addition(&encrypted_five, &r_, &pk);
         let decrypted_addition = ElGamal::decrypt(&re_encrypted_addition, &sk);
         assert_eq!(decrypted_addition, five);
@@ -513,26 +513,26 @@ mod tests {
 
         // encryption of zero
         let zero = BigUint::zero();
-        let r = Random::random_lt_number(&q);
+        let r = Random::get_random_less_than(&q);
         let enc_zero = ElGamal::encrypt(&zero, &r, &pk);
 
         // encryption of one
         let one = BigUint::one();
-        let r_ = Random::random_lt_number(&q);
+        let r_ = Random::get_random_less_than(&q);
         let enc_one = ElGamal::encrypt(&one, &r_, &pk);
 
         // encryption of two
         let two = BigUint::from(2u32);
-        let r__ = Random::random_lt_number(&q);
+        let r__ = Random::get_random_less_than(&q);
         let enc_two = ElGamal::encrypt(&two, &r__, &pk);
 
         let encryptions = vec![enc_zero, enc_one, enc_two];
 
         // create three random values < q
         let randoms = vec![
-            Random::random_lt_number(&q),
-            Random::random_lt_number(&q),
-            Random::random_lt_number(&q),
+            Random::get_random_less_than(&q),
+            Random::get_random_less_than(&q),
+            Random::get_random_less_than(&q),
         ];
 
         // create a permutation of size 3
