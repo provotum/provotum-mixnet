@@ -1,7 +1,10 @@
 use crate::mock::*;
 use crate::*;
+use crate::types::Ballot;
 use codec::Decode;
+use crypto::elgamal::{types::Cipher, types::PublicKey as ElGamalPK, encryption::ElGamal, helper::Helper};
 use frame_support::assert_ok;
+use frame_system as system;
 use sp_std::if_std;
 
 #[test]
@@ -20,7 +23,7 @@ fn test_submit_number_signed_works() {
         // An event is emitted
         assert!(System::events()
             .iter()
-            .any(|er| er.event == TestEvent::offchain_mixer(RawEvent::NewNumber(Some(acct), num))));
+            .any(|er| er.event == TestEvent::pallet_mixer(RawEvent::NewNumber(Some(acct), num))));
 
         // Insert another number
         let num2 = num * 2;
@@ -48,34 +51,6 @@ fn test_offchain_signed_tx() {
         let tx = TestExtrinsic::decode(&mut &*tx).unwrap();
         assert_eq!(tx.signature.unwrap().0, 0);
         assert_eq!(tx.call, Call::submit_number_signed(num));
-    });
-}
-
-#[test]
-fn test_offchain_unsigned_tx() {
-    let (mut t, pool_state, _) = ExternalityBuilder::build();
-
-    t.execute_with(|| {
-        // when
-        let num = 32;
-        OffchainModule::offchain_unsigned_tx(num).unwrap();
-        // then
-        let tx = pool_state.write().transactions.pop().unwrap();
-        assert!(pool_state.read().transactions.is_empty());
-        let tx = TestExtrinsic::decode(&mut &*tx).unwrap();
-        assert_eq!(tx.signature, None);
-        assert_eq!(tx.call, Call::submit_number_unsigned(num));
-    });
-}
-
-#[test]
-fn test_offchain_signed_tx_random_number() {
-    let (mut t, _, _) = ExternalityBuilder::build();
-    t.execute_with(|| {
-        let acct: <TestRuntime as system::Trait>::AccountId = Default::default();
-        let origin = Origin::signed(acct);
-        let tx_result = OffchainModule::random(origin);
-        assert_ok!(tx_result);
     });
 }
 
@@ -211,3 +186,181 @@ fn test_should_generate_a_permutation_size_three() {
         assert!(permutation.iter().any(|&value| value == 2));
     });
 }
+
+#[test]
+fn test_fetch_ballots_size_zero() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {        
+        // Read pallet storage (i.e. the submitted ballots) 
+        // and assert an expected result.                
+        let votes_from_chain: Vec<Ballot> = OffchainModule::ballots();
+        assert!(votes_from_chain.len() == 0);
+    });
+}
+
+#[test]
+fn store_small_dummy_vote() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let (_, sk, pk) = Helper::setup_system(b"23", b"2", b"7");
+        let message = BigUint::from(1u32);
+        let random = BigUint::from(7u32);
+
+        // encrypt the message -> encrypted message
+        // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
+        let cipher: Cipher = ElGamal::encrypt(&message, &random, &pk);
+
+        // transform the ballot into a from that the blockchain can handle
+        // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
+        let encrypted_vote: Ballot = cipher.clone().into();
+
+        // create the voter (i.e. the transaction signer)
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let voter = Origin::signed(account);
+
+        let vote_submission_result = OffchainModule::cast_ballot(voter, encrypted_vote.clone());
+        assert_ok!(vote_submission_result);
+
+        // fetch the submitted ballot
+        let votes_from_chain: Vec<Ballot> = OffchainModule::ballots();
+        assert!(votes_from_chain.len() > 0);
+
+        let vote_from_chain: Ballot = votes_from_chain[0].clone();
+        assert_eq!(encrypted_vote, vote_from_chain);
+        println!("Encrypted Ballot: {:?}", vote_from_chain);
+
+        // transform the Ballot -> Cipher
+        let cipher_from_chain: Cipher = vote_from_chain.into();
+        assert_eq!(cipher, cipher_from_chain);
+
+        let decrypted_vote = ElGamal::decrypt(&cipher_from_chain, &sk);
+        assert_eq!(message, decrypted_vote);
+    });
+}
+
+#[test]
+fn store_real_size_vote() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let (_, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
+        b"2", 
+        b"1701411834604692317316873037");
+        let message = BigUint::from(1u32);
+        let random = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+
+        // encrypt the message -> encrypted message
+        // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
+        let cipher: Cipher = ElGamal::encrypt(&message, &random, &pk);
+
+        // transform the ballot into a from that the blockchain can handle
+        // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
+        let encrypted_vote: Ballot = cipher.clone().into();
+        
+        // create the voter (i.e. the transaction signer)
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let voter = Origin::signed(account);
+
+        let vote_submission_result = OffchainModule::cast_ballot(voter, encrypted_vote.clone());
+        assert_ok!(vote_submission_result);
+
+        // fetch the submitted ballot
+        let votes_from_chain: Vec<Ballot> = OffchainModule::ballots();
+        assert!(votes_from_chain.len() > 0);
+
+        let vote_from_chain: Ballot = votes_from_chain[0].clone();
+        assert_eq!(encrypted_vote, vote_from_chain);
+        
+        // transform the Ballot -> Cipher
+        let cipher_from_chain: Cipher = vote_from_chain.into();
+        assert_eq!(cipher, cipher_from_chain);
+
+        let decrypted_vote = ElGamal::decrypt(&cipher_from_chain, &sk);
+        assert_eq!(message, decrypted_vote);
+    });
+}
+
+
+#[test]
+fn test_store_public_key() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // create the submitter (i.e. the public key submitter)
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let who = Origin::signed(account);
+
+        // create the public key        
+        let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
+        b"2", 
+        b"1701411834604692317316873037");
+
+        // store created public key and public parameters
+        let public_key_storage = OffchainModule::store_public_key(who, pk.clone().into());
+        assert_ok!(public_key_storage);
+
+        // fetch the public key from the chain
+        let pk_from_chain: ElGamalPK = OffchainModule::public_key().into();
+        assert_eq!(pk_from_chain, pk);
+    });
+}
+
+// #[test]
+// fn shuffle_votes() {
+//     new_test_ext().execute_with(|| {
+//         // create the submitter (i.e. the public key submitter)
+//         let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+//         let who = Origin::signed(account);
+
+//         // create the public key    
+//         let (_, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
+//         b"2", 
+//         b"1701411834604692317316873037");
+//         let messages = [BigUint::from(5u32), BigUint::from(10u32), BigUint::from(15u32)];
+
+//         // store created public key and public parameters
+//         let public_key_storage = OffchainModule::store_public_key(who, pk.clone().into());
+//         assert_ok!(public_key_storage);
+        
+//         // encrypt the message -> encrypted message
+//         // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
+//         let randoms = [b"170141183460469231731687303715884", b"170141183460469231731687303700084", b"170141183400069231731687303700084"];
+
+//         // create the voter (i.e. the transaction signer)
+//         let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+//         let voter = Origin::signed(account);
+
+//         for index in 0..3 {
+//             let random = BigUint::parse_bytes(randoms[index], 10).unwrap();
+//             let cipher: Cipher = ElGamal::encrypt(&messages[index], &random, &pk);
+    
+//             // transform the ballot into a from that the blockchain can handle
+//             // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
+//             let encrypted_vote: Ballot = cipher.clone().into();
+    
+//             let vote_submission_result = OffchainModule::cast_ballot(voter.clone(), encrypted_vote.clone());
+//             assert_ok!(vote_submission_result);
+
+//         }
+        
+//         // shuffle the votes
+//         let shuffle_result = OffchainModule::trigger_shuffle(voter);
+//         assert_ok!(shuffle_result);
+
+//         // fetch the submitted ballot
+//         let votes_from_chain: Vec<Ballot> = OffchainModule::ballots();
+//         assert!(votes_from_chain.len() == 3);
+
+//         let mut decrypted_votes = vec![];
+
+//         for vote_from_chain in votes_from_chain {            
+//             // transform the Ballot -> Cipher          
+//             let cipher_from_chain: Cipher = vote_from_chain.into();    
+//             let decrypted_vote = ElGamal::decrypt(&cipher_from_chain, &sk);
+//             decrypted_votes.push(decrypted_vote);
+//         }
+
+//         // check that at least one value is 5, 10, 15
+//         assert!(decrypted_votes.iter().any(|decrypted_vote| *decrypted_vote == messages[0]));        
+//         assert!(decrypted_votes.iter().any(|decrypted_vote| *decrypted_vote == messages[1]));        
+//         assert!(decrypted_votes.iter().any(|decrypted_vote| *decrypted_vote == messages[2]));
+//     })
+// }

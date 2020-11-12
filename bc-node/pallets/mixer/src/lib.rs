@@ -1,6 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![feature(unsized_locals)]
 
+pub mod types;
+
 #[cfg(test)]
 mod mock;
 
@@ -17,31 +19,24 @@ use frame_support::{
     weights::Pays,
 };
 use frame_system::{
-    self as system, ensure_none, ensure_signed,
+    self as system, ensure_signed,
     offchain::{
-        AppCrypto, CreateSignedTransaction, SendSignedTransaction, SendUnsignedTransaction,
-        SignedPayload, Signer, SigningTypes, SubmitTransaction,
+        AppCrypto, CreateSignedTransaction, SendSignedTransaction, SignedPayload, Signer,
+        SigningTypes,
     },
 };
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
-use rand::distributions::Distribution;
-use rand::distributions::Uniform;
-use rand_chacha::rand_core::RngCore;
-use rand_chacha::rand_core::SeedableRng;
-use rand_chacha::ChaChaRng;
-use sp_runtime::{
-    offchain as rt_offchain,
-    transaction_validity::{
-        InvalidTransaction, TransactionSource, TransactionValidity, ValidTransaction,
-    },
-    RuntimeDebug,
+use rand::distributions::{Distribution, Uniform};
+use rand_chacha::{
+    rand_core::{RngCore, SeedableRng},
+    ChaChaRng,
 };
-use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
+use sp_runtime::{offchain as rt_offchain, RuntimeDebug};
+use sp_std::{collections::vec_deque::VecDeque, if_std, prelude::*, str};
+use types::{Ballot, PublicKey as SubstratePK};
 
 /// the type to sign and send transactions.
-pub const UNSIGNED_TXS_PRIORITY: u64 = 100;
-
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct Payload<Public> {
     number: u64,
@@ -68,6 +63,15 @@ decl_storage! {
     trait Store for Module<T: Trait> as Example {
         /// A vector of recently submitted numbers (at most 10).
         Numbers get(fn numbers): VecDeque<u64>;
+
+        /// The system's public key
+        PublicKey get(fn public_key): SubstratePK;
+
+        /// A vector containing all submitted votes
+        Ballots get(fn ballots): Vec<Ballot>;
+
+        /// A vector containing the IDs of voters that have submitted their ballots
+        Voters get(fn voters): Vec<T::AccountId>;
     }
 }
 
@@ -79,6 +83,12 @@ decl_event!(
     {
         /// Event generated when a new number is accepted to contribute to the average.
         NewNumber(Option<AccountId>, u64),
+
+        /// ballot submission event -> [from/who, encrypted ballot]
+        VoteSubmitted(AccountId, Ballot),
+
+        /// public key stored event -> [from/who, public key]
+        PublicKeyStored(AccountId, SubstratePK),
     }
 );
 
@@ -90,12 +100,6 @@ decl_error! {
         // Error returned when making signed transactions in off-chain worker
         NoLocalAcctForSigning,
         OffchainSignedTxError,
-
-        // Error returned when making unsigned transactions in off-chain worker
-        OffchainUnsignedTxError,
-
-        // Error returned when making unsigned transactions with signed payloads in off-chain worker
-        OffchainUnsignedTxSignedPayloadError,
 
         // Error returned when failing to get randomness
         RandomnessGenerationError,
@@ -113,75 +117,80 @@ decl_error! {
 
 decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+        // Errors must be initialized if they are used by the pallet.
+        type Error = Error<T>;
+
+        // Events must be initialized if they are used by the pallet.
         fn deposit_event() = default;
+
+        #[weight = (10000, Pays::No)]
+        pub fn store_public_key(origin, pk: SubstratePK) -> DispatchResult {
+            // check that the extrinsic was signed and get the signer.
+            let who = ensure_signed(origin)?;
+            let address_bytes = who.encode();
+            debug::info!("Voter {:?} (encoded: {:?}).", &who, address_bytes);
+
+            if_std! {
+                // This code is only being compiled and executed when the `std` feature is enabled.
+                println!("Voter {:?} (encoded: {:?}).", &who, address_bytes);
+            }
+
+            // store the public key
+            PublicKey::put(pk.clone());
+
+            // notify that the public key has been successfully stored
+            Self::deposit_event(RawEvent::PublicKeyStored(who, pk));
+
+            // Return a successful DispatchResult
+            Ok(())
+        }
 
         #[weight = 10000]
         pub fn submit_number_signed(origin, number: u64) -> DispatchResult {
             let who = ensure_signed(origin)?;
             debug::info!("submit_number_signed: ({}, {:?})", number, who);
-            Self::append_or_replace_number(number);
+
+            Numbers::mutate(|numbers| {
+                if numbers.len() == 10 {
+                    let _ = numbers.pop_front();
+                }
+                numbers.push_back(number);
+                debug::info!("Number vector: {:?}", numbers);
+            });
 
             Self::deposit_event(RawEvent::NewNumber(Some(who), number));
             Ok(())
         }
 
-        #[weight = 10000]
-        pub fn submit_number_unsigned(origin, number: u64) -> DispatchResult {
-            let _ = ensure_none(origin)?;
-            debug::info!("submit_number_unsigned: {}", number);
-            Self::append_or_replace_number(number);
-
-            Self::deposit_event(RawEvent::NewNumber(None, number));
-            Ok(())
-        }
-
-        #[weight = 10000]
-        pub fn submit_number_unsigned_with_signed_payload(origin, payload: Payload<T::Public>,
-            _signature: T::Signature) -> DispatchResult
-        {
-            let _ = ensure_none(origin)?;
-            // we don't need to verify the signature here because it has been verified in
-            // `validate_unsigned` function when sending out the unsigned tx.
-            let Payload { number, public } = payload;
-            debug::info!("submit_number_unsigned_with_signed_payload: ({}, {:?})", number, public);
-            Self::append_or_replace_number(number);
-
-            Self::deposit_event(RawEvent::NewNumber(None, number));
-            Ok(())
-        }
-
         #[weight = (10000, Pays::No)]
-        pub fn random(origin) -> DispatchResult
-        {
-            let _ = ensure_signed(origin)?;
-            let number: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
-            let random = Self::get_random_less_than(&number);
-            match random {
-                Ok(value) => debug::info!("random value: {:?}", value),
-                Err(error) => debug::error!("offchain_worker error: {:?}", error),
+        pub fn cast_ballot(origin, ballot: Ballot) -> DispatchResult {
+            // check that the extrinsic was signed and get the signer.
+            let who = ensure_signed(origin)?;
+            let address_bytes = who.encode();
+            debug::info!("Voter {:?} (encoded: {:?}) cast a ballot.", &who, address_bytes);
+
+            if_std! {
+                // This code is only being compiled and executed when the `std` feature is enabled.
+                println!("Voter {:?} (encoded: {:?}) cast a ballot.", &who, address_bytes);
             }
+
+            // store the ballot
+            Self::store_ballot(who.clone(), ballot.clone());
+
+            // notify that the ballot has been submitted and successfully stored
+            Self::deposit_event(RawEvent::VoteSubmitted(who, ballot));
+
+            // Return a successful DispatchResult
             Ok(())
         }
 
         fn offchain_worker(block_number: T::BlockNumber) {
             debug::info!("off-chain worker: entering...");
 
-            // various techniques that can be used when running off-chain workers
-            // 1. Sending signed transaction from off-chain worker
-            // 2. Sending unsigned transaction from off-chain worker
-            // 3. Sending unsigned transactions with signed payloads from off-chain worker
-            const TRANSACTION_TYPES: usize = 3;
-            let result = match block_number.try_into()
-                .map_or(TRANSACTION_TYPES, |bn| bn % TRANSACTION_TYPES)
-            {
-                0 => Self::offchain_signed_tx(block_number),
-                1 => Self::offchain_unsigned_tx(block_number),
-                2 => Self::offchain_unsigned_tx_signed_payload(block_number),
-                _ => Err(Error::<T>::UnknownOffchainMux),
-            };
-
-            if let Err(e) = result {
-                debug::error!("off-chain worker - error: {:?}", e);
+            let result = Self::offchain_signed_tx(block_number);
+            match result {
+                Ok(_) => debug::info!("off-chain worker: successfully submitted signed_tx {:?}", block_number),
+                Err(e) => debug::error!("off-chain worker - error: {:?}", e),
             }
 
             let number: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
@@ -334,22 +343,36 @@ impl<T: Trait> Module<T> {
         Ok(permutation)
     }
 
-    /// Append a new number to the tail of the list,
-    /// removing an element from the head if reaching the bounded length.
-    fn append_or_replace_number(number: u64) {
-        Numbers::mutate(|numbers| {
-            if numbers.len() == 10 {
-                let _ = numbers.pop_front();
-            }
-            numbers.push_back(number);
-            debug::info!("Number vector: {:?}", numbers);
-        });
+    fn store_ballot(from: T::AccountId, ballot: Ballot) {
+        // store the encrypted ballot
+        let mut ballots: Vec<Ballot> = Ballots::get();
+        ballots.push(ballot.clone());
+        Ballots::put(ballots);
+        debug::info!("Encrypted Ballot: {:?} has been stored.", ballot);
+
+        if_std! {
+            // This code is only being compiled and executed when the `std` feature is enabled.
+            println!("Encrypted Ballot: {:?} has been stored.", ballot);
+        }
+
+        // update the list of voters
+        let mut voters: Vec<T::AccountId> = Voters::<T>::get();
+        voters.push(from.clone());
+        Voters::<T>::put(voters);
+        debug::info!("Voter {:?} has been stored.", from);
+
+        if_std! {
+            // This code is only being compiled and executed when the `std` feature is enabled.
+            println!("Voter {:?} has been stored.", from);
+        }
+    }
+
+    fn shuffle_ballots() {
+        let pk: SubstratePK = PublicKey::get();
     }
 
     fn offchain_signed_tx(block_number: T::BlockNumber) -> Result<(), Error<T>> {
         // We retrieve a signer and check if it is valid.
-        //   Since this pallet only has one key in the keystore. We use `any_account()1 to retrieve it.
-        //   If there are multiple keys and we want to pinpoint it, `with_filter()` can be chained,
         //   ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.Signer.html
         let signer = Signer::<T, T::AuthorityId>::any_account();
 
@@ -362,7 +385,7 @@ impl<T: Trait> Module<T> {
         //   - `Some((account, Err(())))`: error occured when sending the transaction
         let result = signer.send_signed_transaction(|_acct|
 			// This is the on-chain function
-			Call::submit_number_signed(number));
+            Call::submit_number_signed(number));
 
         // Display error if the signed tx fails.
         if let Some((acc, res)) = result {
@@ -377,74 +400,6 @@ impl<T: Trait> Module<T> {
         // The case of `None`: no account is available for sending
         debug::error!("No local account available");
         Err(<Error<T>>::NoLocalAcctForSigning)
-    }
-
-    fn offchain_unsigned_tx(block_number: T::BlockNumber) -> Result<(), Error<T>> {
-        let number: u64 = block_number.try_into().unwrap_or(0) as u64;
-        let call = Call::submit_number_unsigned(number);
-
-        // `submit_unsigned_transaction` returns a type of `Result<(), ()>`
-        //   ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.SubmitTransaction.html#method.submit_unsigned_transaction
-        SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into()).map_err(|_| {
-            debug::error!("Failed in offchain_unsigned_tx");
-            <Error<T>>::OffchainUnsignedTxError
-        })
-    }
-
-    fn offchain_unsigned_tx_signed_payload(block_number: T::BlockNumber) -> Result<(), Error<T>> {
-        // Retrieve the signer to sign the payload
-        let signer = Signer::<T, T::AuthorityId>::any_account();
-
-        // Translating the current block number to number and submit it on-chain
-        let number: u64 = block_number.try_into().unwrap_or(0) as u64;
-
-        // `send_unsigned_transaction` is returning a type of `Option<(Account<T>, Result<(), ()>)>`.
-        //   Similar to `send_signed_transaction`, they account for:
-        //   - `None`: no account is available for sending transaction
-        //   - `Some((account, Ok(())))`: transaction is successfully sent
-        //   - `Some((account, Err(())))`: error occured when sending the transaction
-        if let Some((_, res)) = signer.send_unsigned_transaction(
-            |acct| Payload {
-                number,
-                public: acct.public.clone(),
-            },
-            Call::submit_number_unsigned_with_signed_payload,
-        ) {
-            return res.map_err(|_| {
-                debug::error!("Failed in offchain_unsigned_tx_signed_payload");
-                <Error<T>>::OffchainUnsignedTxSignedPayloadError
-            });
-        }
-
-        // The case of `None`: no account is available for sending
-        debug::error!("No local account available");
-        Err(<Error<T>>::NoLocalAcctForSigning)
-    }
-}
-
-impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
-    type Call = Call<T>;
-
-    fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
-        let valid_tx = |provide| {
-            ValidTransaction::with_tag_prefix("mixer")
-                .priority(UNSIGNED_TXS_PRIORITY)
-                .and_provides([&provide])
-                .longevity(3)
-                .propagate(true)
-                .build()
-        };
-
-        match call {
-            Call::submit_number_unsigned(_number) => valid_tx(b"submit_number_unsigned".to_vec()),
-            Call::submit_number_unsigned_with_signed_payload(ref payload, ref signature) => {
-                if !SignedPayload::<T>::verify::<T::AuthorityId>(payload, signature.clone()) {
-                    return InvalidTransaction::BadProof.into();
-                }
-                valid_tx(b"submit_number_unsigned_with_signed_payload".to_vec())
-            }
-            _ => InvalidTransaction::Call.into(),
-        }
     }
 }
 

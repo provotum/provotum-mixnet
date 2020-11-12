@@ -41,8 +41,7 @@ pub use pallet_timestamp::Call as TimestampCall;
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
-// the mixnet pallet + the offchain worker
-pub use pallet_mixnet;
+// the offchain worker pallet
 pub use pallet_offchain_mixer;
 
 /// An index to a block.
@@ -265,13 +264,6 @@ impl pallet_sudo::Trait for Runtime {
     type Call = Call;
 }
 
-////////////////////////////////////////
-/// mixnet pallet configuation
-
-impl pallet_mixnet::Trait for Runtime {
-    type Event = Event;
-}
-
 ////////////////////////////////////////////////
 /// off-chain worker (mixer) pallet configuation
 
@@ -361,11 +353,8 @@ construct_runtime!(
         TransactionPayment: pallet_transaction_payment::{Module, Storage},
         Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 
-        // include the custom logic from the mixnet pallet.
-        MixnetModule: pallet_mixnet::{Module, Call, Storage, Event<T>},
-
         // include the custom logic from the mixer off-chain worker pallet.
-        OffchainPallet: pallet_offchain_mixer::{ Module, Call, Storage, Event<T>, ValidateUnsigned },
+        OffchainPallet: pallet_offchain_mixer::{Module, Call, Storage, Event<T>},
     }
 );
 

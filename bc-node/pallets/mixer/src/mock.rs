@@ -1,6 +1,8 @@
-use crate::*;
+use crate as pallet_mixer;
+use crate::Call;
 use codec::alloc::sync::Arc;
 use frame_support::{dispatch::Weight, impl_outer_event, impl_outer_origin, parameter_types};
+use frame_system as system;
 use parking_lot::RwLock;
 use sp_core::{
     offchain::{
@@ -19,16 +21,15 @@ use sp_runtime::{
     Perbill,
 };
 
-use crate as offchain_mixer;
-
 impl_outer_origin! {
     pub enum Origin for TestRuntime where system = system {}
 }
 
 impl_outer_event! {
     pub enum TestEvent for TestRuntime {
+        // events of crate: pallet_mixer
         system<T>,
-        offchain_mixer<T>,
+        pallet_mixer<T>,
     }
 }
 
@@ -79,17 +80,11 @@ parameter_types! {
     pub const UnsignedPriority: u64 = 100;
 }
 
-impl Trait for TestRuntime {
-    type Call = Call<TestRuntime>;
-    type Event = TestEvent;
-    type AuthorityId = keys::TestAuthId;
-}
-
 impl<LocalCall> system::offchain::CreateSignedTransaction<LocalCall> for TestRuntime
 where
     Call<TestRuntime>: From<LocalCall>,
 {
-    fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+    fn create_transaction<C: system::offchain::AppCrypto<Self::Public, Self::Signature>>(
         call: Call<TestRuntime>,
         _public: <Signature as Verify>::Signer,
         _account: <TestRuntime as system::Trait>::AccountId,
@@ -102,12 +97,12 @@ where
     }
 }
 
-impl frame_system::offchain::SigningTypes for TestRuntime {
+impl system::offchain::SigningTypes for TestRuntime {
     type Public = <Signature as Verify>::Signer;
     type Signature = Signature;
 }
 
-impl<C> frame_system::offchain::SendTransactionTypes<C> for TestRuntime
+impl<C> system::offchain::SendTransactionTypes<C> for TestRuntime
 where
     Call<TestRuntime>: From<C>,
 {
@@ -116,7 +111,16 @@ where
 }
 
 pub type System = system::Module<TestRuntime>;
-pub type OffchainModule = Module<TestRuntime>;
+
+////////////////////////////////////////
+/// Mock Implementation of pallet_mixer
+impl pallet_mixer::Trait for TestRuntime {
+    type Call = Call<TestRuntime>;
+    type Event = TestEvent;
+    type AuthorityId = pallet_mixer::keys::TestAuthId;
+}
+
+pub type OffchainModule = pallet_mixer::Module<TestRuntime>;
 
 pub struct ExternalityBuilder;
 
@@ -134,7 +138,10 @@ impl ExternalityBuilder {
         let keystore = KeyStore::new();
         keystore
             .write()
-            .sr25519_generate_new(keys::KEY_TYPE, Some(&format!("{}/hunter1", PHRASE)))
+            .sr25519_generate_new(
+                pallet_mixer::keys::KEY_TYPE,
+                Some(&format!("{}/hunter1", PHRASE)),
+            )
             .unwrap();
 
         let storage = system::GenesisConfig::default()

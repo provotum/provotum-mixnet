@@ -3488,22 +3488,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-mixnet"
-version = "2.0.0"
-dependencies = [
- "crypto",
- "frame-support",
- "frame-system",
- "num-bigint 0.3.0",
- "num-traits",
- "parity-scale-codec",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-offchain-mixer"
 version = "2.0.0"
 dependencies = [
@@ -4191,7 +4175,6 @@ dependencies = [
  "pallet-aura",
  "pallet-balances",
  "pallet-grandpa",
- "pallet-mixnet",
  "pallet-offchain-mixer",
  "pallet-randomness-collective-flip",
  "pallet-sudo",
