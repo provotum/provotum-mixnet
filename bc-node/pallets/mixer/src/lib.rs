@@ -14,6 +14,7 @@ pub mod keys;
 
 use codec::{Decode, Encode};
 use core::convert::TryInto;
+use crypto::elgamal::{encryption::ElGamal, types::Cipher};
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
     weights::Pays,
@@ -33,8 +34,8 @@ use rand_chacha::{
     ChaChaRng,
 };
 use sp_runtime::{offchain as rt_offchain, RuntimeDebug};
-use sp_std::{collections::vec_deque::VecDeque, if_std, prelude::*, str};
-use types::{Ballot, PublicKey as SubstratePK};
+use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
+use types::{Ballot, PublicKey as SubstratePK, QAsBigUint};
 
 /// the type to sign and send transactions.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
@@ -65,7 +66,7 @@ decl_storage! {
         Numbers get(fn numbers): VecDeque<u64>;
 
         /// The system's public key
-        PublicKey get(fn public_key): SubstratePK;
+        PublicKey get(fn public_key): Option<SubstratePK>;
 
         /// A vector containing all submitted votes
         Ballots get(fn ballots): Vec<Ballot>;
@@ -112,6 +113,12 @@ decl_error! {
 
         // Error returned when permutation size is zero
         PermutationSizeZeroError,
+
+        // Error returned when ballots are empty when trying to shuffle them
+        ShuffleBallotsSizeZeroError,
+
+        // Error returned when public key doesn't exist
+        PublicKeyNotExistsError,
     }
 }
 
@@ -129,11 +136,6 @@ decl_module! {
             let who = ensure_signed(origin)?;
             let address_bytes = who.encode();
             debug::info!("Voter {:?} (encoded: {:?}).", &who, address_bytes);
-
-            if_std! {
-                // This code is only being compiled and executed when the `std` feature is enabled.
-                println!("Voter {:?} (encoded: {:?}).", &who, address_bytes);
-            }
 
             // store the public key
             PublicKey::put(pk.clone());
@@ -169,11 +171,6 @@ decl_module! {
             let address_bytes = who.encode();
             debug::info!("Voter {:?} (encoded: {:?}) cast a ballot.", &who, address_bytes);
 
-            if_std! {
-                // This code is only being compiled and executed when the `std` feature is enabled.
-                println!("Voter {:?} (encoded: {:?}) cast a ballot.", &who, address_bytes);
-            }
-
             // store the ballot
             Self::store_ballot(who.clone(), ballot.clone());
 
@@ -194,7 +191,7 @@ decl_module! {
             }
 
             let number: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
-            let random = Self::get_random_less_than(&number);
+            let random = Self::get_random_biguint_less_than(&number);
             match random {
                 Ok(value) => debug::info!("off-chain worker: random value: {:?} less than: {:?}", value, number),
                 Err(error) => debug::error!("off-chain worker - error: {:?}", error),
@@ -218,6 +215,7 @@ decl_module! {
                 Ok(val) => debug::info!("off-chain worker: permutation: {:?}", val),
                 Err(error) => debug::error!("off-chain worker - error: {:?}", error),
             }
+
             debug::info!("off-chain worker: done...");
         }
     }
@@ -251,28 +249,46 @@ impl<T: Trait> Module<T> {
     }
 
     // generate a random value: 0 < random < number
-    fn get_random_less_than(number: &BigUint) -> Result<BigUint, Error<T>> {
-        if *number <= BigUint::zero() {
+    fn get_random_biguint_less_than(upper: &BigUint) -> Result<BigUint, Error<T>> {
+        if *upper <= BigUint::zero() {
             return Err(<Error<T>>::RandomnessUpperBoundZeroError);
         }
 
         // determine the upper bound for the random value
-        let upper_bound: BigUint = number.clone() - BigUint::one();
+        let upper_bound: BigUint = upper.clone() - BigUint::one();
 
         // the upper bound but in terms of bytes
         let size: usize = upper_bound.to_bytes_be().len();
 
         // fill an array of size: <size> with random bytes
-        let random_bytes = Self::get_random_bytes(size);
+        let random_bytes = Self::get_random_bytes(size)?;
 
-        match random_bytes {
-            Ok(bytes) => {
-                // try to transform the byte array into a biguint
-                let random = BigUint::from_bytes_be(&bytes);
-                // ensure: random < number
-                Ok(random % number)
-            }
-            Err(err) => Err(err),
+        // try to transform the byte array into a biguint
+        let random = BigUint::from_bytes_be(&random_bytes);
+
+        // ensure: random < number
+        Ok(random % upper)
+    }
+
+    // generate a number of random biguints: all 0 < random < number
+    fn get_random_biguints_less_than(
+        upper: &BigUint,
+        size: usize,
+    ) -> Result<Vec<BigUint>, Error<T>> {
+        let mut randoms: Vec<BigUint> = Vec::new();
+
+        // try to fetch {size} random values < upper
+        for _ in 0..size {
+            let random: BigUint = Self::get_random_biguint_less_than(upper)?;
+            randoms.push(random);
+        }
+
+        // if randoms is empty -> error occurred during get_random_biguint_less_than
+        // since random cannot be pushed onto randoms, the list remains empty
+        if randoms.is_empty() {
+            Err(<Error<T>>::RandomnessUpperBoundZeroError)
+        } else {
+            Ok(randoms)
         }
     }
 
@@ -286,10 +302,7 @@ impl<T: Trait> Module<T> {
         lower: &BigUint,
         upper: &BigUint,
     ) -> Result<BigUint, Error<T>> {
-        if *lower < BigUint::zero() {
-            return Err(<Error<T>>::RandomRangeError);
-        }
-        if *upper <= BigUint::zero() {
+        if *upper == BigUint::zero() {
             return Err(<Error<T>>::RandomRangeError);
         }
         if *lower >= *upper {
@@ -329,10 +342,12 @@ impl<T: Trait> Module<T> {
 
         for index in 0..size {
             // get random integer
-            let random: usize = Self::random_range(&mut rng, index, size).unwrap();
+            let random: usize = Self::random_range(&mut rng, index, size)?;
 
             // get the element in the range at the random position
-            let value = range.get(random).unwrap();
+            let value = range
+                .get(random)
+                .ok_or_else(|| Error::<T>::RandomRangeError)?;
 
             // store the value of the element at the random position
             permutation.push(*value);
@@ -350,25 +365,53 @@ impl<T: Trait> Module<T> {
         Ballots::put(ballots);
         debug::info!("Encrypted Ballot: {:?} has been stored.", ballot);
 
-        if_std! {
-            // This code is only being compiled and executed when the `std` feature is enabled.
-            println!("Encrypted Ballot: {:?} has been stored.", ballot);
-        }
-
         // update the list of voters
         let mut voters: Vec<T::AccountId> = Voters::<T>::get();
         voters.push(from.clone());
         Voters::<T>::put(voters);
         debug::info!("Voter {:?} has been stored.", from);
-
-        if_std! {
-            // This code is only being compiled and executed when the `std` feature is enabled.
-            println!("Voter {:?} has been stored.", from);
-        }
     }
 
-    fn shuffle_ballots() {
-        let pk: SubstratePK = PublicKey::get();
+    fn shuffle_ballots() -> Result<(), Error<T>> {
+        // get the system public key
+        let pk: SubstratePK =
+            PublicKey::get().ok_or_else(|| Error::<T>::PublicKeyNotExistsError)?;
+        let q = QAsBigUint::q(&pk.params);
+
+        // get the encrypted ballots stored on chain
+        let ballots = Ballots::get();
+        let size = ballots.len();
+
+        // check that there are ballots to shuffle
+        if size == 0 {
+            return Err(Error::<T>::ShuffleBallotsSizeZeroError);
+        }
+
+        // get the permuation or else return error
+        let permutation = Self::generate_permutation(size)?;
+
+        // get the random values
+        let randoms = Self::get_random_biguints_less_than(&q, size)?;
+
+        // type conversion: Ballot (Vec<u8>) to Cipher (BigUint)
+        let ciphers = ballots
+            .iter()
+            .map(|c| c.clone().into())
+            .collect::<Vec<Cipher>>();
+
+        // shuffle the ballots
+        let shuffled_ciphers = ElGamal::shuffle(&ciphers, &permutation, &randoms, &(pk.into()));
+
+        // type conversion: Cipher (BigUint) to Ballot (Vec<u8>)
+        let shuffled_ballots = shuffled_ciphers
+            .iter()
+            .map(|c| c.clone().into())
+            .collect::<Vec<Ballot>>();
+
+        // store the ballots on chain
+        Ballots::put(shuffled_ballots);
+        debug::info!("The ballots have been shuffled");
+        Ok(())
     }
 
     fn offchain_signed_tx(block_number: T::BlockNumber) -> Result<(), Error<T>> {
