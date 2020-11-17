@@ -1,5 +1,5 @@
-use crate::types::{ElGamalParams, PrivateKey, PublicKey};
-use alloc::vec::Vec;
+use crate::types::{Cipher, ElGamalParams, PrivateKey, PublicKey};
+use alloc::{format, vec::Vec};
 use blake2::{Blake2b, Digest};
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
@@ -21,11 +21,20 @@ impl Helper {
     }
 
     // helper function to setup ElGamal system before a test
-    pub fn setup_system(p: &[u8], g: &[u8], x: &[u8]) -> (ElGamalParams, PrivateKey, PublicKey) {
+    pub fn setup_system(p: &[u8], x: &[u8]) -> (ElGamalParams, PrivateKey, PublicKey) {
         let params = ElGamalParams {
             p: BigUint::parse_bytes(p, 10).unwrap(),
-            g: BigUint::parse_bytes(g, 10).unwrap(),
+            g: BigUint::parse_bytes(b"4", 10).unwrap(),
+            h: BigUint::parse_bytes(b"9", 10).unwrap(),
         };
+        assert!(
+            Self::is_generator(&params.p, &params.q(), &params.g),
+            "g is not a generator!"
+        );
+        assert!(
+            Self::is_generator(&params.p, &params.q(), &params.h),
+            "h is not a generator!"
+        );
         let sk = PrivateKey {
             params: params.clone(),
             x: BigUint::parse_bytes(x, 10).unwrap(),
@@ -37,16 +46,13 @@ impl Helper {
         (params, sk, pk)
     }
 
-    pub fn is_generator(params: &ElGamalParams) -> bool {
-        let q = params.q();
-
+    pub fn is_generator(p: &BigUint, q: &BigUint, g: &BigUint) -> bool {
         // g is a generator (valid) if:
         // 1. g != 1
         // 2. q != q
         // 3. g^q mod p == 1
-        params.g != q
-            && params.g != BigUint::one()
-            && (params.g.modpow(&q, &params.p) == BigUint::one())
+        let one = BigUint::one();
+        g != q && g != &one && (g.modpow(q, p) == one)
     }
 
     pub fn is_p_valid(_p: &BigUint) -> bool {
@@ -57,7 +63,7 @@ impl Helper {
     /// Uses the Blak2 hash function and produces a hash of four different inputs.
     ///
     /// The result is returned as a BigUint.
-    pub fn blake2_to_biguint(id: usize, constant: &str, i: usize, x: BigUint) -> BigUint {
+    pub fn hash_inputs_to_biguint(id: usize, constant: &str, i: usize, x: BigUint) -> BigUint {
         let hasher = Blake2b::new();
         let hash = hasher
             .chain(id.to_be_bytes())
@@ -86,13 +92,78 @@ impl Helper {
                 x += one.clone();
 
                 // hash all inputs and transform to a biguint
-                h_i = Self::blake2_to_biguint(id, "ggen", i, x.clone());
+                h_i = Self::hash_inputs_to_biguint(id, "ggen", i, x.clone());
                 h_i %= q;
                 h_i = h_i.modpow(&two, q);
             }
             generators.push(h_i);
         }
         generators
+    }
+
+    /// Uses the Blak2 hash function and produces a hash of a vector of BigUints.
+    ///
+    /// The result is returned as a BigUint.
+    pub fn hash_vec_biguints_to_biguint(inputs: Vec<BigUint>) -> BigUint {
+        let mut hash = Blake2b::new();
+
+        for entry in inputs.iter() {
+            hash = hash.chain(entry.to_bytes_be());
+        }
+        let digest = hash.finalize();
+        BigUint::from_bytes_be(&digest)
+    }
+
+    /// Uses the Blak2 hash function and produces a hash of a vector of usize.
+    ///
+    /// The result is returned as a BigUint.
+    pub fn hash_vec_usize_to_biguint(inputs: &[usize]) -> BigUint {
+        let mut hash = Blake2b::new();
+
+        for entry in inputs.iter() {
+            hash = hash.chain(entry.to_be_bytes());
+        }
+        let digest = hash.finalize();
+        BigUint::from_bytes_be(&digest)
+    }
+
+    /// Computes the hash of all inputs.
+    ///
+    /// Inputs:
+    /// - encryptions: Vec<Cipher>
+    /// - shuffled_encryptions: Vec<Cipher>
+    /// - commitments: Vec<BigUint>
+    /// - pk: PublicKey
+    pub fn hash_challenge_inputs(
+        encryptions: Vec<Cipher>,
+        shuffled_encryptions: Vec<Cipher>,
+        commitments: Vec<BigUint>,
+        pk: &PublicKey,
+    ) -> BigUint {
+        // hash all inputs into a single BigUint
+        let mut hash = Blake2b::new();
+
+        for item in encryptions.iter() {
+            // transform both parts of Cipher (a,b) to a byte array + chain their hashes
+            hash = hash.chain(item.a.to_bytes_be()).chain(item.b.to_bytes_be());
+        }
+
+        for item in shuffled_encryptions.iter() {
+            // transform both parts of Cipher (a,b) to a byte array + chain their hashes
+            hash = hash.chain(item.a.to_bytes_be()).chain(item.b.to_bytes_be());
+        }
+
+        for item in commitments.iter() {
+            // transform BigUint to byte array + chain the hash
+            hash = hash.chain(item.to_bytes_be());
+        }
+
+        // transform the public key: h (BigUint) to byte array + chain the hash
+        hash = hash.chain(pk.h.to_bytes_be());
+
+        // final byte array of all chained hashes + transform back to BigUint
+        let digest = hash.finalize();
+        BigUint::from_bytes_be(&digest)
     }
 }
 
@@ -101,15 +172,16 @@ mod tests {
     use super::Helper;
     use crate::types::ElGamalParams;
     use num_bigint::BigUint;
-    use num_traits::{One, Zero};
+    use num_traits::One;
 
     #[test]
     fn it_should_create_system() {
-        let (params, sk, pk) = Helper::setup_system(b"23", b"2", b"4");
+        let (params, sk, pk) = Helper::setup_system(b"23", b"4");
 
         // system parameters check: p, q, g
         assert_eq!(params.p, BigUint::from(23u32));
-        assert_eq!(params.g, BigUint::from(2u32));
+        assert_eq!(params.g, BigUint::from(4u32));
+        assert_eq!(params.h, BigUint::from(9u32));
         assert_eq!(params.q(), BigUint::from(11u32));
 
         // private key check: x == x
@@ -125,6 +197,7 @@ mod tests {
             p: BigUint::from(7u32),
             // and, therefore, q -> 3
             g: BigUint::from(2u32),
+            h: BigUint::from(3u32),
         };
 
         // random value must be: r ∈ Zq = r ∈ {0,1,2}
@@ -146,25 +219,33 @@ mod tests {
     }
 
     #[test]
-    fn check_if_generator_success() {
-        let test_params = ElGamalParams {
+    fn check_if_5_is_a_generator_of_p7_failure() {
+        let params = ElGamalParams {
             p: BigUint::from(7u32),
+            // q = 3
             g: BigUint::from(2u32),
+            h: BigUint::from(3u32),
         };
 
-        let g_is_a_generator = Helper::is_generator(&test_params);
-        assert!(g_is_a_generator);
+        let g_is_not_a_generator =
+            Helper::is_generator(&params.p, &params.q(), &BigUint::from(5u32));
+        assert!(!g_is_not_a_generator);
     }
 
     #[test]
-    fn check_if_generator_failure() {
-        let test_params = ElGamalParams {
-            p: BigUint::from(7u32),
+    fn check_if_g_and_h_are_generators_success() {
+        let params = ElGamalParams {
+            p: BigUint::from(23u32),
+            // q = 11
             g: BigUint::from(4u32),
+            h: BigUint::from(9u32),
         };
 
-        let g_is_not_a_generator = Helper::is_generator(&test_params);
-        assert!(g_is_not_a_generator);
+        let g_is_a_generator = Helper::is_generator(&params.p, &params.q(), &params.g);
+        assert!(g_is_a_generator);
+
+        let h_is_a_generator = Helper::is_generator(&params.p, &params.q(), &params.h);
+        assert!(h_is_a_generator);
     }
 
     #[test]
@@ -173,10 +254,10 @@ mod tests {
         let constant = "ggen";
         let mut i: usize = 1;
         let x = BigUint::one();
-        let hash1 = Helper::blake2_to_biguint(id, constant, i, x.clone());
+        let hash1 = Helper::hash_inputs_to_biguint(id, constant, i, x.clone());
 
         i = 2;
-        let hash2 = Helper::blake2_to_biguint(id, constant, i, x);
+        let hash2 = Helper::hash_inputs_to_biguint(id, constant, i, x);
 
         let one = BigUint::one();
         assert!(hash1 > one.clone());
@@ -188,10 +269,27 @@ mod tests {
     fn it_should_get_generators() {
         let one = BigUint::one();
         let id: usize = 1;
-        let (params, sk, pk) = Helper::setup_system(b"23", b"2", b"4");
+        let (params, _, _) = Helper::setup_system(
+            b"170141183460469231731687303715884105727",
+            b"1701411834604692317316",
+        );
 
         let generators = Helper::get_generators(id, &params.q(), 10);
         assert_eq!(generators.len(), 10);
         assert!(generators.iter().all(|value| value.clone() > one));
+    }
+
+    #[test]
+    fn it_should_hash_biguints() {
+        let one = BigUint::one();
+        let hash1 = Helper::hash_vec_biguints_to_biguint([one.clone()].to_vec());
+
+        let two = BigUint::from(2u32);
+        let hash2 = Helper::hash_vec_biguints_to_biguint([two.clone()].to_vec());
+        assert_ne!(hash1, hash2);
+
+        let combined = Helper::hash_vec_biguints_to_biguint([one, two].to_vec());
+        assert_ne!(combined, hash1);
+        assert_ne!(combined, hash2);
     }
 }

@@ -8,15 +8,18 @@ pub struct ElGamalParams {
     // modulus: p
     pub p: BigUint,
 
-    // generator: g
+    // 1. public generator g
     pub g: BigUint,
+
+    // 2. public generator h
+    pub h: BigUint,
 }
 
 impl ElGamalParams {
     // q:
     // q is valid if it is prime
     pub fn q(&self) -> BigUint {
-        (self.p.clone().sub(1u32)).div(2u32)
+        (self.p.clone().sub(BigUint::one())).div(BigUint::from(2u32))
     }
 }
 
@@ -120,7 +123,9 @@ mod tests {
     fn check_that_q_is_correctly_computed() {
         let test_params = ElGamalParams {
             p: BigUint::from(7u32),
+            // and, therefore, q -> 3
             g: BigUint::from(2u32),
+            h: BigUint::from(3u32),
         };
 
         let expected_q = BigUint::from(3u32);
@@ -134,6 +139,7 @@ mod tests {
             p: BigUint::from(7u32),
             // and, therefore, q -> 3
             g: BigUint::from(2u32),
+            h: BigUint::from(3u32),
         };
 
         // random value must be: r ∈ Zq = r ∈ {0,1,2}
@@ -158,6 +164,7 @@ mod tests {
             p: BigUint::from(7u32),
             // and, therefore, q -> 3
             g: BigUint::from(2u32),
+            h: BigUint::from(3u32),
         };
 
         // random value must be: r ∈ Zq = r ∈ {0,1,2}

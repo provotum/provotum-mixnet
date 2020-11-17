@@ -135,11 +135,11 @@ fn criterion_benchmark(c: &mut Criterion) {
                 ];
 
                 // create a permutation of size 3
-                let permutations = vec![2,0,1];
+                let permutation = vec![2,0,1];
 
-                (encryptions, permutations, randoms, pk)
+                (encryptions, permutation, randoms, pk)
             },
-            |(encryptions, permutations, randoms, pk)| ElGamal::shuffle(&encryptions, &permutations, &randoms, &pk),
+            |(encryptions, permutation, randoms, pk)| ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk),
         )
     });
 

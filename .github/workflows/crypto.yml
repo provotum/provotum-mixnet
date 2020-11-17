@@ -1,11 +1,6 @@
 name: crypto (rust crypto crate)
 
 on:
-  push:
-    branches: [master]
-    paths:
-      - "crypto/**"
-      - "!**.md"
   pull_request:
     branches: [master]
     paths:
@@ -46,28 +41,29 @@ jobs:
       - name: Run Tests
         run: cargo +nightly test --verbose --no-fail-fast --release
 
-  format:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Cache Dependencies
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-format
+  # it seems that formatting is currently broken when using rust nightly
+  # format:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Cache Dependencies
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: |
+  #           ~/.cargo/registry
+  #           ~/.cargo/git
+  #           target
+  #         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-format
           
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
-          components: rustfmt
+  #     - uses: actions-rs/toolchain@v1
+  #       with:
+  #         profile: minimal
+  #         toolchain: nightly
+  #         override: true
+  #         components: rustfmt
 
-      - name: check formatting
-        run: cargo +nightly fmt --all -- --check
+  #     - name: check formatting
+  #       run: cargo +nightly fmt --all -- --check
 
   lint:
     runs-on: ubuntu-latest

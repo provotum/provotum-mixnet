@@ -36,7 +36,7 @@ impl Random {
     ) -> Vec<(Cipher, BigUint, usize)> {
         // create a permutation of size
         let size = encryptions.len();
-        let permutations = Random::generate_permutation(&size);
+        let permutation = Random::generate_permutation(&size);
 
         // create {size} random values < q
         let mut randoms: Vec<BigUint> = Vec::new();
@@ -46,7 +46,7 @@ impl Random {
         }
 
         // shuffle (permute + re-encrypt) the encryptions
-        ElGamal::shuffle(&encryptions, &permutations, &randoms, &pk)
+        ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
     }
 
     pub fn generate_permutation(size: &usize) -> Vec<usize> {

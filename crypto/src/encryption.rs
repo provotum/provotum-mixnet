@@ -155,7 +155,7 @@ impl ElGamal {
     /// * `pk`     - The public key used to re-encrypt the vote
     pub fn shuffle(
         encryptions: &[Cipher],
-        permutations: &[usize],
+        permutation: &[usize],
         randoms: &[BigUint],
         pk: &PublicKey,
     ) -> Vec<(Cipher, BigUint, usize)> {
@@ -164,22 +164,22 @@ impl ElGamal {
             "encryptions and randoms need to have the same length!"
         );
         assert!(
-            encryptions.len() == permutations.len(),
-            "encryptions and permutations need to have the same length!"
+            encryptions.len() == permutation.len(),
+            "encryptions and permutation need to have the same length!"
         );
         assert!(!encryptions.is_empty(), "vectors cannot be empty!");
 
         // generate a permutatinon of size of the encryptions
         let mut re_encryptions: Vec<(Cipher, BigUint, usize)> = Vec::new();
 
-        for permutation in permutations {
+        for entry in permutation {
             // get the encryption and the random value at the permutation position
-            let encryption = &encryptions[*permutation];
-            let random = &randoms[*permutation];
+            let encryption = &encryptions[*entry];
+            let random = &randoms[*entry];
 
             // re-encrypt
             let re_encryption = ElGamal::re_encrypt(&encryption, &random, pk);
-            re_encryptions.push((re_encryption, random.clone(), *permutation));
+            re_encryptions.push((re_encryption, random.clone(), *entry));
         }
         re_encryptions
     }
@@ -194,15 +194,17 @@ mod tests {
 
     #[test]
     fn it_should_encode_a_message() {
-        let (params, _, _) = Helper::setup_system(b"7", b"2", b"2");
-        let message = BigUint::from(2u32);
+        let (params, _, _) = Helper::setup_system(b"7", b"2");
+        let message = BigUint::from(3u32);
         let encoded_message = ElGamal::encode_message(&message, &params.g, &params.p);
-        assert_eq!(encoded_message, BigUint::from(4u32));
+
+        // g^3 mod 7 -> g = 4, 4^3 mod 7 = 64 mod 7 = 1
+        assert_eq!(encoded_message, BigUint::from(1u32));
     }
 
     #[test]
     fn it_should_decode_zero() {
-        let (params, _, _) = Helper::setup_system(b"7", b"2", b"2");
+        let (params, _, _) = Helper::setup_system(b"7", b"2");
         let zero = BigUint::zero();
         let message = zero.clone();
         let encoded_message = ElGamal::encode_message(&message, &params.g, &params.p);
@@ -212,7 +214,7 @@ mod tests {
 
     #[test]
     fn it_should_decode_one() {
-        let (params, _, _) = Helper::setup_system(b"7", b"2", b"2");
+        let (params, _, _) = Helper::setup_system(b"7", b"2");
         let one = BigUint::one();
         let message = one.clone();
         let encoded_message = ElGamal::encode_message(&message, &params.g, &params.p);
@@ -222,7 +224,7 @@ mod tests {
 
     #[test]
     fn it_should_decode_25() {
-        let (params, _, _) = Helper::setup_system(b"23", b"2", b"9");
+        let (params, _, _) = Helper::setup_system(b"23", b"9");
 
         // choose a message m > 1 && m < q
         let nine = BigUint::from(9u32);
@@ -234,7 +236,7 @@ mod tests {
 
     #[test]
     fn it_should_encrypt() {
-        let (_, _, pk) = Helper::setup_system(b"7", b"2", b"2");
+        let (_, _, pk) = Helper::setup_system(b"7", b"2");
 
         // the value of the message: 1
         let message = BigUint::from(1u32);
@@ -245,18 +247,19 @@ mod tests {
         // encrypt the message
         let encrypted_message = ElGamal::encrypt(&message, &r_, &pk);
 
-        // check that a = g^r_ = 2^1 mod 7 = 2
-        assert_eq!(encrypted_message.a, BigUint::from(2u32));
+        // check that a = g^r_ -> g = 4 -> 4^1 mod 7 = 4
+        assert_eq!(encrypted_message.a, BigUint::from(4u32));
 
         // check that b = h^r_ * g^m = (g^r)^r_ * g^m
-        // b = ((2^2)^1 mod 7 * 2^1 mod 7) mod 7
-        // b = (4 mod 7 * 2 mod 7) mod 7 = 1
+        // b = ((4^2)^1 mod 7 * 4^1 mod 7) mod 7
+        // b = (16 mod 7 * 4 mod 7) mod 7
+        // b = (2 * 4) mod 7 = 1
         assert_eq!(encrypted_message.b, BigUint::from(1u32));
     }
 
     #[test]
     fn it_should_encrypt_decrypt_two() {
-        let (_, sk, pk) = Helper::setup_system(b"23", b"2", b"9");
+        let (_, sk, pk) = Helper::setup_system(b"23", b"9");
 
         // the value of the message: 2
         let message = BigUint::from(2u32);
@@ -274,7 +277,7 @@ mod tests {
 
     #[test]
     fn it_should_add_two_zeros() {
-        let (params, sk, pk) = Helper::setup_system(b"23", b"2", b"9");
+        let (params, sk, pk) = Helper::setup_system(b"23", b"9");
         let zero = BigUint::zero();
 
         // encryption of zero
@@ -295,7 +298,7 @@ mod tests {
 
     #[test]
     fn it_should_add_one_and_zero() {
-        let (params, sk, pk) = Helper::setup_system(b"23", b"2", b"9");
+        let (params, sk, pk) = Helper::setup_system(b"23", b"9");
         let zero = BigUint::zero();
         let one = BigUint::one();
 
@@ -317,7 +320,7 @@ mod tests {
 
     #[test]
     fn it_should_add_two_ones() {
-        let (params, sk, pk) = Helper::setup_system(b"23", b"2", b"9");
+        let (params, sk, pk) = Helper::setup_system(b"23", b"9");
         let one = BigUint::one();
         let expected_result = BigUint::from(2u32);
 
@@ -341,7 +344,6 @@ mod tests {
     fn it_should_add_many_and_result_equals_five() {
         let (params, sk, pk) = Helper::setup_system(
             b"170141183460469231731687303715884105727",
-            b"2",
             b"1701411834604692317316",
         );
 
@@ -378,7 +380,6 @@ mod tests {
     fn it_should_re_encrypt_five() {
         let (params, sk, pk) = Helper::setup_system(
             b"170141183460469231731687303715884105727",
-            b"2",
             b"1701411834604692317316",
         );
 
@@ -403,7 +404,6 @@ mod tests {
     fn it_should_re_encrypt_five_by_addition() {
         let (params, sk, pk) = Helper::setup_system(
             b"170141183460469231731687303715884105727",
-            b"2",
             b"1701411834604692317316",
         );
 
@@ -428,7 +428,6 @@ mod tests {
     fn it_should_show_that_both_re_encryptions_are_equal() {
         let (params, sk, pk) = Helper::setup_system(
             b"170141183460469231731687303715884105727",
-            b"2",
             b"1701411834604692317316",
         );
 
@@ -462,29 +461,27 @@ mod tests {
     fn shuffle_vectors_encryptions_randoms_different_size_should_panic() {
         let (_, _, pk) = Helper::setup_system(
             b"170141183460469231731687303715884105727",
-            b"2",
             b"1701411834604692317316",
         );
         let encryptions = vec![];
         let randoms = vec![BigUint::one()];
         let size = 1;
-        let permutations = Random::generate_permutation(&size);
-        ElGamal::shuffle(&encryptions, &permutations, &randoms, &pk);
+        let permutation = Random::generate_permutation(&size);
+        ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk);
     }
 
     #[test]
-    #[should_panic(expected = "encryptions and permutations need to have the same length!")]
+    #[should_panic(expected = "encryptions and permutation need to have the same length!")]
     fn shuffle_vectors_encryptions_permutations_different_size_should_panic() {
         let (_, _, pk) = Helper::setup_system(
             b"170141183460469231731687303715884105727",
-            b"2",
             b"1701411834604692317316",
         );
         let encryptions = vec![];
         let randoms = vec![];
         let size = 1;
-        let permutations = Random::generate_permutation(&size);
-        ElGamal::shuffle(&encryptions, &permutations, &randoms, &pk);
+        let permutation = Random::generate_permutation(&size);
+        ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk);
     }
 
     #[test]
@@ -492,20 +489,18 @@ mod tests {
     fn shuffle_vectors_size_zero_should_panic() {
         let (_, _, pk) = Helper::setup_system(
             b"170141183460469231731687303715884105727",
-            b"2",
             b"1701411834604692317316",
         );
         let encryptions = vec![];
         let randoms = vec![];
-        let permutations = vec![];
-        ElGamal::shuffle(&encryptions, &permutations, &randoms, &pk);
+        let permutation = vec![];
+        ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk);
     }
 
     #[test]
     fn it_should_shuffle_a_list_of_encrypted_votes() {
         let (params, sk, pk) = Helper::setup_system(
             b"170141183460469231731687303715884105727",
-            b"2",
             b"1701411834604692317316",
         );
         let q = params.q();
@@ -525,10 +520,10 @@ mod tests {
 
         // create a permutation of size 3
         let size = encryptions.len();
-        let permutations = Random::generate_permutation(&size);
+        let permutation = Random::generate_permutation(&size);
 
         // shuffle (permute + re-encrypt) the encryptions
-        let shuffle = ElGamal::shuffle(&encryptions, &permutations, &randoms, &pk);
+        let shuffle = ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk);
 
         // destructure the array of tuples
         let shuffled_encryptions = shuffle
@@ -539,10 +534,10 @@ mod tests {
             .iter()
             .map(|item| item.1.clone())
             .collect::<Vec<BigUint>>();
-        let permutations = shuffle.iter().map(|item| item.2).collect::<Vec<usize>>();
+        let permutation = shuffle.iter().map(|item| item.2).collect::<Vec<usize>>();
         assert!(shuffled_encryptions.len() == 3usize);
         assert!(randoms.len() == 3usize);
-        assert!(permutations.len() == 3usize);
+        assert!(permutation.len() == 3usize);
 
         // decrypt the shuffled encryptions
         let mut decryptions = Vec::new();

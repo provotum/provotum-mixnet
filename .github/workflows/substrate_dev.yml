@@ -1,11 +1,6 @@
 name: substrate dev
 
 on:
-  push:
-    branches: [master]
-    paths:
-      - "bc-node/**"
-      - "!**.md"
   pull_request:
     branches: [master]
     paths:

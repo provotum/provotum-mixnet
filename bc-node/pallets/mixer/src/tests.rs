@@ -224,7 +224,7 @@ fn test_fetch_ballots_size_zero() {
 fn store_small_dummy_vote() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        let (_, sk, pk) = Helper::setup_system(b"23", b"2", b"7");
+        let (_, sk, pk) = Helper::setup_system(b"23", b"7");
         let message = BigUint::from(1u32);
         let random = BigUint::from(7u32);
 
@@ -264,7 +264,7 @@ fn store_real_size_vote() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         let (_, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-        b"2", 
+        
         b"1701411834604692317316873037");
         let message = BigUint::from(1u32);
         let random = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
@@ -311,7 +311,7 @@ fn test_store_public_key() {
 
         // create the public key        
         let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-        b"2", 
+        
         b"1701411834604692317316873037");
 
         // store created public key and public parameters
@@ -343,8 +343,7 @@ fn test_shuffle_ballots() {
         let who = Origin::signed(account);
 
         // create the public key    
-        let (_, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-        b"2", 
+        let (_, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457",        
         b"1701411834604692317316873037");
         let messages = [BigUint::from(5u32), BigUint::from(10u32), BigUint::from(15u32)];
 
@@ -409,7 +408,7 @@ fn test_shuffle_ballots_no_ballots() {
         let who = Origin::signed(account);
 
         // create the public key    
-        let (_, _, pk) = Helper::setup_system(b"31",         b"2",         b"3");
+        let (_, _, pk) = Helper::setup_system(b"31",                 b"3");
 
         // store created public key and public parameters
         let public_key_storage = OffchainModule::store_public_key(who, pk.clone().into());
