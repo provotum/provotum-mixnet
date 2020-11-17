@@ -2,7 +2,7 @@ use crate::mock::*;
 use crate::*;
 use crate::{types::Ballot, types::PublicKey};
 use codec::Decode;
-use crypto::elgamal::{types::Cipher, types::PublicKey as ElGamalPK, encryption::ElGamal, helper::Helper};
+use crypto::{types::Cipher, types::PublicKey as ElGamalPK, encryption::ElGamal, helper::Helper};
 use frame_support::{assert_ok};
 use frame_system as system;
 use sp_std::if_std;
@@ -105,7 +105,7 @@ fn test_get_random_numbers_less_than_should_panic_number_is_zero() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         let upper_bound: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
-        let result = OffchainModule::get_random_biguints_less_than(&upper_bound, 0).expect_err(
+        OffchainModule::get_random_biguints_less_than(&upper_bound, 0).expect_err(
             "The returned value should be: '<Error<T>>::RandomnessUpperBoundZeroError'",
         );
     });
@@ -394,7 +394,7 @@ fn test_shuffle_ballots_pk_does_not_exist() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {       
         // try to shuffle the ballots -> public key doesn't exist yet
-        let shuffle_result = OffchainModule::shuffle_ballots().expect_err(
+        OffchainModule::shuffle_ballots().expect_err(
             "The returned value should be: 'Error::<T>::PublicKeyNotExistsError'",
         );
     });
@@ -416,7 +416,7 @@ fn test_shuffle_ballots_no_ballots() {
         assert_ok!(public_key_storage);
 
         // try -> to shuffle the ballots (which don't exist)
-        let shuffle_result = OffchainModule::shuffle_ballots().expect_err(
+        OffchainModule::shuffle_ballots().expect_err(
             "The returned value should be: 'Error::<T>::ShuffleBallotsSizeZeroError'",
         );
     });

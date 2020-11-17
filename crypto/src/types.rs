@@ -106,7 +106,7 @@ fn extended_gcd(a: &BigInt, b: &BigInt) -> (BigInt, BigInt, BigInt) {
 
 #[cfg(test)]
 mod tests {
-    use crate::elgamal::types::{ElGamalParams, ModuloOperations, PrivateKey, PublicKey};
+    use crate::types::{ElGamalParams, ModuloOperations, PrivateKey, PublicKey};
     use num_bigint::BigUint;
     use num_traits::Zero;
 

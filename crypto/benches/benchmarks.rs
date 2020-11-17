@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use crypto::elgamal::{encryption::ElGamal, helper::Helper};
+use crypto::{encryption::ElGamal, helper::Helper};
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 

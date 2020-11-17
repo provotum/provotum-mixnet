@@ -1,4 +1,4 @@
-use crypto::elgamal::types::{Cipher, ElGamalParams, PublicKey as ElGamalPK};
+use crypto::types::{Cipher, ElGamalParams, PublicKey as ElGamalPK};
 use frame_support::codec::{Decode, Encode};
 use num_bigint::BigUint;
 use num_traits::One;

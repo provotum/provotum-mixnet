@@ -17,4 +17,15 @@ extern crate alloc;
 // crates which this library exposes
 #[allow(clippy::many_single_char_names)]
 #[macro_use]
-pub mod elgamal;
+pub mod encryption;
+
+#[allow(clippy::many_single_char_names)]
+#[macro_use]
+pub mod helper;
+// externing crate for test-only use
+#[cfg(test)]
+pub mod random;
+
+#[allow(clippy::many_single_char_names)]
+#[macro_use]
+pub mod types;

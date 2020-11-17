@@ -1,4 +1,4 @@
-use crate::elgamal::types::{ElGamalParams, PrivateKey, PublicKey};
+use crate::types::{ElGamalParams, PrivateKey, PublicKey};
 use alloc::vec::Vec;
 use num_bigint::BigUint;
 use num_traits::One;
@@ -64,7 +64,7 @@ impl Helper {
 #[cfg(test)]
 mod tests {
     use super::Helper;
-    use crate::elgamal::types::ElGamalParams;
+    use crate::types::ElGamalParams;
     use num_bigint::BigUint;
 
     #[test]

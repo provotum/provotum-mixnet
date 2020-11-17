@@ -1,4 +1,4 @@
-use crate::elgamal::types::{Cipher, ModuloOperations, PrivateKey, PublicKey};
+use crate::types::{Cipher, ModuloOperations, PrivateKey, PublicKey};
 use alloc::vec::Vec;
 use num_bigint::BigUint;
 use num_traits::Zero;
@@ -158,7 +158,7 @@ impl ElGamal {
         permutations: &[usize],
         randoms: &[BigUint],
         pk: &PublicKey,
-    ) -> Vec<Cipher> {
+    ) -> Vec<(Cipher, BigUint, usize)> {
         assert!(
             encryptions.len() == randoms.len(),
             "encryptions and randoms need to have the same length!"
@@ -170,7 +170,7 @@ impl ElGamal {
         assert!(!encryptions.is_empty(), "vectors cannot be empty!");
 
         // generate a permutatinon of size of the encryptions
-        let mut re_encryptions: Vec<Cipher> = Vec::new();
+        let mut re_encryptions: Vec<(Cipher, BigUint, usize)> = Vec::new();
 
         for permutation in permutations {
             // get the encryption and the random value at the permutation position
@@ -179,7 +179,7 @@ impl ElGamal {
 
             // re-encrypt
             let re_encryption = ElGamal::re_encrypt(&encryption, &random, pk);
-            re_encryptions.push(re_encryption);
+            re_encryptions.push((re_encryption, random.clone(), *permutation));
         }
         re_encryptions
     }
@@ -187,7 +187,7 @@ impl ElGamal {
 
 #[cfg(test)]
 mod tests {
-    use crate::elgamal::{encryption::ElGamal, helper::Helper, random::Random};
+    use crate::{encryption::ElGamal, helper::Helper, random::Random, types::Cipher};
     use alloc::vec::Vec;
     use num_bigint::BigUint;
     use num_traits::{One, Zero};
@@ -508,28 +508,20 @@ mod tests {
             b"2",
             b"1701411834604692317316",
         );
-
         let q = params.q();
-
-        // encryption of zero
         let zero = BigUint::zero();
-        let r = Random::get_random_less_than(&q);
-        let enc_zero = ElGamal::encrypt(&zero, &r, &pk);
-
-        // encryption of one
         let one = BigUint::one();
-        let r_ = Random::get_random_less_than(&q);
-        let enc_one = ElGamal::encrypt(&one, &r_, &pk);
-
-        // encryption of two
         let two = BigUint::from(2u32);
-        let r__ = Random::get_random_less_than(&q);
-        let enc_two = ElGamal::encrypt(&two, &r__, &pk);
 
-        let encryptions = vec![enc_zero, enc_one, enc_two];
+        // get three encrypted values: 0, 1, 2
+        let encryptions_and_randoms = Random::generate_random_encryptions(&pk, &q);
+        let encryptions = encryptions_and_randoms
+            .iter()
+            .map(|item| item.0.clone())
+            .collect::<Vec<Cipher>>();
 
         // create three random values < q
-        let randoms = vec![
+        let randoms = [
             Random::get_random_less_than(&q),
             Random::get_random_less_than(&q),
             Random::get_random_less_than(&q),
@@ -541,12 +533,25 @@ mod tests {
 
         // shuffle (permute + re-encrypt) the encryptions
         let shuffle = ElGamal::shuffle(&encryptions, &permutations, &randoms, &pk);
-        assert!(shuffle.len() == 3usize);
+
+        // destructure the array of tuples
+        let re_encryptions = shuffle
+            .iter()
+            .map(|item| item.0.clone())
+            .collect::<Vec<Cipher>>();
+        let randoms = shuffle
+            .iter()
+            .map(|item| item.1.clone())
+            .collect::<Vec<BigUint>>();
+        let permutations = shuffle.iter().map(|item| item.2).collect::<Vec<usize>>();
+        assert!(re_encryptions.len() == 3usize);
+        assert!(randoms.len() == 3usize);
+        assert!(permutations.len() == 3usize);
 
         // decrypt the shuffled encryptions
         let mut decryptions = Vec::new();
 
-        for entry in shuffle {
+        for entry in re_encryptions {
             // check that entry (permuted & re-encrypted) is not the same as an existing encryption
             assert!(encryptions.iter().any(|value| value.clone() != entry));
 

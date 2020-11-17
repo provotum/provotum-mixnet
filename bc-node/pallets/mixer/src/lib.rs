@@ -14,7 +14,7 @@ pub mod keys;
 
 use codec::{Decode, Encode};
 use core::convert::TryInto;
-use crypto::elgamal::{encryption::ElGamal, types::Cipher};
+use crypto::{encryption::ElGamal, types::Cipher};
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
     weights::Pays,
@@ -372,7 +372,7 @@ impl<T: Trait> Module<T> {
         debug::info!("Voter {:?} has been stored.", from);
     }
 
-    fn shuffle_ballots() -> Result<(), Error<T>> {
+    fn shuffle_ballots() -> Result<(Vec<Cipher>, Vec<BigUint>, Vec<usize>), Error<T>> {
         // get the system public key
         let pk: SubstratePK =
             PublicKey::get().ok_or_else(|| Error::<T>::PublicKeyNotExistsError)?;
@@ -400,7 +400,11 @@ impl<T: Trait> Module<T> {
             .collect::<Vec<Cipher>>();
 
         // shuffle the ballots
-        let shuffled_ciphers = ElGamal::shuffle(&ciphers, &permutation, &randoms, &(pk.into()));
+        let shuffle = ElGamal::shuffle(&ciphers, &permutation, &randoms, &(pk.into()));
+        let shuffled_ciphers = shuffle
+            .iter()
+            .map(|item| item.0.clone())
+            .collect::<Vec<Cipher>>();
 
         // type conversion: Cipher (BigUint) to Ballot (Vec<u8>)
         let shuffled_ballots = shuffled_ciphers
@@ -411,7 +415,7 @@ impl<T: Trait> Module<T> {
         // store the ballots on chain
         Ballots::put(shuffled_ballots);
         debug::info!("The ballots have been shuffled");
-        Ok(())
+        Ok((ciphers, randoms, permutation))
     }
 
     fn offchain_signed_tx(block_number: T::BlockNumber) -> Result<(), Error<T>> {
