@@ -1,4 +1,4 @@
-use crate::types::{ElGamalParams, ModuloOperations, PrivateKey, PublicKey};
+use crate::types::{ElGamalParams, PrivateKey, PublicKey};
 use alloc::vec::Vec;
 use blake2::{Blake2b, Digest};
 use num_bigint::BigUint;
@@ -58,7 +58,7 @@ impl Helper {
     ///
     /// The result is returned as a BigUint.
     pub fn blake2_to_biguint(id: usize, constant: &str, i: usize, x: BigUint) -> BigUint {
-        let mut hasher = Blake2b::new();
+        let hasher = Blake2b::new();
         let hash = hasher
             .chain(id.to_be_bytes())
             .chain(constant)
@@ -71,7 +71,7 @@ impl Helper {
     /// Returns {number} independent generators of G_q ∈ Z*_p.
     ///
     /// The algorithm is an adaption of the NIST standard FIPS PUB 186-4 (Appendix A.2.3)
-    pub fn get_generators(electionId: usize, q: &BigUint, number: usize) -> Vec<BigUint> {
+    pub fn get_generators(id: usize, q: &BigUint, number: usize) -> Vec<BigUint> {
         let mut generators: Vec<BigUint> = Vec::new();
         for i in 0..number {
             let zero = BigUint::zero();
@@ -83,11 +83,11 @@ impl Helper {
 
             let mut h_i = zero.clone();
             while h_i == zero || h_i == one {
-                x = x + one.clone();
+                x += one.clone();
 
                 // hash all inputs and transform to a biguint
-                h_i = Self::blake2_to_biguint(electionId, "ggen", i, x.clone());
-                h_i = h_i % q;
+                h_i = Self::blake2_to_biguint(id, "ggen", i, x.clone());
+                h_i %= q;
                 h_i = h_i.modpow(&two, q);
             }
             generators.push(h_i);

@@ -11,7 +11,7 @@ use rand::Rng;
 pub struct Random;
 
 impl Random {
-    pub fn generate_random_encryptions(pk: &PublicKey, q: &BigUint) -> [(Cipher, BigUint); 3] {
+    pub fn generate_random_encryptions(pk: &PublicKey, q: &BigUint) -> [Cipher; 3] {
         // encryption of zero
         let zero = BigUint::zero();
         let r = Random::get_random_less_than(q);
@@ -26,7 +26,27 @@ impl Random {
         let two = BigUint::from(2u32);
         let r__ = Random::get_random_less_than(q);
         let enc_two = ElGamal::encrypt(&two, &r__, pk);
-        [(enc_zero, r), (enc_one, r_), (enc_two, r__)]
+        [enc_zero, enc_one, enc_two]
+    }
+
+    pub fn generate_shuffle(
+        pk: &PublicKey,
+        q: &BigUint,
+        encryptions: Vec<Cipher>,
+    ) -> Vec<(Cipher, BigUint, usize)> {
+        // create a permutation of size
+        let size = encryptions.len();
+        let permutations = Random::generate_permutation(&size);
+
+        // create {size} random values < q
+        let mut randoms: Vec<BigUint> = Vec::new();
+
+        for _ in 0..size {
+            randoms.push(Random::get_random_less_than(&q));
+        }
+
+        // shuffle (permute + re-encrypt) the encryptions
+        ElGamal::shuffle(&encryptions, &permutations, &randoms, &pk)
     }
 
     pub fn generate_permutation(size: &usize) -> Vec<usize> {

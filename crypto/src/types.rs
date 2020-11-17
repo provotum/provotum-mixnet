@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use core::ops::{Div, Mul, Sub};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Zero};
@@ -51,6 +52,11 @@ pub struct Cipher {
     // - h: public key
     // - m: message
     pub b: BigUint,
+}
+#[derive(Eq, PartialEq, Clone, Debug, Hash)]
+pub struct PermutationCommitment {
+    pub commitments: Vec<BigUint>,
+    pub randoms: Vec<BigUint>,
 }
 
 pub trait ModuloOperations {

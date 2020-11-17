@@ -514,11 +514,7 @@ mod tests {
         let two = BigUint::from(2u32);
 
         // get three encrypted values: 0, 1, 2
-        let encryptions_and_randoms = Random::generate_random_encryptions(&pk, &q);
-        let encryptions = encryptions_and_randoms
-            .iter()
-            .map(|item| item.0.clone())
-            .collect::<Vec<Cipher>>();
+        let encryptions = Random::generate_random_encryptions(&pk, &q);
 
         // create three random values < q
         let randoms = [
@@ -535,7 +531,7 @@ mod tests {
         let shuffle = ElGamal::shuffle(&encryptions, &permutations, &randoms, &pk);
 
         // destructure the array of tuples
-        let re_encryptions = shuffle
+        let shuffled_encryptions = shuffle
             .iter()
             .map(|item| item.0.clone())
             .collect::<Vec<Cipher>>();
@@ -544,14 +540,14 @@ mod tests {
             .map(|item| item.1.clone())
             .collect::<Vec<BigUint>>();
         let permutations = shuffle.iter().map(|item| item.2).collect::<Vec<usize>>();
-        assert!(re_encryptions.len() == 3usize);
+        assert!(shuffled_encryptions.len() == 3usize);
         assert!(randoms.len() == 3usize);
         assert!(permutations.len() == 3usize);
 
         // decrypt the shuffled encryptions
         let mut decryptions = Vec::new();
 
-        for entry in re_encryptions {
+        for entry in shuffled_encryptions {
             // check that entry (permuted & re-encrypted) is not the same as an existing encryption
             assert!(encryptions.iter().any(|value| value.clone() != entry));
 
