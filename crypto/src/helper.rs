@@ -1,5 +1,5 @@
 use crate::types::{Cipher, ElGamalParams, PrivateKey, PublicKey};
-use alloc::{format, vec::Vec};
+use alloc::vec::Vec;
 use blake2::{Blake2b, Digest};
 use num_bigint::BigUint;
 use num_traits::{One, Zero};

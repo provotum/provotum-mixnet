@@ -62,6 +62,7 @@ impl Into<ElGamalPK> for PublicKey {
 pub struct PublicParameters {
     pub p: Vec<u8>,
     pub g: Vec<u8>,
+    pub h: Vec<u8>,
 }
 
 /// defines the function q = (p - 1) / 2 with return type BigUint.
@@ -97,6 +98,7 @@ impl Into<PublicParameters> for ElGamalParams {
         PublicParameters {
             p: self.p.to_bytes_be(),
             g: self.g.to_bytes_be(),
+            h: self.h.to_bytes_be(),
         }
     }
 }
@@ -106,6 +108,7 @@ impl Into<ElGamalParams> for PublicParameters {
         ElGamalParams {
             p: BigUint::from_bytes_be(&self.p),
             g: BigUint::from_bytes_be(&self.g),
+            h: BigUint::from_bytes_be(&self.h),
         }
     }
 }

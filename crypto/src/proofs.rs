@@ -5,7 +5,7 @@ use crate::{
 };
 use alloc::{vec, vec::Vec};
 use num_bigint::BigUint;
-use num_traits::One;
+use num_traits::{One, Zero};
 
 pub struct ShuffleProof;
 
@@ -67,6 +67,8 @@ impl ShuffleProof {
 
         // reassign the permuted challenges
         challenges = temp_;
+
+        unimplemented!()
 
         // generate commitment chain: (c', r')
         // let commitment_chain = Self::generate_commitment_chain(challenges);
@@ -135,9 +137,66 @@ impl ShuffleProof {
         }
     }
 
-    pub fn generate_commitment_chain() {
-        // TODO: implement according to Alg 8.49 of ch-vote spec
-        unimplemented!()
+    /// Generates a commitment chain c_1 -> c_N relative to a vector of
+    /// public permuted challenges u' and the second public generator h ∈ G_q.
+    ///
+    /// Inputs:
+    /// - challenges u': permuted public challenges u
+    /// - randoms: new random values used for the commitment chain
+    pub fn generate_commitment_chain(
+        challenges: Vec<BigUint>,
+        randoms: Vec<BigUint>,
+        params: &ElGamalParams,
+    ) -> PermutationCommitment {
+        assert!(
+            challenges.len() == randoms.len(),
+            "challenges and randoms need to have the same length!"
+        );
+        assert!(!challenges.is_empty(), "vectors cannot be empty!");
+
+        let p = &params.p;
+        let q = &params.q();
+        let g = &params.g;
+        let h = &params.h;
+
+        let mut commitment_values = Vec::new();
+        let mut commitment_randoms = Vec::new();
+
+        // initialize the commitment and random values with
+        // R_0 = 0, U_0 = 1
+        let mut r_i = BigUint::zero();
+        let mut u_i = BigUint::one();
+        let mut c_i: BigUint;
+
+        for i in 0..challenges.len() {
+            // retrieve and store the commitment random
+            let random_i = randoms[i].clone();
+            commitment_randoms.push(random_i.clone());
+
+            // retrieve the challenge at index i
+            let challenge_i = challenges[i].clone();
+
+            // compute the commitment random: R_i = random_i + challenge_i * R_(i-1) mod q
+            r_i = random_i + challenge_i.clone() * r_i.clone();
+            r_i %= q;
+
+            // compute U_i = challenge_i * U_(i-1) mod q
+            u_i = challenge_i * u_i.clone();
+            u_i %= q;
+
+            // compute the commitment value: c_i = g^r_i * h^u_i mod p
+            // g is the first and h the second public generator: g ∈ G_q, h ∈ G_q
+            let g_pow_r_i = g.modpow(&r_i, p);
+            let h_pow_u_i = h.modpow(&u_i, p);
+            c_i = g_pow_r_i * h_pow_u_i;
+            c_i %= p;
+            commitment_values.push(c_i);
+        }
+        assert!(commitment_values.len() == commitment_randoms.len());
+        PermutationCommitment {
+            commitments: commitment_values,
+            randoms: commitment_randoms,
+        }
     }
 
     /// Computes n challenges 0 <= c_i <= 2^tau for a given of public value.
@@ -447,5 +506,77 @@ mod tests {
         // 2. all challenge values are < q
         assert_eq!(challenges.len(), 3);
         assert!(challenges.iter().all(|value| value < &pk.params.q()));
+    }
+
+    #[test]
+    #[should_panic(expected = "challenges and randoms need to have the same length!")]
+    fn it_should_panic_generate_commitment_chain_different_size_challenges_randoms() {
+        // SETUP
+        let (params, _, _) = Helper::setup_system(
+            b"170141183460469231731687303715884105727",
+            b"1701411834604692317316",
+        );
+
+        // fake values
+        let challenges = vec![BigUint::one()];
+        let randoms: Vec<BigUint> = Vec::new();
+
+        // TEST
+        ShuffleProof::generate_commitment_chain(challenges, randoms, &params);
+    }
+
+    #[test]
+    #[should_panic(expected = "vectors cannot be empty!")]
+    fn it_should_panic_generate_commitment_chain_empty_inputs() {
+        // SETUP
+        let (params, _, _) = Helper::setup_system(
+            b"170141183460469231731687303715884105727",
+            b"1701411834604692317316",
+        );
+
+        // fake values
+        let challenges: Vec<BigUint> = Vec::new();
+        let randoms: Vec<BigUint> = Vec::new();
+
+        // TEST
+        ShuffleProof::generate_commitment_chain(challenges, randoms, &params);
+    }
+
+    #[test]
+    fn it_should_panic_generate_commitment_chain() {
+        // SETUP
+        let (params, _, _) = Helper::setup_system(
+            b"170141183460469231731687303715884105727",
+            b"1701411834604692317316",
+        );
+
+        let size = 3usize;
+        let p = &params.p;
+        let q = &params.q();
+
+        // fake challenge values
+        let mut challenges: Vec<BigUint> = Vec::new();
+        for _ in 0..size {
+            challenges.push(Random::get_random_less_than(q));
+        }
+
+        // generate {size} random values
+        let mut randoms: Vec<BigUint> = Vec::new();
+        for _ in 0..size {
+            randoms.push(Random::get_random_less_than(q));
+        }
+
+        // TEST
+        let commitent_chain = ShuffleProof::generate_commitment_chain(challenges, randoms, &params);
+
+        // check that:
+        // 1. all commitment values are < q
+        // 2. there exist the same number of commitments + randoms
+        assert!(commitent_chain.commitments.iter().all(|value| value < p));
+        assert!(commitent_chain.randoms.iter().all(|value| value < q));
+        assert_eq!(
+            commitent_chain.commitments.len(),
+            commitent_chain.randoms.len()
+        );
     }
 }
