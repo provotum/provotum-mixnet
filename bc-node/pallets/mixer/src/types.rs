@@ -30,6 +30,28 @@ impl Into<Cipher> for Ballot {
     }
 }
 
+/// required to perform into() conversion for trait Vec
+/// for Vec<Ballot> is not allowed, since trait Vec is not defined here
+pub struct Wrapper<T>(pub Vec<T>);
+
+impl Into<Vec<Cipher>> for Wrapper<Ballot> {
+    fn into(self) -> Vec<Cipher> {
+        self.0
+            .into_iter()
+            .map(|v| v.into())
+            .collect::<Vec<Cipher>>()
+    }
+}
+
+impl Into<Vec<Ballot>> for Wrapper<Cipher> {
+    fn into(self) -> Vec<Ballot> {
+        self.0
+            .into_iter()
+            .map(|v| v.into())
+            .collect::<Vec<Ballot>>()
+    }
+}
+
 /// the PublicKey from the crypto crate.
 /// different types which the blockchain can handle.
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
@@ -61,7 +83,9 @@ impl Into<ElGamalPK> for PublicKey {
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
 pub struct PublicParameters {
     pub p: Vec<u8>,
+    // 1. public generator g
     pub g: Vec<u8>,
+    // 2. public generator h
     pub h: Vec<u8>,
 }
 

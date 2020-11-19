@@ -1,7 +1,7 @@
-use crate::*;
+use crate::{Error, Module, Trait};
 use frame_support::debug;
 use num_bigint::BigUint;
-use num_traits::One;
+use num_traits::{One, Zero};
 use rand::distributions::{Distribution, Uniform};
 use rand_chacha::{
     rand_core::{RngCore, SeedableRng},
@@ -112,7 +112,11 @@ impl<T: Trait> Module<T> {
         Self::random_range(&mut rng, lower, upper)
     }
 
-    fn random_range(rng: &mut ChaChaRng, lower: usize, upper: usize) -> Result<usize, Error<T>> {
+    fn random_range(
+        rng: &mut ChaChaRng,
+        lower: usize,
+        upper: usize,
+    ) -> Result<usize, Error<T>> {
         if upper == 0 {
             return Err(Error::RandomRangeError);
         }

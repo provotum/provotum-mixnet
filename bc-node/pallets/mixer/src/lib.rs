@@ -28,7 +28,7 @@ use frame_system::{
     },
 };
 use num_bigint::BigUint;
-use num_traits::{One, Zero};
+use num_traits::One;
 use sp_runtime::{offchain as rt_offchain, RuntimeDebug};
 use sp_std::{collections::vec_deque::VecDeque, prelude::*, str, vec::Vec};
 use types::{Ballot, PublicKey as SubstratePK};

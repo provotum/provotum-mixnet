@@ -1,7 +1,9 @@
 use crate as pallet_mixer;
 use crate::Call;
 use codec::alloc::sync::Arc;
-use frame_support::{dispatch::Weight, impl_outer_event, impl_outer_origin, parameter_types};
+use frame_support::{
+    dispatch::Weight, impl_outer_event, impl_outer_origin, parameter_types,
+};
 use frame_system as system;
 use parking_lot::RwLock;
 use sp_core::{
@@ -84,7 +86,9 @@ impl<LocalCall> system::offchain::CreateSignedTransaction<LocalCall> for TestRun
 where
     Call<TestRuntime>: From<LocalCall>,
 {
-    fn create_transaction<C: system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+    fn create_transaction<
+        C: system::offchain::AppCrypto<Self::Public, Self::Signature>,
+    >(
         call: Call<TestRuntime>,
         _public: <Signature as Verify>::Signer,
         _account: <TestRuntime as system::Trait>::AccountId,

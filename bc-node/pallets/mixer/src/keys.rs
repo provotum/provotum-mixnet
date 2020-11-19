@@ -27,8 +27,11 @@ impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuth
 }
 
 // implemented for mock runtime in test
-impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature>
-    for TestAuthId
+impl
+    frame_system::offchain::AppCrypto<
+        <Sr25519Signature as Verify>::Signer,
+        Sr25519Signature,
+    > for TestAuthId
 {
     type RuntimeAppPublic = Public;
     type GenericSignature = sp_core::sr25519::Signature;

@@ -2,8 +2,8 @@ use crate::mock::*;
 use crate::*;
 use crate::{types::Ballot, types::PublicKey};
 use codec::Decode;
-use crypto::{types::Cipher, types::PublicKey as ElGamalPK, encryption::ElGamal, helper::Helper};
-use frame_support::{assert_ok};
+use crypto::{encryption::ElGamal, helper::Helper, types::Cipher, types::PublicKey as ElGamalPK};
+use frame_support::assert_ok;
 use frame_system as system;
 use sp_std::if_std;
 
@@ -90,7 +90,8 @@ fn test_get_random_numbers_less_than() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         let upper_bound: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
-        let randoms: Vec<BigUint> = OffchainModule::get_random_biguints_less_than(&upper_bound, 10).unwrap();
+        let randoms: Vec<BigUint> =
+            OffchainModule::get_random_biguints_less_than(&upper_bound, 10).unwrap();
         assert_eq!(randoms.len(), 10);
         let zero = BigUint::zero();
         for random in randoms.iter() {
@@ -118,7 +119,7 @@ fn test_get_random_bigunint_range() {
         let lower: BigUint = BigUint::parse_bytes(b"0", 10).unwrap();
         let upper: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
         let value = OffchainModule::get_random_bigunint_range(&lower, &upper).unwrap();
-        
+
         assert!(value < upper);
         assert!(lower < value);
     });
@@ -169,7 +170,8 @@ fn test_get_random_range_upper_is_zero_error() {
     t.execute_with(|| {
         let lower: usize = 0;
         let upper: usize = 0;
-        OffchainModule::get_random_range(lower, upper).expect_err("The returned value should be: '<Error<T>>::RandomRangeError'");
+        OffchainModule::get_random_range(lower, upper)
+            .expect_err("The returned value should be: '<Error<T>>::RandomRangeError'");
     });
 }
 
@@ -179,7 +181,8 @@ fn test_get_random_range_upper_is_not_larger_than_lower_error() {
     t.execute_with(|| {
         let lower: usize = 5;
         let upper: usize = 5;
-        OffchainModule::get_random_range(lower, upper).expect_err("The returned value should be: '<Error<T>>::RandomRangeError'");
+        OffchainModule::get_random_range(lower, upper)
+            .expect_err("The returned value should be: '<Error<T>>::RandomRangeError'");
     });
 }
 
@@ -188,7 +191,8 @@ fn test_generate_permutation_size_zero_error() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         let size = 0;
-        OffchainModule::generate_permutation(size).expect_err("The returned value should be: '<Error<T>>::PermutationSizeZeroError'");
+        OffchainModule::generate_permutation(size)
+            .expect_err("The returned value should be: '<Error<T>>::PermutationSizeZeroError'");
     });
 }
 
@@ -212,9 +216,9 @@ fn test_should_generate_a_permutation_size_three() {
 #[test]
 fn test_fetch_ballots_size_zero() {
     let (mut t, _, _) = ExternalityBuilder::build();
-    t.execute_with(|| {        
-        // Read pallet storage (i.e. the submitted ballots) 
-        // and assert an expected result.                
+    t.execute_with(|| {
+        // Read pallet storage (i.e. the submitted ballots)
+        // and assert an expected result.
         let votes_from_chain: Vec<Ballot> = OffchainModule::ballots();
         assert!(votes_from_chain.len() == 0);
     });
@@ -299,7 +303,6 @@ fn store_real_size_vote() {
         assert_eq!(message, decrypted_vote);
     });
 }
-
 
 #[test]
 fn test_store_public_key() {
@@ -391,32 +394,30 @@ fn test_shuffle_ballots() {
 #[test]
 fn test_shuffle_ballots_pk_does_not_exist() {
     let (mut t, _, _) = ExternalityBuilder::build();
-    t.execute_with(|| {       
+    t.execute_with(|| {
         // try to shuffle the ballots -> public key doesn't exist yet
-        OffchainModule::shuffle_ballots().expect_err(
-            "The returned value should be: 'Error::<T>::PublicKeyNotExistsError'",
-        );
+        OffchainModule::shuffle_ballots()
+            .expect_err("The returned value should be: 'Error::<T>::PublicKeyNotExistsError'");
     });
 }
 
 #[test]
 fn test_shuffle_ballots_no_ballots() {
     let (mut t, _, _) = ExternalityBuilder::build();
-    t.execute_with(|| {  
+    t.execute_with(|| {
         // create the submitter (i.e. the public key submitter)
         let account: <TestRuntime as system::Trait>::AccountId = Default::default();
         let who = Origin::signed(account);
 
-        // create the public key    
-        let (_, _, pk) = Helper::setup_system(b"31",                 b"3");
+        // create the public key
+        let (_, _, pk) = Helper::setup_system(b"31", b"3");
 
         // store created public key and public parameters
         let public_key_storage = OffchainModule::store_public_key(who, pk.clone().into());
         assert_ok!(public_key_storage);
 
         // try -> to shuffle the ballots (which don't exist)
-        OffchainModule::shuffle_ballots().expect_err(
-            "The returned value should be: 'Error::<T>::ShuffleBallotsSizeZeroError'",
-        );
+        OffchainModule::shuffle_ballots()
+            .expect_err("The returned value should be: 'Error::<T>::ShuffleBallotsSizeZeroError'");
     });
 }
