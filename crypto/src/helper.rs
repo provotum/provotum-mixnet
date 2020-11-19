@@ -7,7 +7,10 @@ use num_traits::{One, Zero};
 pub struct Helper;
 
 impl Helper {
-    pub fn generate_key_pair(params: &ElGamalParams, r: &BigUint) -> (PublicKey, PrivateKey) {
+    pub fn generate_key_pair(
+        params: &ElGamalParams,
+        r: &BigUint,
+    ) -> (PublicKey, PrivateKey) {
         let sk = PrivateKey {
             params: params.clone(),
             x: r.clone(),
@@ -63,7 +66,12 @@ impl Helper {
     /// Uses the Blak2 hash function and produces a hash of four different inputs.
     ///
     /// The result is returned as a BigUint.
-    pub fn hash_inputs_to_biguint(id: usize, constant: &str, i: usize, x: BigUint) -> BigUint {
+    pub fn hash_inputs_to_biguint(
+        id: usize,
+        constant: &str,
+        i: usize,
+        x: BigUint,
+    ) -> BigUint {
         let hasher = Blake2b::new();
         let hash = hasher
             .chain(id.to_be_bytes())

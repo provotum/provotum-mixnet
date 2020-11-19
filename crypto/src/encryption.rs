@@ -141,7 +141,11 @@ impl ElGamal {
     /// * `cipher` - An ElGamal Encryption { a: BigUint, b: BigUint }
     /// * `r`      - The random number used to re-encrypt the vote    
     /// * `pk`     - The public key used to re-encrypt the vote
-    pub fn re_encrypt_via_addition(cipher: &Cipher, r: &BigUint, pk: &PublicKey) -> Cipher {
+    pub fn re_encrypt_via_addition(
+        cipher: &Cipher,
+        r: &BigUint,
+        pk: &PublicKey,
+    ) -> Cipher {
         let zero = Self::encrypt(&BigUint::zero(), &r, &pk);
         Self::add(cipher, &zero, &pk.params.p)
     }
@@ -208,7 +212,8 @@ mod tests {
         let zero = BigUint::zero();
         let message = zero.clone();
         let encoded_message = ElGamal::encode_message(&message, &params.g, &params.p);
-        let decoded_message = ElGamal::decode_message(&encoded_message, &params.g, &params.p);
+        let decoded_message =
+            ElGamal::decode_message(&encoded_message, &params.g, &params.p);
         assert_eq!(zero, decoded_message);
     }
 
@@ -218,7 +223,8 @@ mod tests {
         let one = BigUint::one();
         let message = one.clone();
         let encoded_message = ElGamal::encode_message(&message, &params.g, &params.p);
-        let decoded_message = ElGamal::decode_message(&encoded_message, &params.g, &params.p);
+        let decoded_message =
+            ElGamal::decode_message(&encoded_message, &params.g, &params.p);
         assert_eq!(one, decoded_message);
     }
 
@@ -230,7 +236,8 @@ mod tests {
         let nine = BigUint::from(9u32);
         let message = nine.clone();
         let encoded_message = ElGamal::encode_message(&message, &params.g, &params.p);
-        let decoded_message = ElGamal::decode_message(&encoded_message, &params.g, &params.p);
+        let decoded_message =
+            ElGamal::decode_message(&encoded_message, &params.g, &params.p);
         assert_eq!(nine, decoded_message);
     }
 
@@ -416,7 +423,8 @@ mod tests {
         let r_ = Random::get_random_less_than(&q);
 
         // homomorphic addition with zero: 5 + 0 = 5 + check that encryption != re-encryption
-        let re_encrypted_addition = ElGamal::re_encrypt_via_addition(&encrypted_five, &r_, &pk);
+        let re_encrypted_addition =
+            ElGamal::re_encrypt_via_addition(&encrypted_five, &r_, &pk);
         assert!(encrypted_five != re_encrypted_addition);
 
         // check that decryption is still the same as the initial value
@@ -440,7 +448,8 @@ mod tests {
 
         // option one: homomorphic addition with zero: 5 + 0 = 5
         let r_ = Random::get_random_less_than(&q);
-        let re_encrypted_addition = ElGamal::re_encrypt_via_addition(&encrypted_five, &r_, &pk);
+        let re_encrypted_addition =
+            ElGamal::re_encrypt_via_addition(&encrypted_five, &r_, &pk);
         let decrypted_addition = ElGamal::decrypt(&re_encrypted_addition, &sk);
         assert_eq!(decrypted_addition, five);
 
@@ -471,7 +480,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "encryptions and permutation need to have the same length!")]
+    #[should_panic(
+        expected = "encryptions and permutation need to have the same length!"
+    )]
     fn shuffle_vectors_encryptions_permutations_different_size_should_panic() {
         let (_, _, pk) = Helper::setup_system(
             b"170141183460469231731687303715884105727",

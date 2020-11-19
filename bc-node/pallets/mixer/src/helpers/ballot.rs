@@ -53,11 +53,7 @@ impl<T: Trait> Module<T> {
         let shuffled_ciphers: Vec<Cipher> =
             shuffle.into_iter().map(|item| item.0).collect();
 
-        // type conversion: Cipher (BigUint) to Ballot (Vec<u8>)
-        let shuffled_ballots: Vec<Ballot> = Wrapper(shuffled_ciphers).into();
-
         // store the ballots on chain
-        Ballots::put(shuffled_ballots);
         debug::info!("The ballots have been shuffled");
         Ok((ciphers, randoms, permutation))
     }
