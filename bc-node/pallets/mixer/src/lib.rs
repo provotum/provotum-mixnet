@@ -1,6 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![feature(unsized_locals)]
+extern crate alloc;
 
+mod helpers;
 pub mod types;
 
 #[cfg(test)]
@@ -14,7 +16,6 @@ pub mod keys;
 
 use codec::{Decode, Encode};
 use core::convert::TryInto;
-use crypto::{encryption::ElGamal, types::Cipher};
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
     weights::Pays,
@@ -28,14 +29,9 @@ use frame_system::{
 };
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
-use rand::distributions::{Distribution, Uniform};
-use rand_chacha::{
-    rand_core::{RngCore, SeedableRng},
-    ChaChaRng,
-};
 use sp_runtime::{offchain as rt_offchain, RuntimeDebug};
-use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
-use types::{Ballot, PublicKey as SubstratePK, QAsBigUint};
+use sp_std::{collections::vec_deque::VecDeque, prelude::*, str, vec::Vec};
+use types::{Ballot, PublicKey as SubstratePK};
 
 /// the type to sign and send transactions.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
@@ -61,7 +57,7 @@ pub trait Trait: system::Trait + CreateSignedTransaction<Call<Self>> {
 }
 
 decl_storage! {
-    trait Store for Module<T: Trait> as Example {
+    trait Store for Module<T: Trait> as OffchainModule {
         /// A vector of recently submitted numbers (at most 10).
         Numbers get(fn numbers): VecDeque<u64>;
 
@@ -222,202 +218,6 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {
-    fn get_rng() -> ChaChaRng {
-        // 32 byte array as random seed
-        let seed: [u8; 32] = sp_io::offchain::random_seed();
-        ChaChaRng::from_seed(seed)
-    }
-
-    /// secure random number generation using OS randomness
-    fn get_random_bytes(size: usize) -> Result<Vec<u8>, Error<T>> {
-        // use chacha20 to produce random vector [u8] of size: size
-        let mut rng = Self::get_rng();
-        let mut bytes = vec![0; size];
-
-        // try to fill the byte array with random values
-        let random_value_generation = rng.try_fill_bytes(&mut bytes);
-
-        match random_value_generation {
-            // if successful, returns the random bytes.
-            Ok(_) => Ok(bytes),
-            // else, that the randomness generation failed.
-            Err(error) => {
-                debug::error!("randomness generation error: {:?}", error);
-                Err(<Error<T>>::RandomnessGenerationError)
-            }
-        }
-    }
-
-    // generate a random value: 0 < random < number
-    fn get_random_biguint_less_than(upper: &BigUint) -> Result<BigUint, Error<T>> {
-        if *upper <= BigUint::zero() {
-            return Err(<Error<T>>::RandomnessUpperBoundZeroError);
-        }
-
-        // determine the upper bound for the random value
-        let upper_bound: BigUint = upper.clone() - BigUint::one();
-
-        // the upper bound but in terms of bytes
-        let size: usize = upper_bound.to_bytes_be().len();
-
-        // fill an array of size: <size> with random bytes
-        let random_bytes = Self::get_random_bytes(size)?;
-
-        // try to transform the byte array into a biguint
-        let random = BigUint::from_bytes_be(&random_bytes);
-
-        // ensure: random < number
-        Ok(random % upper)
-    }
-
-    // generate a number of random biguints: all 0 < random < number
-    fn get_random_biguints_less_than(
-        upper: &BigUint,
-        size: usize,
-    ) -> Result<Vec<BigUint>, Error<T>> {
-        let mut randoms: Vec<BigUint> = Vec::new();
-
-        // try to fetch {size} random values < upper
-        for _ in 0..size {
-            let random: BigUint = Self::get_random_biguint_less_than(upper)?;
-            randoms.push(random);
-        }
-
-        // if randoms is empty -> error occurred during get_random_biguint_less_than
-        // since random cannot be pushed onto randoms, the list remains empty
-        if randoms.is_empty() {
-            Err(<Error<T>>::RandomnessUpperBoundZeroError)
-        } else {
-            Ok(randoms)
-        }
-    }
-
-    fn get_random_bigunint_range(lower: &BigUint, upper: &BigUint) -> Result<BigUint, Error<T>> {
-        let mut rng = Self::get_rng();
-        Self::random_bigunint_range(&mut rng, lower, upper)
-    }
-
-    fn random_bigunint_range(
-        rng: &mut ChaChaRng,
-        lower: &BigUint,
-        upper: &BigUint,
-    ) -> Result<BigUint, Error<T>> {
-        if *upper == BigUint::zero() {
-            return Err(<Error<T>>::RandomRangeError);
-        }
-        if *lower >= *upper {
-            return Err(<Error<T>>::RandomRangeError);
-        }
-        let uniform = Uniform::new(lower, upper);
-        let value: BigUint = uniform.sample(rng);
-        Ok(value)
-    }
-
-    fn get_random_range(lower: usize, upper: usize) -> Result<usize, Error<T>> {
-        let mut rng = Self::get_rng();
-        Self::random_range(&mut rng, lower, upper)
-    }
-
-    fn random_range(rng: &mut ChaChaRng, lower: usize, upper: usize) -> Result<usize, Error<T>> {
-        if upper == 0 {
-            return Err(<Error<T>>::RandomRangeError);
-        }
-        if lower >= upper {
-            return Err(<Error<T>>::RandomRangeError);
-        }
-        let uniform = Uniform::new(lower, upper);
-        let value: usize = uniform.sample(rng);
-        Ok(value)
-    }
-
-    fn generate_permutation(size: usize) -> Result<Vec<usize>, Error<T>> {
-        if size == 0 {
-            return Err(<Error<T>>::PermutationSizeZeroError);
-        }
-
-        // vector containing the range of values from 0 up to the size of the vector - 1
-        let mut permutation: Vec<usize> = Vec::new();
-        let mut range: Vec<usize> = (0..size).collect();
-        let mut rng = Self::get_rng();
-
-        for index in 0..size {
-            // get random integer
-            let random: usize = Self::random_range(&mut rng, index, size)?;
-
-            // get the element in the range at the random position
-            let value = range
-                .get(random)
-                .ok_or_else(|| Error::<T>::RandomRangeError)?;
-
-            // store the value of the element at the random position
-            permutation.push(*value);
-
-            // swap positions
-            range[random] = range[index];
-        }
-        Ok(permutation)
-    }
-
-    fn store_ballot(from: T::AccountId, ballot: Ballot) {
-        // store the encrypted ballot
-        let mut ballots: Vec<Ballot> = Ballots::get();
-        ballots.push(ballot.clone());
-        Ballots::put(ballots);
-        debug::info!("Encrypted Ballot: {:?} has been stored.", ballot);
-
-        // update the list of voters
-        let mut voters: Vec<T::AccountId> = Voters::<T>::get();
-        voters.push(from.clone());
-        Voters::<T>::put(voters);
-        debug::info!("Voter {:?} has been stored.", from);
-    }
-
-    fn shuffle_ballots() -> Result<(Vec<Cipher>, Vec<BigUint>, Vec<usize>), Error<T>> {
-        // get the system public key
-        let pk: SubstratePK =
-            PublicKey::get().ok_or_else(|| Error::<T>::PublicKeyNotExistsError)?;
-        let q = QAsBigUint::q(&pk.params);
-
-        // get the encrypted ballots stored on chain
-        let ballots = Ballots::get();
-        let size = ballots.len();
-
-        // check that there are ballots to shuffle
-        if size == 0 {
-            return Err(Error::<T>::ShuffleBallotsSizeZeroError);
-        }
-
-        // get the permuation or else return error
-        let permutation = Self::generate_permutation(size)?;
-
-        // get the random values
-        let randoms = Self::get_random_biguints_less_than(&q, size)?;
-
-        // type conversion: Ballot (Vec<u8>) to Cipher (BigUint)
-        let ciphers = ballots
-            .iter()
-            .map(|c| c.clone().into())
-            .collect::<Vec<Cipher>>();
-
-        // shuffle the ballots
-        let shuffle = ElGamal::shuffle(&ciphers, &permutation, &randoms, &(pk.into()));
-        let shuffled_ciphers = shuffle
-            .iter()
-            .map(|item| item.0.clone())
-            .collect::<Vec<Cipher>>();
-
-        // type conversion: Cipher (BigUint) to Ballot (Vec<u8>)
-        let shuffled_ballots = shuffled_ciphers
-            .iter()
-            .map(|c| c.clone().into())
-            .collect::<Vec<Ballot>>();
-
-        // store the ballots on chain
-        Ballots::put(shuffled_ballots);
-        debug::info!("The ballots have been shuffled");
-        Ok((ciphers, randoms, permutation))
-    }
-
     fn offchain_signed_tx(block_number: T::BlockNumber) -> Result<(), Error<T>> {
         // We retrieve a signer and check if it is valid.
         //   ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.Signer.html
