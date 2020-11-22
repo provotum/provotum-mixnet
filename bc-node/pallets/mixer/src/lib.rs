@@ -115,6 +115,9 @@ decl_error! {
 
         // Error returned when public key doesn't exist
         PublicKeyNotExistsError,
+
+        // Error returned when inverse modulo operation fails
+        InvModError,
     }
 }
 

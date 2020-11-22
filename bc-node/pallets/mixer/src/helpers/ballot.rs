@@ -55,6 +55,6 @@ impl<T: Trait> Module<T> {
 
         // store the ballots on chain
         debug::info!("The ballots have been shuffled");
-        Ok((ciphers, randoms, permutation))
+        Ok((shuffled_ciphers, randoms, permutation))
     }
 }

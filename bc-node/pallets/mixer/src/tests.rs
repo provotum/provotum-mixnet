@@ -500,3 +500,17 @@ fn test_shuffle_proof() {
         assert_ok!(test);
     });
 }
+
+#[test]
+fn test_permute_vector() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let test_vec: Vec<BigUint> = vec![BigUint::from(5u32), BigUint::from(10u32), BigUint::from(15u32)];
+        let permutation: Vec<usize> = vec![2,0,1];
+
+        let result = OffchainModule::permute_vector(test_vec.clone(), &permutation);
+        assert_eq!(result[0], test_vec[2]);
+        assert_eq!(result[1], test_vec[0]);
+        assert_eq!(result[2], test_vec[1]);
+    });
+}
