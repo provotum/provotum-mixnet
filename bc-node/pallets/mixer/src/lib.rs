@@ -118,6 +118,9 @@ decl_error! {
 
         // Error returned when inverse modulo operation fails
         InvModError,
+
+        // Error returned when division modulo operation fails
+        DivModError,
     }
 }
 

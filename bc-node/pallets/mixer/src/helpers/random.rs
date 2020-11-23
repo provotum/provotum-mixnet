@@ -17,6 +17,55 @@ impl<T: Trait> Module<T> {
         ChaChaRng::from_seed(seed)
     }
 
+    // Miller-Rabin Primality Test
+    // https://en.wikipedia.org/wiki/Miller-Rabin_primality_test
+    pub fn is_prime(num: &BigUint, certainty: u32) -> Result<bool, Error<T>> {
+        let zero: BigUint = BigUint::zero();
+        let one: BigUint = BigUint::one();
+        let two = one.clone() + one.clone();
+
+        if *num == two {
+            return Ok(true);
+        }
+
+        if num % two.clone() == zero {
+            return Ok(false);
+        }
+
+        let num_less_one = num - one.clone();
+
+        // write n-12**s * d
+        let mut d = num_less_one.clone();
+        let mut s: BigUint = Zero::zero();
+
+        while d.clone() % two.clone() == zero.clone() {
+            d /= two.clone();
+            s += one.clone();
+        }
+
+        let mut k = 0;
+
+        // test for probable prime
+        while k < certainty {
+            let a = Self::get_random_bigunint_range(&two, num)?;
+            let mut x = a.modpow(&d, num);
+            if x != one.clone() && x != num_less_one {
+                let mut random = zero.clone();
+                loop {
+                    x = x.modpow(&two, num);
+                    if x == num_less_one {
+                        break;
+                    } else if x == one.clone() || random == (s.clone() - one.clone()) {
+                        return Ok(false);
+                    }
+                    random += one.clone();
+                }
+            }
+            k += 2;
+        }
+        Ok(true)
+    }
+
     /// secure random number generation using OS randomness
     pub fn get_random_bytes(size: usize) -> Result<Vec<u8>, Error<T>> {
         // use chacha20 to produce random vector [u8] of size: size

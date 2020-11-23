@@ -141,13 +141,13 @@ impl ShuffleProof {
     /// - number: usize
     /// - encryptions: Vec<Cipher>
     /// - shuffled_encryptions: Vec<Cipher>
-    /// - commitments: Vec<BigUint>
+    /// - permutation_commitments: Vec<BigUint>
     /// - pk: PublicKey
     pub fn get_challenges(
         number: usize,
         encryptions: Vec<Cipher>,
         shuffled_encryptions: Vec<Cipher>,
-        commitments: Vec<BigUint>,
+        permutation_commitments: Vec<BigUint>,
         pk: &PublicKey,
     ) -> Vec<BigUint> {
         assert!(number > 0, "at least one challenge must be generated!");
@@ -156,8 +156,8 @@ impl ShuffleProof {
             "encryptions and shuffled_encryptions need to have the same length!"
         );
         assert!(
-            encryptions.len() == commitments.len(),
-            "encryptions and commitments need to have the same length!"
+            encryptions.len() == permutation_commitments.len(),
+            "encryptions and permutation_commitments need to have the same length!"
         );
         assert!(!encryptions.is_empty(), "vectors cannot be empty!");
         let q = &pk.params.q();
@@ -167,7 +167,7 @@ impl ShuffleProof {
         let h = Helper::hash_challenges_inputs(
             encryptions,
             shuffled_encryptions,
-            commitments,
+            permutation_commitments,
             pk,
         );
 

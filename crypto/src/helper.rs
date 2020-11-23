@@ -58,11 +58,6 @@ impl Helper {
         g != q && g != &one && (g.modpow(q, p) == one)
     }
 
-    pub fn is_p_valid(_p: &BigUint) -> bool {
-        // check if p is prime
-        unimplemented!()
-    }
-
     /// Uses the Blak2 hash function and produces a hash of four different inputs. The result is returned as a BigUint.
     pub fn hash_inputs_to_biguint(
         id: usize,

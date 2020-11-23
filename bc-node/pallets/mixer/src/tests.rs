@@ -444,12 +444,16 @@ fn test_shuffle_proof() {
 
         // create the public key    
         let vote_id = 1usize;
-        let (_, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457",        
-        b"1701411834604692317316873037");
+        let (_, sk, pk) = Helper::setup_system(b"47", b"3");
+        let is_p_prime = OffchainModule::is_prime(&pk.params.p, 5).unwrap();
+        assert!(is_p_prime);
+        let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 5).unwrap();
+        assert!(is_q_prime);
+        
         let messages = [
-            BigUint::from(5u32), 
-            BigUint::from(10u32), 
-            BigUint::from(15u32)
+            BigUint::from(1u32), 
+            BigUint::from(2u32), 
+            BigUint::from(3u32)
         ];
 
         // store created public key and public parameters
@@ -459,7 +463,7 @@ fn test_shuffle_proof() {
         // encrypt the message -> encrypted message
         // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
         let randoms = [
-            b"170141183460469231731687303715884", b"170141183460469231731687303700084", b"170141183400069231731687303700084"
+            b"7", b"6", b"5"
         ];
 
         // create the voter (i.e. the transaction signer)
@@ -489,15 +493,33 @@ fn test_shuffle_proof() {
         let permutation = &shuffled.2;
 
         // TEST
-        let test = OffchainModule::shuffle_proof(
+        // GENERATE PROOF
+        let result = OffchainModule::generate_shuffle_proof(
             vote_id,
-            votes_from_chain,
-            shuffled_ciphers,
+            votes_from_chain.clone(),
+            shuffled_ciphers.clone(),
             re_encryption_randoms,
             permutation,
             &pk
         );
-        assert_ok!(test);
+        let proof: (
+            BigUint, // challenge
+            (
+                BigUint,      // s1
+                BigUint,      // s2
+                BigUint,      // s3
+                BigUint,      // s4
+                Vec<BigUint>, // vec_s_hat
+                Vec<BigUint>, // vec_s_tilde
+            ),
+            Vec<BigUint>, // permutation_commitments
+            Vec<BigUint>, // permutation_chain_commitments
+        ) = result.unwrap();
+
+        // VERIFY PROOF
+        let verification = OffchainModule::verify_shuffle_proof(vote_id, proof, votes_from_chain, shuffled_ciphers, &pk);
+        let is_proof_valid = verification.unwrap();
+        assert!(is_proof_valid);
     });
 }
 
