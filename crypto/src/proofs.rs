@@ -135,7 +135,7 @@ impl ShuffleProof {
         }
     }
 
-    /// Computes n challenges 0 <= c_i <= 2^tau for a given of public value.
+    /// Algorithm 8.5: Computes n challenges 0 <= c_i <= 2^tau for a given of public value.
     ///
     /// Inputs:
     /// - number: usize
@@ -160,10 +160,11 @@ impl ShuffleProof {
             "encryptions and commitments need to have the same length!"
         );
         assert!(!encryptions.is_empty(), "vectors cannot be empty!");
+        let q = &pk.params.q();
         let mut challenges: Vec<BigUint> = Vec::new();
 
         // hash all inputs into a single BigUint
-        let h = Helper::hash_challenge_inputs(
+        let h = Helper::hash_challenges_inputs(
             encryptions,
             shuffled_encryptions,
             commitments,
@@ -177,10 +178,31 @@ impl ShuffleProof {
             // hash(h,i_) mod 2^T
             // Verifiable Re-Encryption Mixnets (Haenni, Locher, Koenig, Dubuis) uses c_i ∈ Z_q
             // therefore, we use mod q
-            c_i %= pk.params.q();
+            c_i %= q;
             challenges.push(c_i);
         }
         challenges
+    }
+
+    /// Algorithm 8.4: Computes a NIZKP challenge 0 <= c_i <= 2^tau for a given public value y and a public commitment t.
+    ///
+    /// Inputs:
+    /// - public value: ((encryptions, shuffled_encryptions, permutation_commitments, chain_commitments, public_key)
+    /// - public commitment: (t1, t2, t3, (t4_1, t4_2), (t_hat_0, ..., t_hat_(size-1)))
+    pub fn get_challenge(
+        public_value: (
+            Vec<Cipher>,
+            Vec<Cipher>,
+            Vec<BigUint>,
+            Vec<BigUint>,
+            &PublicKey,
+        ),
+        public_commitment: (BigUint, BigUint, BigUint, (BigUint, BigUint), Vec<BigUint>),
+    ) -> BigUint {
+        let (_, _, _, _, pk) = public_value;
+        let q = &pk.params.q();
+        let value = Helper::hash_challenge_inputs(public_value, public_commitment);
+        value % q
     }
 }
 

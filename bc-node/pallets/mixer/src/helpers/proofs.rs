@@ -12,7 +12,7 @@ use sp_std::vec::Vec;
 impl<T: Trait> Module<T> {
     /// GenShuffleProof Algorithm 8.47 (CHVoteSpec 3.1)
     ///
-    /// Generates a shuffle proof relative to encryptions e and e', which
+    /// Generates a shuffle proof relative to encryptions e and e_hat, which
     /// is equivalent to proving knowledge of a permutation and randomizations
     /// The algorithm implements Wikström’s proof of a shuffle
     /// except for the fact that the offline and online phases are merged.
@@ -45,6 +45,8 @@ impl<T: Trait> Module<T> {
         let g = &params.g;
         let h = &params.h;
         let q = &params.q();
+        let e = encryptions;
+        let e_hat = shuffled_encryptions;
 
         // get {size} independent generators: h
         let generators = Helper::get_generators(id, q, size);
@@ -57,27 +59,23 @@ impl<T: Trait> Module<T> {
             randoms,
             generators.clone(),
         );
-        let commitments = permutation_commitment.commitments;
+        let c = permutation_commitment.commitments;
 
         // get {size} challenges
-        // u_tilde = get_challenges(size, hash(e,e',c,pk))
-        let mut u_tilde = ShuffleProof::get_challenges(
-            size,
-            encryptions,
-            shuffled_encryptions.clone(),
-            commitments,
-            pk,
-        );
+        // u_tilde = get_challenges(size, hash(e, e_hat, c, pk))
+        let mut u_tilde =
+            ShuffleProof::get_challenges(size, e.clone(), e_hat.clone(), c.clone(), pk);
         // permute the challenges -> same order as randoms + permuation
         u_tilde = Self::permute_vector(u_tilde, permutation);
 
-        // generate commitment chain: (c', r')
+        // generate commitment chain: (c_hat, r_hat)
         let randoms: Vec<BigUint> = Self::get_random_biguints_less_than(q, size)?;
 
         // (vector_c_hat, vector_r_hat) = GenCommitmentChain(vector_u_tilde)
         // vector_u_tilde = challenges, re-ordered according to the permutation
         let commitment_chain =
             ShuffleProof::generate_commitment_chain(u_tilde.clone(), randoms, params);
+        let c_hat = commitment_chain.commitments;
         let r_hat = commitment_chain.randoms;
 
         // generate t & w values
@@ -85,14 +83,17 @@ impl<T: Trait> Module<T> {
             r_hat,
             u_tilde.clone(),
             generators,
-            shuffled_encryptions,
+            e_hat.clone(),
             pk,
             size,
         )?;
 
         // generate challenge from (y, t)
-        // y = ((e, e', c, c', pk)
-        // t = (t1, t2, t3, (t4_1, t4_2), (t_hat_0, ..., t_hat_(size-1)))
+        // public value y = ((e, e_hat, c, c_hat, pk)
+        // public commitment t = (t1, t2, t3, (t4_1, t4_2), (t_hat_0, ..., t_hat_(size-1)))
+        let public_value = (e, e_hat, c, c_hat, pk);
+        let public_commitment = (t1, t2, t3, (t4_1, t4_2), t_hat);
+        let challenge = ShuffleProof::get_challenge(public_value, public_commitment);
 
         // get r_flat
         // sum(r_i) mod q where r_i are the random values from the permutation commitment

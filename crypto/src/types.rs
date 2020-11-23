@@ -1,5 +1,5 @@
 use alloc::vec::Vec;
-use core::ops::{Div, Mul, Sub};
+use core::ops::{Add, Div, Mul, Sub};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Zero};
 
@@ -66,6 +66,9 @@ pub trait ModuloOperations {
     /// Calculates the modular multiplicative of a BigUint: result = self * multiplier % modulus.
     fn modmul(&self, rhs: &Self, modulus: &Self) -> Self;
 
+    /// Calculates the modular addition of two BigUints: result = (self + other) % modulus.
+    fn modadd(&self, other: &Self, modulus: &Self) -> Self;
+
     /// Calculates the modular multiplicative inverse x of an integer a such that ax ≡ 1 (mod m).
     /// Alternative formulation: a^-1 (mod m)
     fn invmod(&self, modulus: &Self) -> Option<BigUint>;
@@ -79,6 +82,14 @@ impl ModuloOperations for BigUint {
             "attempt to calculate with zero modulus!"
         );
         self.mul(multiplier) % modulus
+    }
+
+    fn modadd(&self, other: &Self, modulus: &Self) -> Self {
+        assert!(
+            !modulus.is_zero(),
+            "attempt to calculate with zero modulus!"
+        );
+        self.add(other) % modulus
     }
 
     fn invmod(&self, modulus: &Self) -> Option<BigUint> {
@@ -193,13 +204,34 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "attempt to calculate with zero modulus!")]
-    fn it_should_not_use_modulus_zero() {
+    fn it_should_not_use_modulus_zero_multiplication() {
         let three = BigUint::from(3u32);
         let six = BigUint::from(6u32);
         let zero = BigUint::zero();
 
         // should panic since modulus is zero
         six.modmul(&three, &zero);
+    }
+
+    #[test]
+    fn is_modulo_addition() {
+        let three = BigUint::from(3u32);
+        let six = BigUint::from(6u32);
+        let seven = BigUint::from(7u32);
+
+        let two = six.modadd(&three, &seven);
+        assert_eq!(two, BigUint::from(2u32));
+    }
+
+    #[test]
+    #[should_panic(expected = "attempt to calculate with zero modulus!")]
+    fn it_should_not_use_modulus_zero_addition() {
+        let three = BigUint::from(3u32);
+        let six = BigUint::from(6u32);
+        let zero = BigUint::zero();
+
+        // should panic since modulus is zero
+        six.modadd(&three, &zero);
     }
 
     #[test]
