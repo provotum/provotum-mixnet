@@ -63,11 +63,17 @@ pub struct PermutationCommitment {
 }
 
 pub trait ModuloOperations {
-    /// Calculates the modular multiplicative of a BigUint: result = self * multiplier % modulus.
+    /// Calculates the modular multiplicative of a BigUint: result = self * rhs % modulus.
     fn modmul(&self, rhs: &Self, modulus: &Self) -> Self;
+
+    /// Calculates the modular division of two BigUints: result = self / divisor % modulus.
+    fn moddiv(&self, divisor: &Self, modulus: &Self) -> Option<BigUint>;
 
     /// Calculates the modular addition of two BigUints: result = (self + other) % modulus.
     fn modadd(&self, other: &Self, modulus: &Self) -> Self;
+
+    /// Calculates the modular subtraction of two BigUints: result = ((self + modulus) - other) % modulus.
+    fn modsub(&self, other: &Self, modulus: &Self) -> Self;
 
     /// Calculates the modular multiplicative inverse x of an integer a such that ax ≡ 1 (mod m).
     /// Alternative formulation: a^-1 (mod m)
@@ -84,12 +90,39 @@ impl ModuloOperations for BigUint {
         self.mul(multiplier) % modulus
     }
 
+    fn moddiv(&self, divisor: &Self, modulus: &Self) -> Option<BigUint> {
+        assert!(
+            !modulus.is_zero(),
+            "attempt to calculate with zero modulus!"
+        );
+        assert!(
+            divisor < modulus,
+            "modulus must be greater than the divisor!"
+        );
+        assert!(self < modulus, "modulus must be greater than the dividend!");
+        let inverse_divisor = divisor.invmod(modulus);
+        match inverse_divisor {
+            Some(value) => Some(self.mul(&value) % modulus),
+            None => None,
+        }
+    }
+
     fn modadd(&self, other: &Self, modulus: &Self) -> Self {
         assert!(
             !modulus.is_zero(),
             "attempt to calculate with zero modulus!"
         );
         self.add(other) % modulus
+    }
+
+    fn modsub(&self, other: &Self, modulus: &Self) -> Self {
+        assert!(
+            !modulus.is_zero(),
+            "attempt to calculate with zero modulus!"
+        );
+        // self + modulus is done to ensure that the value is always >0
+        // it's a simple shift by the whole modulus
+        self.add(modulus).sub(other) % modulus
     }
 
     fn invmod(&self, modulus: &Self) -> Option<BigUint> {
@@ -214,6 +247,52 @@ mod tests {
     }
 
     #[test]
+    fn is_modulo_division() {
+        let three = BigUint::from(3u32);
+        let six = BigUint::from(6u32);
+        let ten = BigUint::from(10u32);
+
+        // (6/3) mod 10
+        // = 6 * 3^-1 mod 10 = 6 * 3.invmod(10) mod 10
+        // = 6 * 7 mod 10 = 42 mod 10 = 2
+        let two = six.moddiv(&three, &ten).unwrap();
+        assert_eq!(two, BigUint::from(2u32));
+    }
+
+    #[test]
+    #[should_panic(expected = "attempt to calculate with zero modulus!")]
+    fn it_should_not_use_modulus_zero_division() {
+        let three = BigUint::from(3u32);
+        let four = BigUint::from(4u32);
+        let zero = BigUint::zero();
+
+        // should panic since modulus is zero
+        four.moddiv(&three, &zero);
+    }
+
+    #[test]
+    #[should_panic(expected = "modulus must be greater than the divisor!")]
+    fn it_should_panic_modulus_is_smaller_than_divisior() {
+        let two = BigUint::from(2u32);
+        let three = BigUint::from(3u32);
+        let four = BigUint::from(4u32);
+
+        // should panic since modulus is zero
+        two.moddiv(&four, &three);
+    }
+
+    #[test]
+    #[should_panic(expected = "modulus must be greater than the dividend!")]
+    fn it_should_panic_modulus_is_smaller_than_dividend() {
+        let two = BigUint::from(2u32);
+        let three = BigUint::from(3u32);
+        let four = BigUint::from(4u32);
+
+        // should panic since modulus is zero
+        four.moddiv(&two, &three);
+    }
+
+    #[test]
     fn is_modulo_addition() {
         let three = BigUint::from(3u32);
         let six = BigUint::from(6u32);
@@ -232,6 +311,39 @@ mod tests {
 
         // should panic since modulus is zero
         six.modadd(&three, &zero);
+    }
+
+    #[test]
+    fn is_modulo_substration_a_greater_b() {
+        let three = BigUint::from(3u32);
+        let six = BigUint::from(6u32);
+        let seven = BigUint::from(7u32);
+
+        // 6 - 3 mod 7 = 3 mod 7 = 3
+        let three = six.modsub(&three, &seven);
+        assert_eq!(three, BigUint::from(3u32));
+    }
+
+    #[test]
+    fn is_modulo_substration_a_smaller_b() {
+        let three = BigUint::from(3u32);
+        let six = BigUint::from(6u32);
+        let seven = BigUint::from(7u32);
+
+        // 3 - 6 mod 7 = (3+7) - 6 mod 7 = 10 - 6 mod 7 = 4 mod 7 = 4
+        let four = three.modsub(&six, &seven);
+        assert_eq!(four, BigUint::from(4u32));
+    }
+
+    #[test]
+    #[should_panic(expected = "attempt to calculate with zero modulus!")]
+    fn it_should_not_use_modulus_zero_substraction() {
+        let three = BigUint::from(3u32);
+        let six = BigUint::from(6u32);
+        let zero = BigUint::zero();
+
+        // should panic since modulus is zero
+        six.modsub(&three, &zero);
     }
 
     #[test]
@@ -260,7 +372,7 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "modulus must be greater or equal to the number!")]
-    fn it_should_panic_modulus_is_smaller_than_number() {
+    fn it_should_panic_modulus_is_smaller_than_number_invmod() {
         let six = BigUint::from(6u32);
         let two = BigUint::from(2u32);
 
