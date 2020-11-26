@@ -379,7 +379,7 @@ mod tests {
 
     #[test]
     #[should_panic(
-        expected = "encryptions and commitments need to have the same length!"
+        expected = "encryptions and permutation_commitments need to have the same length!"
     )]
     fn it_should_panic_get_challenges_different_sizes_encryptions_randoms() {
         // SETUP

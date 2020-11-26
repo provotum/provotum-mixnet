@@ -396,9 +396,9 @@ mod tests {
         // use a random number < q
         let r = Random::get_random_less_than(&q);
         let encrypted_five = ElGamal::encrypt(&five, &r, &pk);
-        let r_ = Random::get_random_less_than(&q);
 
         // re-encryption + check that encryption != re-encryption
+        let r_ = Random::get_random_less_than(&q);
         let re_encrypted_five = ElGamal::re_encrypt(&encrypted_five, &r_, &pk);
         assert!(encrypted_five != re_encrypted_five);
 
@@ -555,7 +555,7 @@ mod tests {
 
         for entry in shuffled_encryptions {
             // check that entry (permuted & re-encrypted) is not the same as an existing encryption
-            assert!(encryptions.iter().any(|value| value.clone() != entry));
+            assert!(encryptions.iter().all(|value| value.clone() != entry));
 
             // decrypt the entry
             let decryption = ElGamal::decrypt(&entry, &sk);
