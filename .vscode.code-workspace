@@ -16,5 +16,30 @@
       "path": "wasm-pkg"
     }
   ],
-  "settings": {}
+  "settings": {},
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "lldb",
+        "request": "launch",
+        "name": "Debug Shuffle Proof Test",
+        "program": "${workspaceFolder:bc-node}/target/debug/deps/pallet_offchain_mixer-21f440ab907d9121",
+        "args": [
+          "test_shuffle_proof --nocapture"
+        ],
+        "cwd": "${workspaceFolder:bc-node}",
+      },
+      {
+        "type": "lldb",
+        "request": "launch",
+        "name": "Debug",
+        "program": "${workspaceFolder:bc-node}/target/debug/provotum",
+        "args": [
+          "--dev"
+        ],
+        "cwd": "${workspaceFolder:bc-node}",
+      }
+    ]
+  }
 }
