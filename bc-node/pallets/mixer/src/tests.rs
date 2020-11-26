@@ -444,7 +444,11 @@ fn test_shuffle_proof() {
 
         // create the public key    
         let vote_id = 1usize;
-        let (_, sk, pk) = Helper::setup_system(b"47", b"3");
+
+        // good primes to use for testing
+        // p: 59 -> q: 29
+        // p: 47 -> q: 23
+        let (_, sk, pk) = Helper::setup_system(b"59", b"3");
         let is_p_prime = OffchainModule::is_prime(&pk.params.p, 5).unwrap();
         assert!(is_p_prime);
         let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 5).unwrap();
@@ -462,9 +466,7 @@ fn test_shuffle_proof() {
         
         // encrypt the message -> encrypted message
         // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
-        let randoms = [
-            b"7", b"6", b"5"
-        ];
+        let randoms = [b"7", b"6", b"5"];
 
         // create the voter (i.e. the transaction signer)
         let account: <TestRuntime as system::Trait>::AccountId = Default::default();

@@ -48,14 +48,14 @@ impl ShuffleProof {
             let r_j_i = &randoms[j_i];
 
             // a random independent generator ∈ G_q
-            let h = &generators[i];
+            let h_i = &generators[i];
 
             // create commitment
             // g_pow_r_j_i = g^(r_j_i) mod p
             let g_pow_r_j_i = g.modpow(r_j_i, p);
 
             // c_j_i = (g^(r_j_i) * h_i) mod p
-            let c_j_i = g_pow_r_j_i.modmul(h, p);
+            let c_j_i = g_pow_r_j_i.modmul(h_i, p);
 
             // insert c_j_i at position j_i in commitments vector
             let removed = commitments.remove(j_i);
@@ -178,6 +178,7 @@ impl ShuffleProof {
             // hash(h,i_) mod 2^T
             // Verifiable Re-Encryption Mixnets (Haenni, Locher, Koenig, Dubuis) uses c_i ∈ Z_q
             // therefore, we use mod q
+            // TODO: verify that this is correct!
             c_i %= q;
             challenges.push(c_i);
         }

@@ -68,7 +68,7 @@ impl Helper {
         let hasher = Blake2b::new();
         let hash = hasher
             .chain(id.to_be_bytes())
-            .chain(constant)
+            .chain(constant.as_bytes())
             .chain(i.to_be_bytes())
             .chain(x.to_bytes_be())
             .finalize();

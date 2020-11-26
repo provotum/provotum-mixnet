@@ -86,6 +86,7 @@ impl<T: Trait> Module<T> {
             vec_c.clone(),
             pk,
         );
+
         // permute the challenges -> same order as randoms + permuation
         let u_tilde = Self::permute_vector(vec_u.clone(), permutation);
 
@@ -110,19 +111,24 @@ impl<T: Trait> Module<T> {
                 size,
             )?;
 
-        if_std! {
-            // println!("prover - vec_t_hat: {:?}\n", vec_t_hat);
-        }
-
         // generate challenge from (y, t)
         // public value y = ((e, e_tilde, vec_c, vec_c_hat, pk)
         // public commitment t = (t1, t2, t3, (t4_1, t4_2), (t_hat_0, ..., t_hat_(size-1)))
         let public_value = (e, e_tilde, vec_c.clone(), vec_c_hat.clone(), pk);
         if_std! {
-            println!("prover - t1: {:?},\n t2: {:?},\n t3: {:?},\n t4_1: {:?},\n t4_2: {:?}\n", t1,t2, t3, t4_1, t4_2);
+            println!("prover - \n t4_1: {:?},\n t4_2: {:?}\n", t4_1, t4_2);
         }
-        let public_commitment = (t1, t2, t3, (t4_1, t4_2), vec_t_hat);
+        let public_commitment = (
+            t1.clone(),
+            t2.clone(),
+            t3.clone(),
+            (t4_1.clone(), t4_2.clone()),
+            vec_t_hat.clone(),
+        );
         let challenge = ShuffleProof::get_challenge(public_value, public_commitment);
+        if_std! {
+            println!("after challenge - \n t4_1: {:?},\n t4_2: {:?}\n", t4_1, t4_2);
+        }
 
         // generate s values
         // s = (s1, s2, s3, s4, (s_hat_0, ..., s_hat_(size-1)), (s_tilde_0, ..., s_tilde_(size-1)))
@@ -143,8 +149,7 @@ impl<T: Trait> Module<T> {
             size,
         );
         if_std! {
-            // println!("prover - s1: {:?}, s2: {:?}, s3: {:?}, s4: {:?}", s1, s2, s3, s4);
-            // println!("prover - vec_s_tilde: {:?}", vec_s_tilde);
+            println!("after s values - \n t4_1: {:?},\n t4_2: {:?}\n", t4_1, t4_2);
         }
         let s = (s1, s2, s3, s4, vec_s_hat, vec_s_tilde);
 
@@ -245,13 +250,10 @@ impl<T: Trait> Module<T> {
         // get value c_hat = c_hat_n / h^u mod p
         // vec_c_hat = permutation_chain_commitments
         let h_pow_u = h.modpow(&u, p);
-        let c_hat_n = &vec_c_hat[size - 1];
+        let c_hat_n = vec_c_hat.get(size - 1).ok_or_else(|| Error::InvModError)?;
         let c_hat = c_hat_n
             .moddiv(&h_pow_u, p)
             .ok_or_else(|| Error::DivModError)?;
-        if_std! {
-            println!("verifier c_hat: {:?}\n", c_hat);
-        }
 
         // get value c_tilde = Π(c_i^u_i) mod p
         // vec_c = permutation_commitments
@@ -275,9 +277,6 @@ impl<T: Trait> Module<T> {
             size,
             params,
         );
-        if_std! {
-            // println!("verifier - vec_t_hat: {:?}\n", vec_t_hat);
-        }
 
         let (t1, t2, t3, (t4_1, t4_2)) = Self::get_t_values_verifier(
             &c_flat,
@@ -302,16 +301,13 @@ impl<T: Trait> Module<T> {
         // public commitment t = (t1, t2, t3, (t4_1, t4_2), (t_hat_0, ..., t_hat_(size-1)))
         let public_value = (e, e_tilde, vec_c, vec_c_hat, pk);
         if_std! {
-            println!("verifier - t1: {:?},\n t2: {:?},\n t3: {:?},\n t4_1: {:?},\n t4_2: {:?}\n", t1, t2, t3, t4_1, t4_2 );
+            println!("verifier - \n t4_1: {:?},\n t4_2: {:?}\n", t4_1, t4_2);
         }
         let public_commitment = (t1, t2, t3, (t4_1, t4_2), vec_t_hat);
         let recomputed_challenge =
             ShuffleProof::get_challenge(public_value, public_commitment);
 
         let is_proof_valid = recomputed_challenge == challenge;
-        if_std! {
-            println!("is_proof_valid: {:?}", is_proof_valid)
-        }
         Ok(is_proof_valid)
     }
 
@@ -348,10 +344,6 @@ impl<T: Trait> Module<T> {
         let g_pow_s2 = g.modpow(s2, p);
         let c_hat_pow_challenge = c_hat.modpow(challenge, p);
         let t2 = c_hat_pow_challenge.modmul(&g_pow_s2, p);
-        if_std! {
-            println!("verifier - \ng^s2: {:?},\n c_hat^challenge: {:?},\n t2: {:?}", g_pow_s2, c_hat_pow_challenge, t2);
-            // println!("verifier - vec_s_tilde: {:?}", vec_s_tilde);
-        }
 
         // get t3 = c_tilde^challenge * g^s3 * Π(h_i^s_tilde_i) mod p
         let prod_h_s_tilde = Self::zip_vectors_multiply_a_pow_b(&vec_h, &vec_s_tilde, p);
@@ -532,7 +524,7 @@ impl<T: Trait> Module<T> {
         // generate v values from (N-1...0)
         // start with value v_(n-1) = 1
         let mut v = Vec::new();
-        let v_i = BigUint::one();
+        let mut v_i = BigUint::one();
         v.push(v_i.clone());
 
         // v_(n-1) = 1
@@ -542,27 +534,17 @@ impl<T: Trait> Module<T> {
             let u_tilde_i = &u_tilde[i + 1];
 
             // v_(i-1) = u_tilde_i * v_i mod q
-            let v_i = u_tilde_i.modmul(&v_i, q);
+            v_i = u_tilde_i.modmul(&v_i, q);
             v.push(v_i.clone());
         }
 
-        // TODO: check if this is necessary
         // reverse the order in v
-        if_std! {
-            println!("prover - v: {:?}\n", v)
-        }
         v.reverse();
-        if_std! {
-            println!("prover - v.reverse(): {:?}\n", v)
-        }
 
         // get r values
         // vec_r_hat -> random values of commitment chain
         // get r_hat = Σ(vec_r_hat_i * v_i) mod q
         let r_hat = Self::zip_vectors_sum_products(&vec_r_hat, &v, q);
-        if_std! {
-            println!("prover - r_hat: {:?},\n w2: {:?}\n", r_hat, w2)
-        }
 
         // we add q to w2 to ensure the value will always be >0
         // s2 = w2 - challenge * r_hat % q
@@ -571,9 +553,6 @@ impl<T: Trait> Module<T> {
         // vec_r -> random values of permutation commitment
         // get r = Σ(vec_r_i * u_i) mod q
         let r = Self::zip_vectors_sum_products(&vec_r, &vec_u, q);
-        if_std! {
-            println!("prover - r: {:?},\n w3: {:?}\n", r, w3)
-        }
 
         // we add q to w3 to ensure the value will always be >0
         // s3 = w3 - challenge * r % q
@@ -582,9 +561,6 @@ impl<T: Trait> Module<T> {
         // vec_r_tilde -> random values of re-encryption
         // get r_tilde
         let r_tilde = Self::zip_vectors_sum_products(&vec_r_tilde, &vec_u, q);
-        if_std! {
-            println!("prover - r_tilde: {:?},\n w4: {:?}\n", r_tilde, w4)
-        }
 
         // we add q to w4 to ensure the value will always be >0
         let s4 = w4.modsub(&challenge.modmul(&r_tilde, q), q);
@@ -703,10 +679,10 @@ impl<T: Trait> Module<T> {
         // chain with shuffled encryptions
         // generate t4_1, t4_2
         // pk is the public key
-        // pk^-w4 = (pk^-1)^w4 = (pk^w4)^-1 = invmod(pk^w4)
+        // pk^-w4 = (pk^-1)^w4 = invmod(pk)^w4 mod p
         // for an explanation see: Verifiable Re-Encryption Mixnets (Haenni, Locher, Koenig, Dubuis) page 9
-        let mut t4_1 = pk.modpow(&w4, p);
-        t4_1 = t4_1.invmod(p).ok_or_else(|| Error::InvModError)?;
+        let mut t4_1 = pk.invmod(p).ok_or_else(|| Error::InvModError)?;
+        t4_1 = t4_1.modpow(&w4, p);
 
         // g is the first public generator
         // g^-w4 = (g^-1)^w4 = (g^w4)^-1 = invmod(g^w4)
