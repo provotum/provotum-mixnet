@@ -135,43 +135,38 @@ impl ShuffleProof {
         }
     }
 
-    /// Algorithm 8.5: Computes n challenges 0 <= c_i <= 2^tau for a given of public value.
+    /// Algorithm 8.5: Computes n challenges 0 <= c_i <= 2^tau for a given of public value (vec_e, vec_e_tilde, vec_c).
     ///
     /// Inputs:
-    /// - number: usize
-    /// - encryptions: Vec<Cipher>
-    /// - shuffled_encryptions: Vec<Cipher>
-    /// - permutation_commitments: Vec<BigUint>
+    /// - n: usize
+    /// - vec_e: Vec<Cipher> "Encryptions"
+    /// - vec_e_tilde: Vec<Cipher> "Shuffled Encryptions"
+    /// - vec_c: Vec<BigUint> "Permutation Commitments"
     /// - pk: PublicKey
     pub fn get_challenges(
-        number: usize,
-        encryptions: Vec<Cipher>,
-        shuffled_encryptions: Vec<Cipher>,
-        permutation_commitments: Vec<BigUint>,
+        n: usize,
+        vec_e: Vec<Cipher>,
+        vec_e_tilde: Vec<Cipher>,
+        vec_c: Vec<BigUint>,
         pk: &PublicKey,
     ) -> Vec<BigUint> {
-        assert!(number > 0, "at least one challenge must be generated!");
+        assert!(n > 0, "at least one challenge must be generated!");
         assert!(
-            encryptions.len() == shuffled_encryptions.len(),
+            vec_e.len() == vec_e_tilde.len(),
             "encryptions and shuffled_encryptions need to have the same length!"
         );
         assert!(
-            encryptions.len() == permutation_commitments.len(),
+            vec_e.len() == vec_c.len(),
             "encryptions and permutation_commitments need to have the same length!"
         );
-        assert!(!encryptions.is_empty(), "vectors cannot be empty!");
+        assert!(!vec_e.is_empty(), "vectors cannot be empty!");
         let q = &pk.params.q();
         let mut challenges: Vec<BigUint> = Vec::new();
 
         // hash all inputs into a single BigUint
-        let h = Helper::hash_challenges_inputs(
-            encryptions,
-            shuffled_encryptions,
-            permutation_commitments,
-            pk,
-        );
+        let h = Helper::hash_challenges_inputs(vec_e, vec_e_tilde, vec_c, pk);
 
-        for i in 0..number {
+        for i in 0..n {
             let i_ = Helper::hash_vec_usize_to_biguint(&[i].to_vec());
             let mut c_i = Helper::hash_vec_biguints_to_biguint([h.clone(), i_].to_vec());
 

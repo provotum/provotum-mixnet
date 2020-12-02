@@ -12,7 +12,7 @@ use sp_std::{if_std, vec::Vec};
 impl<T: Trait> Module<T> {
     /// GenShuffleProof Algorithm 8.47 (CHVoteSpec 3.1)
     ///
-    /// Generates a shuffle proof relative to encryptions e and e_tilde, which
+    /// Generates a shuffle proof relative to encryptions e and e~, which
     /// is equivalent to proving knowledge of a permutation and randomizations
     /// The algorithm implements Wikström’s proof of a shuffle
     /// except for the fact that the offline and online phases are merged.

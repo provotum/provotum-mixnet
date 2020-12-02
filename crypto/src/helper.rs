@@ -67,9 +67,11 @@ impl Helper {
         BigUint::from_bytes_be(&hash)
     }
 
-    /// Returns {number} independent generators of G_q ∈ Z*_p.
+    /// GenShuffleProof Algorithm 8.3 (CHVoteSpec 3.1)
     ///
-    /// The algorithm is an adaption of the NIST standard FIPS PUB 186-4 (Appendix A.2.3)
+    /// Computes n independent generators of G_q ∈ Z*_p.
+    /// The algorithm is an adaption of the NIST standard FIPS PUB 186-4 (Appendix A.2.3).
+    /// Making the generators dependent on election id guarantees that the resulting values are specific to the current election.
     pub fn get_generators(id: usize, q: &BigUint, number: usize) -> Vec<BigUint> {
         let mut generators: Vec<BigUint> = Vec::new();
         for i in 0..number {
