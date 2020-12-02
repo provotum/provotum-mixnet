@@ -11,10 +11,10 @@ fn criterion_benchmark(c: &mut Criterion) {
     group.bench_function("encryption", |b| {
         b.iter_with_setup(
             || {
-                let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-                b"1701411834604692317316873037");
+                let (_, _, pk) = Helper::setup_lg_system();
                 let message = BigUint::from(1u32);
-                let random = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+                let random =
+                    BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
                 (message, random, pk)
             },
             |(m, r, pk)| ElGamal::encrypt(&m, &r, &pk),
@@ -24,10 +24,10 @@ fn criterion_benchmark(c: &mut Criterion) {
     group.bench_function("decryption", |b| {
         b.iter_with_setup(
             || {
-                let (_, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-                b"1701411834604692317316873037");
+                let (_, sk, pk) = Helper::setup_lg_system();
                 let message = BigUint::from(1u32);
-                let random = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+                let random =
+                    BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
 
                 // encrypt the message
                 let encrypted_message = ElGamal::encrypt(&message, &random, &pk);
@@ -40,17 +40,16 @@ fn criterion_benchmark(c: &mut Criterion) {
     group.bench_function("homomorphic addition", |b| {
         b.iter_with_setup(
             || {
-                let (params, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-                b"1701411834604692317316873037");
+                let (params, _, pk) = Helper::setup_lg_system();
                 let one = BigUint::one();
-                
+
                 // encrypt the message
                 let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
                 let enc_one = ElGamal::encrypt(&one, &r, &pk);
 
                 // encrypt the message again
                 let r_ = BigUint::parse_bytes(b"170141183460469231731687303712342", 10).unwrap();
-                let enc_one_ =ElGamal::encrypt(&one, &r_, &pk);
+                let enc_one_ = ElGamal::encrypt(&one, &r_, &pk);
 
                 (enc_one, enc_one_, params.p)
             },
@@ -61,10 +60,9 @@ fn criterion_benchmark(c: &mut Criterion) {
     group.bench_function("re_encryption", |b| {
         b.iter_with_setup(
             || {
-                let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-                b"1701411834604692317316873037");
+                let (_, _, pk) = Helper::setup_lg_system();
                 let one = BigUint::one();
-                
+
                 // encrypt the message
                 let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
                 let encryption = ElGamal::encrypt(&one, &r, &pk);
@@ -81,10 +79,9 @@ fn criterion_benchmark(c: &mut Criterion) {
     group.bench_function("re_encryption by homomorphic addition zero (g^0)", |b| {
         b.iter_with_setup(
             || {
-                let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-                b"1701411834604692317316873037");
+                let (_, _, pk) = Helper::setup_lg_system();
                 let one = BigUint::one();
-                
+
                 // encrypt the message
                 let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
                 let encryption = ElGamal::encrypt(&one, &r, &pk);
@@ -101,26 +98,25 @@ fn criterion_benchmark(c: &mut Criterion) {
     group.bench_function("shuffling (permutation + re-encryption)", |b| {
         b.iter_with_setup(
             || {
-                let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-                b"1701411834604692317316873037");
+                let (_, _, pk) = Helper::setup_lg_system();
 
                 // encryption of zero
                 let zero = BigUint::zero();
                 let r = BigUint::parse_bytes(b"1234", 10).unwrap();
                 let enc_zero = ElGamal::encrypt(&zero, &r, &pk);
-        
+
                 // encryption of one
                 let one = BigUint::one();
                 let r_ = BigUint::parse_bytes(b"4321", 10).unwrap();
                 let enc_one = ElGamal::encrypt(&one, &r_, &pk);
-        
+
                 // encryption of two
                 let two = BigUint::from(2u32);
                 let r__ = BigUint::parse_bytes(b"2431", 10).unwrap();
                 let enc_two = ElGamal::encrypt(&two, &r__, &pk);
-        
+
                 let encryptions = vec![enc_zero, enc_one, enc_two];
-        
+
                 // create three random values < q
                 let randoms = vec![
                     BigUint::parse_bytes(b"4321", 10).unwrap(),
@@ -129,11 +125,13 @@ fn criterion_benchmark(c: &mut Criterion) {
                 ];
 
                 // create a permutation of size 3
-                let permutation = vec![2,0,1];
+                let permutation = vec![2, 0, 1];
 
                 (encryptions, permutation, randoms, pk)
             },
-            |(encryptions, permutation, randoms, pk)| ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk),
+            |(encryptions, permutation, randoms, pk)| {
+                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+            },
         )
     });
 

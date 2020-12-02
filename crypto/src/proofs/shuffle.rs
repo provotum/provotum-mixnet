@@ -213,10 +213,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "permutation and randoms need to have the same length!")]
     fn it_should_panic_generate_permutation_commitment_different_size_permutations_randoms() {
-        let (params, _, pk) = Helper::setup_system(
-            b"170141183460469231731687303715884105727",
-            b"1701411834604692317316",
-        );
+        let (params, _, pk) = Helper::setup_md_system();
         let q = pk.params.q();
         let vote_id = 123usize;
 
@@ -235,10 +232,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "permutation and generators need to have the same length!")]
     fn it_should_panic_generate_permutation_commitment_different_size_permutations_generators() {
-        let (params, _, _) = Helper::setup_system(
-            b"170141183460469231731687303715884105727",
-            b"1701411834604692317316",
-        );
+        let (params, _, _) = Helper::setup_md_system();
 
         let randoms = [BigUint::one()];
         let permutation = [1usize];
@@ -255,10 +249,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "vectors cannot be empty!")]
     fn it_should_panic_generate_permutation_commitment_empty_inputs() {
-        let (params, _, _) = Helper::setup_system(
-            b"170141183460469231731687303715884105727",
-            b"1701411834604692317316",
-        );
+        let (params, _, _) = Helper::setup_md_system();
 
         let randoms = [];
         let permutation = [];
@@ -274,10 +265,7 @@ mod tests {
 
     #[test]
     fn it_should_generate_permutation_commitment() {
-        let (params, _, _) = Helper::setup_system(
-            b"170141183460469231731687303715884105727",
-            b"1701411834604692317316",
-        );
+        let (params, _, _) = Helper::setup_md_system();
         let q = params.q();
         let vote_id = 123usize;
 
@@ -319,10 +307,7 @@ mod tests {
     #[should_panic(expected = "at least one challenge must be generated!")]
     fn it_should_panic_get_challenges_zero_challenges() {
         // SETUP
-        let (_, _, pk) = Helper::setup_system(
-            b"170141183460469231731687303715884105727",
-            b"1701411834604692317316",
-        );
+        let (_, _, pk) = Helper::setup_md_system();
 
         // fake values
         let size = 0usize;
@@ -338,10 +323,7 @@ mod tests {
     #[should_panic(expected = "encryptions and shuffled_encryptions need to have the same length!")]
     fn it_should_panic_get_challenges_different_sizes_encryptions_shuffled_encryptions() {
         // SETUP
-        let (_, _, pk) = Helper::setup_system(
-            b"170141183460469231731687303715884105727",
-            b"1701411834604692317316",
-        );
+        let (_, _, pk) = Helper::setup_md_system();
 
         // fake values
         let size = 1usize;
@@ -362,10 +344,7 @@ mod tests {
     )]
     fn it_should_panic_get_challenges_different_sizes_encryptions_randoms() {
         // SETUP
-        let (_, _, pk) = Helper::setup_system(
-            b"170141183460469231731687303715884105727",
-            b"1701411834604692317316",
-        );
+        let (_, _, pk) = Helper::setup_md_system();
 
         // fake values
         let size = 1usize;
@@ -387,10 +366,7 @@ mod tests {
     #[should_panic(expected = "vectors cannot be empty!")]
     fn it_should_panic_get_challenges_empty_inputs() {
         // SETUP
-        let (_, _, pk) = Helper::setup_system(
-            b"170141183460469231731687303715884105727",
-            b"1701411834604692317316",
-        );
+        let (_, _, pk) = Helper::setup_md_system();
 
         // fake values
         let size = 1usize;
@@ -411,10 +387,7 @@ mod tests {
     #[test]
     fn it_should_get_challenges() {
         // SETUP
-        let (_, _, pk) = Helper::setup_system(
-            b"170141183460469231731687303715884105727",
-            b"1701411834604692317316",
-        );
+        let (_, _, pk) = Helper::setup_md_system();
 
         let vote_id = 123usize;
         let size = 3usize;
@@ -467,10 +440,7 @@ mod tests {
     #[should_panic(expected = "challenges and randoms need to have the same length!")]
     fn it_should_panic_generate_commitment_chain_different_size_challenges_randoms() {
         // SETUP
-        let (params, _, _) = Helper::setup_system(
-            b"170141183460469231731687303715884105727",
-            b"1701411834604692317316",
-        );
+        let (params, _, _) = Helper::setup_md_system();
 
         // fake values
         let challenges = vec![BigUint::one()];
@@ -484,10 +454,7 @@ mod tests {
     #[should_panic(expected = "vectors cannot be empty!")]
     fn it_should_panic_generate_commitment_chain_empty_inputs() {
         // SETUP
-        let (params, _, _) = Helper::setup_system(
-            b"170141183460469231731687303715884105727",
-            b"1701411834604692317316",
-        );
+        let (params, _, _) = Helper::setup_md_system();
 
         // fake values
         let challenges: Vec<BigUint> = Vec::new();
@@ -500,10 +467,7 @@ mod tests {
     #[test]
     fn it_should_panic_generate_commitment_chain() {
         // SETUP
-        let (params, _, _) = Helper::setup_system(
-            b"170141183460469231731687303715884105727",
-            b"1701411834604692317316",
-        );
+        let (params, _, _) = Helper::setup_md_system();
 
         let size = 3usize;
         let p = &params.p;

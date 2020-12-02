@@ -20,10 +20,38 @@ impl Helper {
         (pk, sk)
     }
 
+    pub fn setup_xl_system() -> (ElGamalParams, PrivateKey, PublicKey) {
+        // 3072bit key
+        let p = BigUint::parse_bytes(b"B7E151628AED2A6ABF7158809CF4F3C762E7160F38B4DA56A784D9045190CFEF324E7738926CFBE5F4BF8D8D8C31D763DA06C80ABB1185EB4F7C7B5757F5958490CFD47D7C19BB42158D9554F7B46BCED55C4D79FD5F24D6613C31C3839A2DDF8A9A276BCFBFA1C877C56284DAB79CD4C2B3293D20E9E5EAF02AC60ACC93ED874422A52ECB238FEEE5AB6ADD835FD1A0753D0A8F78E537D2B95BB79D8DCAEC642C1E9F23B829B5C2780BF38737DF8BB300D01334A0D0BD8645CBFA73A6160FFE393C48CBBBCA060F0FF8EC6D31BEB5CCEED7F2F0BB088017163BC60DF45A0ECB1BCD289B06CBBFEA21AD08E1847F3F7378D56CED94640D6EF0D3D37BE67008E186D1BF275B9B241DEB64749A47DFDFB96632C3EB061B6472BBF84C26144E49C2D04C324EF10DE513D3F5114B8B5D374D93CB8879C7D52FFD72BA0AAE7277DA7BA1B4AF1488D8E836AF14865E6C37AB6876FE690B571121382AF341AFE94F77BCF06C83B8FF5675F0979074AD9A787BC5B9BD4B0C5937D3EDE4C3A79396419CD7", 16).unwrap();
+        let x = BigUint::parse_bytes(b"ACC93ED874422A52ECB238FEEE5AB6ADD835FD1A0753D0A8F78E537D2B95BB79D8DCAEC642C1E9F23B829B5C2780BF38737DF8BB300D01334A0D0BD8645CBFA73A6160FFE393C48CBBBCA060F0FF8EC6D31BEB5CCEED7F2F0BB088017163BC60DF45A0ECB1BCD289B06CBBFEA21AD08E1847F3F7378D56CED94640D6EF0D3D37BE67008E186D1BF275B9B241DEB64749A47DFDFB96632C3EB061B6472BBF84C26144E49C2D04C324EF10DE513D3F5114B8B5D374D93CB8879C7D52FFD72BA0AAE7277DA7BA1B4AF1488D8E836AF14865E6C37AB6876FE690B571121382AF341AFE94F77BCF06C83B8FF5675F0979074AD9A787BC5B9BD4B0C5937D3EDE4C3A79396419CD7", 16).unwrap();
+        Self::setup_system(p, x)
+    }
+
+    pub fn setup_lg_system() -> (ElGamalParams, PrivateKey, PublicKey) {
+        // 2048bit key
+        let p = BigUint::parse_bytes(b"B7E151628AED2A6ABF7158809CF4F3C762E7160F38B4DA56A784D9045190CFEF324E7738926CFBE5F4BF8D8D8C31D763DA06C80ABB1185EB4F7C7B5757F5958490CFD47D7C19BB42158D9554F7B46BCED55C4D79FD5F24D6613C31C3839A2DDF8A9A276BCFBFA1C877C56284DAB79CD4C2B3293D20E9E5EAF02AC60ACC93ED874422A52ECB238FEEE5AB6ADD835FD1A0753D0A8F78E537D2B95BB79D8DCAEC642C1E9F23B829B5C2780BF38737DF8BB300D01334A0D0BD8645CBFA73A6160FFE393C48CBBBCA060F0FF8EC6D31BEB5CCEED7F2F0BB088017163BC60DF45A0ECB1BCD289B06CBBFEA21AD08E1847F3F7378D56CED94640D6EF0D3D37BE69D0063", 16).unwrap();
+        let x = BigUint::parse_bytes(b"E5EAF02AC60ACC93ED874422A52ECB238FEEE5AB6ADD835FD1A0753D0A8F78E537D2B95BB79D8DCAEC642C1E9F23829B5C2780BF38737DF8BB300D01334A0D0BD8645CBFA73A6160FFE393C48CBBBCA060F0FF8EC6D31BEB5CCEED7F2F0BB088017163BC6DF45A0ECB1BCD289B06CBBFEA21AD08E1847F3F7378D56CED94640D6EF0D3D37BE69D0063", 16).unwrap();
+        Self::setup_system(p, x)
+    }
+
+    pub fn setup_md_system() -> (ElGamalParams, PrivateKey, PublicKey) {
+        // 1024bit key
+        let p = BigUint::parse_bytes(b"B7E151628AED2A6ABF7158809CF4F3C762E7160F38B4DA56A784D9045190CFEF324E7738926CFBE5F4BF8D8D8C31D763DA06C80ABB1185EB4F7C7B5757F5958490CFD47D7C19BB42158D9554F7B46BCED55C4D79FD5F24D6613C31C3839A2DDF8A9A276BCFBFA1C877C56284DAB79CD4C2B3293D20E9E5EAF02AC60ACC942593", 16).unwrap();
+        let x = BigUint::parse_bytes(b"5BF0A8B1457695355FB8AC404E7A79E3B1738B079C5A6D2B53C26C8228C867799273B9C49367DF2FA5FC6C6C618EBB1ED0364055D88C2F5A7BE3DABABFACAC24867EA3EBE0CDDA10AC6CAAA7BDA35", 16).unwrap();
+        Self::setup_system(p, x)
+    }
+
+    pub fn setup_sm_system() -> (ElGamalParams, PrivateKey, PublicKey) {
+        // 48bit key
+        let p = BigUint::parse_bytes(b"B7E151629927", 16).unwrap();
+        let x = BigUint::parse_bytes(b"5BF0A8B1", 16).unwrap();
+        Self::setup_system(p, x)
+    }
+
     // helper function to setup ElGamal system before a test
-    pub fn setup_system(p: &[u8], x: &[u8]) -> (ElGamalParams, PrivateKey, PublicKey) {
+    fn setup_system(p: BigUint, x: BigUint) -> (ElGamalParams, PrivateKey, PublicKey) {
         let params = ElGamalParams {
-            p: BigUint::parse_bytes(p, 10).unwrap(),
+            p,
             g: BigUint::parse_bytes(b"4", 10).unwrap(),
             h: BigUint::parse_bytes(b"9", 10).unwrap(),
         };
@@ -37,7 +65,7 @@ impl Helper {
         );
         let sk = PrivateKey {
             params: params.clone(),
-            x: BigUint::parse_bytes(x, 10).unwrap(),
+            x,
         };
         let pk = PublicKey {
             params: params.clone(),
@@ -243,22 +271,63 @@ impl Helper {
 #[cfg(test)]
 mod tests {
     use super::Helper;
-    use crate::types::{Cipher, ElGamalParams};
+    use crate::{
+        random::Random,
+        types::{Cipher, ElGamalParams},
+    };
     use num_bigint::BigUint;
     use num_traits::One;
 
     #[test]
-    fn it_should_create_system() {
-        let (params, sk, pk) = Helper::setup_system(b"23", b"4");
+    fn it_should_create_sm_system() {
+        let (params, sk, pk) = Helper::setup_sm_system();
 
         // system parameters check: p, q, g
-        assert_eq!(params.p, BigUint::from(23u32));
+        assert!(Random::is_prime(&params.p, 20));
+        assert_eq!(params.p, BigUint::parse_bytes(b"B7E151629927", 16).unwrap());
         assert_eq!(params.g, BigUint::from(4u32));
         assert_eq!(params.h, BigUint::from(9u32));
-        assert_eq!(params.q(), BigUint::from(11u32));
+        assert!(Random::is_prime(&params.q(), 20));
+        assert_eq!(params.q(), BigUint::from(101089180470419u64));
 
         // private key check: x == x
-        assert_eq!(sk.x, BigUint::from(4u32));
+        assert_eq!(sk.x, BigUint::parse_bytes(b"5BF0A8B1", 16).unwrap());
+
+        // public key check: verify that h == g^x mod p
+        assert_eq!(pk.h, sk.params.g.modpow(&sk.x, &sk.params.p));
+    }
+
+    #[test]
+    fn it_should_create_md_system() {
+        let (params, sk, pk) = Helper::setup_md_system();
+
+        // check that p & are prime
+        assert!(Random::is_prime(&params.p, 20));
+        assert!(Random::is_prime(&params.q(), 20));
+
+        // public key check: verify that h == g^x mod p
+        assert_eq!(pk.h, sk.params.g.modpow(&sk.x, &sk.params.p));
+    }
+
+    #[test]
+    fn it_should_create_lg_system() {
+        let (params, sk, pk) = Helper::setup_lg_system();
+
+        // check that p & are prime
+        assert!(Random::is_prime(&params.p, 20));
+        assert!(Random::is_prime(&params.q(), 20));
+
+        // public key check: verify that h == g^x mod p
+        assert_eq!(pk.h, sk.params.g.modpow(&sk.x, &sk.params.p));
+    }
+
+    #[test]
+    fn it_should_create_xl_system() {
+        let (params, sk, pk) = Helper::setup_xl_system();
+
+        // check that p & are prime
+        assert!(Random::is_prime(&params.p, 20));
+        assert!(Random::is_prime(&params.q(), 20));
 
         // public key check: verify that h == g^x mod p
         assert_eq!(pk.h, sk.params.g.modpow(&sk.x, &sk.params.p));
@@ -388,10 +457,7 @@ mod tests {
     fn it_should_get_generators() {
         let one = BigUint::one();
         let id: usize = 1;
-        let (params, _, _) = Helper::setup_system(
-            b"170141183460469231731687303715884105727",
-            b"1701411834604692317316",
-        );
+        let (params, _, _) = Helper::setup_md_system();
 
         let generators = Helper::get_generators(id, &params.q(), 10);
         assert_eq!(generators.len(), 10);
