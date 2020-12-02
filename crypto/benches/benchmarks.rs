@@ -12,7 +12,6 @@ fn criterion_benchmark(c: &mut Criterion) {
         b.iter_with_setup(
             || {
                 let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-                b"2", 
                 b"1701411834604692317316873037");
                 let message = BigUint::from(1u32);
                 let random = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
@@ -26,7 +25,6 @@ fn criterion_benchmark(c: &mut Criterion) {
         b.iter_with_setup(
             || {
                 let (_, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-                b"2", 
                 b"1701411834604692317316873037");
                 let message = BigUint::from(1u32);
                 let random = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
@@ -43,7 +41,6 @@ fn criterion_benchmark(c: &mut Criterion) {
         b.iter_with_setup(
             || {
                 let (params, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-                b"2", 
                 b"1701411834604692317316873037");
                 let one = BigUint::one();
                 
@@ -65,7 +62,6 @@ fn criterion_benchmark(c: &mut Criterion) {
         b.iter_with_setup(
             || {
                 let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-                b"2", 
                 b"1701411834604692317316873037");
                 let one = BigUint::one();
                 
@@ -86,7 +82,6 @@ fn criterion_benchmark(c: &mut Criterion) {
         b.iter_with_setup(
             || {
                 let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-                b"2", 
                 b"1701411834604692317316873037");
                 let one = BigUint::one();
                 
@@ -107,7 +102,6 @@ fn criterion_benchmark(c: &mut Criterion) {
         b.iter_with_setup(
             || {
                 let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
-                b"2", 
                 b"1701411834604692317316873037");
 
                 // encryption of zero

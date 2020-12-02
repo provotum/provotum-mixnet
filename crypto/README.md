@@ -27,3 +27,12 @@ To show print statements during test execution use the following command:
 ```bash
 cargo +nightly test -- --nocapture
 ```
+
+
+## Benchmarks
+
+To benchmark a release build of the crate run the following command.
+
+```bash
+cargo +nightly bench --features bench
+```
