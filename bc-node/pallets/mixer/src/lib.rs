@@ -17,28 +17,24 @@ mod tests;
 pub mod keys;
 
 use codec::{Decode, Encode};
-use core::convert::TryInto;
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
     weights::Pays,
 };
 use frame_system::{
     self as system, ensure_signed,
-    offchain::{
-        AppCrypto, CreateSignedTransaction, SendSignedTransaction, SignedPayload, Signer,
-        SigningTypes,
-    },
+    offchain::{AppCrypto, CreateSignedTransaction, SignedPayload, SigningTypes},
 };
 use num_bigint::BigUint;
 use num_traits::One;
 use sp_runtime::{offchain as rt_offchain, RuntimeDebug};
-use sp_std::{collections::vec_deque::VecDeque, prelude::*, str, vec::Vec};
+use sp_std::{prelude::*, str, vec::Vec};
 use types::{Ballot, PublicKey as SubstratePK};
 
 /// the type to sign and send transactions.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct Payload<Public> {
-    number: u64,
+    ballot: Ballot,
     public: Public,
 }
 
@@ -60,9 +56,6 @@ pub trait Trait: system::Trait + CreateSignedTransaction<Call<Self>> {
 
 decl_storage! {
     trait Store for Module<T: Trait> as OffchainModule {
-        /// A vector of recently submitted numbers (at most 10).
-        Numbers get(fn numbers): VecDeque<u64>;
-
         /// The system's public key
         PublicKey get(fn public_key): Option<SubstratePK>;
 
@@ -80,9 +73,6 @@ decl_event!(
     where
         AccountId = <T as system::Trait>::AccountId,
     {
-        /// Event generated when a new number is accepted to contribute to the average.
-        NewNumber(Option<AccountId>, u64),
-
         /// ballot submission event -> [from/who, encrypted ballot]
         VoteSubmitted(AccountId, Ballot),
 
@@ -133,23 +123,6 @@ decl_module! {
 
         // Events must be initialized if they are used by the pallet.
         fn deposit_event() = default;
-
-        #[weight = 10000]
-        pub fn submit_number_signed(origin, number: u64) -> DispatchResult {
-            let who = ensure_signed(origin)?;
-            debug::info!("submit_number_signed: ({}, {:?})", number, who);
-
-            Numbers::mutate(|numbers| {
-                if numbers.len() == 10 {
-                    let _ = numbers.pop_front();
-                }
-                numbers.push_back(number);
-                debug::info!("Number vector: {:?}", numbers);
-            });
-
-            Self::deposit_event(RawEvent::NewNumber(Some(who), number));
-            Ok(())
-        }
 
         #[weight = (10000, Pays::No)]
         pub fn store_public_key(origin, pk: SubstratePK) -> DispatchResult {

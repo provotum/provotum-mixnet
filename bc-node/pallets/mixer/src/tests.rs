@@ -1,6 +1,6 @@
 use crate::*;
 use crate::{mock::*, types::Wrapper};
-use crate::{types::Ballot, types::PublicKey};
+use crate::{types::Ballot, types::PublicKey as SubstratePK};
 use codec::Decode;
 use crypto::{
     encryption::ElGamal, helper::Helper, types::Cipher, types::PublicKey as ElGamalPK,
@@ -9,31 +9,49 @@ use frame_support::assert_ok;
 use frame_system as system;
 use num_traits::Zero;
 
+fn setup_public_key() {
+    // create the submitter (i.e. the public key submitter)
+    let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+    let who = Origin::signed(account);
+
+    // create the public key
+    let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", b"1701411834604692317316873037");
+
+    // store created public key and public parameters
+    let public_key_storage = OffchainModule::store_public_key(who, pk.clone().into());
+    assert_ok!(public_key_storage);
+}
+
 #[test]
-fn test_submit_number_signed_works() {
+fn test_cast_ballot_works() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        // call submit_number_signed
-        let num = 32;
+        // Setup
+        setup_public_key();
+        let pk: ElGamalPK = OffchainModule::public_key().unwrap().into();
+        let q = &pk.params.q();
+
         let acct: <TestRuntime as system::Trait>::AccountId = Default::default();
-        assert_ok!(OffchainModule::submit_number_signed(
-            Origin::signed(acct),
-            num
-        ));
-        // A number is inserted to <Numbers> vec
-        assert_eq!(<Numbers>::get(), vec![num]);
+
+        let num: u64 = 32;
+        let big: BigUint = BigUint::from(num);
+        let r = OffchainModule::get_random_biguint_less_than(q).unwrap();
+        let ballot: Ballot = ElGamal::encrypt(&big, &r, &pk).into();
+
+        // Test
+        // call cast_ballot
+        assert_ok!(OffchainModule::cast_ballot(Origin::signed(acct), ballot.clone()));
+        // A encrypted ballot is inserted to <Ballots> vec
+        assert_eq!(<Ballots>::get(), vec![ballot.clone()]);
         // An event is emitted
         assert!(System::events().iter().any(|er| er.event
-            == TestEvent::pallet_mixer(RawEvent::NewNumber(Some(acct), num))));
+            == TestEvent::pallet_mixer(RawEvent::VoteSubmitted(acct, ballot.clone()))));
 
-        // Insert another number
-        let num2 = num * 2;
-        assert_ok!(OffchainModule::submit_number_signed(
-            Origin::signed(acct),
-            num2
-        ));
-        // A number is inserted to <Numbers> vec
-        assert_eq!(<Numbers>::get(), vec![num, num2]);
+        // Insert another ballot
+        let ballot2 = ballot.clone();
+        assert_ok!(OffchainModule::cast_ballot(Origin::signed(acct), ballot.clone()));
+        // A ballot is inserted to <Ballots> vec
+        assert_eq!(<Ballots>::get(), vec![ballot, ballot2]);
     });
 }
 
@@ -43,7 +61,16 @@ fn test_offchain_signed_tx() {
 
     t.execute_with(|| {
         // Setup
-        let num = 32;
+        setup_public_key();
+        let pk: ElGamalPK = OffchainModule::public_key().unwrap().into();
+        let q = &pk.params.q();
+
+        let num: u64 = 32;
+        let big: BigUint = BigUint::from(num);
+        let r = OffchainModule::get_random_biguint_less_than(q).unwrap();
+        let ballot: Ballot = ElGamal::encrypt(&big, &r, &pk).into();
+
+        // Test
         OffchainModule::offchain_signed_tx(num).unwrap();
 
         // Verify
@@ -51,7 +78,7 @@ fn test_offchain_signed_tx() {
         assert!(pool_state.read().transactions.is_empty());
         let tx = TestExtrinsic::decode(&mut &*tx).unwrap();
         assert_eq!(tx.signature.unwrap().0, 0);
-        assert_eq!(tx.call, Call::submit_number_signed(num));
+        assert_eq!(tx.call, Call::cast_ballot(ballot.clone()));
     });
 }
 
@@ -335,7 +362,7 @@ fn test_fetch_public_key_does_not_exist() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         // fetch the public key from the chain which doesn't exist
-        let pk_from_chain: Option<PublicKey> = OffchainModule::public_key();
+        let pk_from_chain: Option<SubstratePK> = OffchainModule::public_key();
         assert_eq!(pk_from_chain, None);
     });
 }
