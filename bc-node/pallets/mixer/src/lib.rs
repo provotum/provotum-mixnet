@@ -3,6 +3,8 @@
 extern crate alloc;
 
 mod helpers;
+mod logic;
+mod shuffle;
 pub mod types;
 
 #[cfg(test)]
@@ -132,23 +134,6 @@ decl_module! {
         // Events must be initialized if they are used by the pallet.
         fn deposit_event() = default;
 
-        #[weight = (10000, Pays::No)]
-        pub fn store_public_key(origin, pk: SubstratePK) -> DispatchResult {
-            // check that the extrinsic was signed and get the signer.
-            let who = ensure_signed(origin)?;
-            let address_bytes = who.encode();
-            debug::info!("Voter {:?} (encoded: {:?}).", &who, address_bytes);
-
-            // store the public key
-            PublicKey::put(pk.clone());
-
-            // notify that the public key has been successfully stored
-            Self::deposit_event(RawEvent::PublicKeyStored(who, pk));
-
-            // Return a successful DispatchResult
-            Ok(())
-        }
-
         #[weight = 10000]
         pub fn submit_number_signed(origin, number: u64) -> DispatchResult {
             let who = ensure_signed(origin)?;
@@ -167,20 +152,37 @@ decl_module! {
         }
 
         #[weight = (10000, Pays::No)]
+        pub fn store_public_key(origin, pk: SubstratePK) -> DispatchResult {
+          // check that the extrinsic was signed and get the signer.
+          let who = ensure_signed(origin)?;
+          let address_bytes = who.encode();
+          debug::info!("Voter {:?} (encoded: {:?}).", &who, address_bytes);
+
+          // store the public key
+          PublicKey::put(pk.clone());
+
+          // notify that the public key has been successfully stored
+          Self::deposit_event(RawEvent::PublicKeyStored(who, pk));
+
+          // Return a successful DispatchResult
+          Ok(())
+        }
+
+        #[weight = (10000, Pays::No)]
         pub fn cast_ballot(origin, ballot: Ballot) -> DispatchResult {
-            // check that the extrinsic was signed and get the signer.
-            let who = ensure_signed(origin)?;
-            let address_bytes = who.encode();
-            debug::info!("Voter {:?} (encoded: {:?}) cast a ballot.", &who, address_bytes);
+          // check that the extrinsic was signed and get the signer.
+          let who = ensure_signed(origin)?;
+          let address_bytes = who.encode();
+          debug::info!("Voter {:?} (encoded: {:?}) cast a ballot.", &who, address_bytes);
 
-            // store the ballot
-            Self::store_ballot(who.clone(), ballot.clone());
+          // store the ballot
+          Self::store_ballot(who.clone(), ballot.clone());
 
-            // notify that the ballot has been submitted and successfully stored
-            Self::deposit_event(RawEvent::VoteSubmitted(who, ballot));
+          // notify that the ballot has been submitted and successfully stored
+          Self::deposit_event(RawEvent::VoteSubmitted(who, ballot));
 
-            // Return a successful DispatchResult
-            Ok(())
+          // Return a successful DispatchResult
+          Ok(())
         }
 
         fn offchain_worker(block_number: T::BlockNumber) {
@@ -188,14 +190,21 @@ decl_module! {
 
             let result = Self::offchain_signed_tx(block_number);
             match result {
-                Ok(_) => debug::info!("off-chain worker: successfully submitted signed_tx {:?}", block_number),
+                Ok(_) => debug::info!(
+                    "off-chain worker: successfully submitted signed_tx {:?}",
+                    block_number
+                ),
                 Err(e) => debug::error!("off-chain worker - error: {:?}", e),
             }
 
             let number: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
             let random = Self::get_random_biguint_less_than(&number);
             match random {
-                Ok(value) => debug::info!("off-chain worker: random value: {:?} less than: {:?}", value, number),
+                Ok(value) => debug::info!(
+                    "off-chain worker: random value: {:?} less than: {:?}",
+                    value,
+                    number
+                ),
                 Err(error) => debug::error!("off-chain worker - error: {:?}", error),
             }
 
@@ -208,7 +217,12 @@ decl_module! {
 
             let value = Self::get_random_range(5, 12312356);
             match value {
-                Ok(val) => debug::info!("off-chain worker: random value in range. lower: {:?}, upper: {:?}, value: {:?}", 5, 12312356, val),
+                Ok(val) => debug::info!(
+                    "off-chain worker: random value in range. lower: {:?}, upper: {:?}, value: {:?}",
+                    5,
+                    12312356,
+                    val
+                ),
                 Err(error) => debug::error!("off-chain worker - error: {:?}", error),
             }
 
@@ -220,39 +234,6 @@ decl_module! {
 
             debug::info!("off-chain worker: done...");
         }
-    }
-}
-
-impl<T: Trait> Module<T> {
-    fn offchain_signed_tx(block_number: T::BlockNumber) -> Result<(), Error<T>> {
-        // We retrieve a signer and check if it is valid.
-        //   ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.Signer.html
-        let signer = Signer::<T, T::AuthorityId>::any_account();
-
-        // Translating the current block number to number and submit it on-chain
-        let number: u64 = block_number.try_into().unwrap_or(0) as u64;
-
-        // `result` is in the type of `Option<(Account<T>, Result<(), ()>)>`. It is:
-        //   - `None`: no account is available for sending transaction
-        //   - `Some((account, Ok(())))`: transaction is successfully sent
-        //   - `Some((account, Err(())))`: error occured when sending the transaction
-        let result = signer.send_signed_transaction(|_acct|
-			// This is the on-chain function
-            Call::submit_number_signed(number));
-
-        // Display error if the signed tx fails.
-        if let Some((acc, res)) = result {
-            if res.is_err() {
-                debug::error!("failure: offchain_signed_tx: tx sent: {:?}", acc.id);
-                return Err(<Error<T>>::OffchainSignedTxError);
-            }
-            // Transaction is sent successfully
-            return Ok(());
-        }
-
-        // The case of `None`: no account is available for sending
-        debug::error!("No local account available");
-        Err(<Error<T>>::NoLocalAcctForSigning)
     }
 }
 

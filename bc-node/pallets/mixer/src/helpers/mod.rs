@@ -1,3 +1,3 @@
 pub mod ballot;
-pub mod proofs;
+pub mod math;
 pub mod random;

@@ -161,11 +161,7 @@ impl<T: Trait> Module<T> {
         Self::random_range(&mut rng, lower, upper)
     }
 
-    fn random_range(
-        rng: &mut ChaChaRng,
-        lower: usize,
-        upper: usize,
-    ) -> Result<usize, Error<T>> {
+    fn random_range(rng: &mut ChaChaRng, lower: usize, upper: usize) -> Result<usize, Error<T>> {
         if upper == 0 {
             return Err(Error::RandomRangeError);
         }
@@ -201,5 +197,22 @@ impl<T: Trait> Module<T> {
             range[random] = range[index];
         }
         Ok(permutation)
+    }
+
+    pub fn permute_vector(input: Vec<BigUint>, permutation: &[usize]) -> Vec<BigUint> {
+        let mut temp_ = Vec::new();
+
+        // permute the input vector
+        // same order as permutation vector
+        for i in 0..input.len() {
+            let j_i = permutation[i];
+            let u_j_i = input[j_i].clone();
+            temp_.push(u_j_i);
+        }
+
+        // ensure that both arrays have the same length
+        // i.e. nothing went wrong
+        assert_eq!(input.len(), temp_.len());
+        temp_
     }
 }

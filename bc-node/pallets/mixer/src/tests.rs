@@ -3,7 +3,7 @@ use crate::{mock::*, types::Wrapper};
 use crate::{types::Ballot, types::PublicKey};
 use codec::Decode;
 use crypto::{
-    encryption::ElGamal, helper::Helper, types::Cipher, types::PublicKey as ElGamalPK, types::ElGamalParams
+    encryption::ElGamal, helper::Helper, types::Cipher, types::PublicKey as ElGamalPK,
 };
 use frame_support::assert_ok;
 use frame_system as system;
@@ -159,7 +159,7 @@ fn test_get_random_range() {
         let lower: usize = 0;
         let upper: usize = 100;
         let value = OffchainModule::get_random_range(lower, upper).unwrap();
-        
+
         assert!(value < upper);
         assert!(lower < value);
     });
@@ -432,111 +432,111 @@ fn test_shuffle_ballots_no_ballots() {
 #[test]
 fn test_shuffle_proof_vote_id1_p59_x4() {
     let (mut t, _, _) = ExternalityBuilder::build();
-    t.execute_with(|| {          
-        let vote_id = 1usize;        
-        let (_, _, pk) = Helper::setup_system(b"59", b"4");        
+    t.execute_with(|| {
+        let vote_id = 1usize;
+        let (_, _, pk) = Helper::setup_system(b"59", b"4");
         let is_p_prime = OffchainModule::is_prime(&pk.params.p, 10).unwrap();
         assert!(is_p_prime);
         let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 10).unwrap();
         assert!(is_q_prime);
-        
+
         let is_proof_valid = shuffle_proof_test(vote_id, pk);
-        assert!(is_proof_valid);  
+        assert!(is_proof_valid);
     });
 }
 
 #[test]
 fn test_shuffle_proof_vote_id1_p59_x0() {
     let (mut t, _, _) = ExternalityBuilder::build();
-    t.execute_with(|| {          
-        let vote_id = 1usize;        
-        let (_, _, pk) = Helper::setup_system(b"59", b"0");        
+    t.execute_with(|| {
+        let vote_id = 1usize;
+        let (_, _, pk) = Helper::setup_system(b"59", b"0");
         let is_p_prime = OffchainModule::is_prime(&pk.params.p, 10).unwrap();
         assert!(is_p_prime);
         let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 10).unwrap();
         assert!(is_q_prime);
-        
+
         let is_proof_valid = shuffle_proof_test(vote_id, pk);
-        assert!(is_proof_valid);  
+        assert!(is_proof_valid);
     });
 }
 
 #[test]
 fn test_shuffle_proof_vote_id1_p59_x28() {
     let (mut t, _, _) = ExternalityBuilder::build();
-    t.execute_with(|| {          
-        let vote_id = 1usize;        
-        let (_, _, pk) = Helper::setup_system(b"59", b"28");        
+    t.execute_with(|| {
+        let vote_id = 1usize;
+        let (_, _, pk) = Helper::setup_system(b"59", b"28");
         let is_p_prime = OffchainModule::is_prime(&pk.params.p, 10).unwrap();
         assert!(is_p_prime);
         let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 10).unwrap();
         assert!(is_q_prime);
-        
+
         let is_proof_valid = shuffle_proof_test(vote_id, pk);
-        assert!(is_proof_valid);  
+        assert!(is_proof_valid);
     });
 }
 
 #[test]
 fn test_shuffle_proof_vote_id1_p59_x1() {
     let (mut t, _, _) = ExternalityBuilder::build();
-    t.execute_with(|| {         
-        let vote_id = 1usize;        
-        let (_, _, pk) = Helper::setup_system(b"59", b"1");        
+    t.execute_with(|| {
+        let vote_id = 1usize;
+        let (_, _, pk) = Helper::setup_system(b"59", b"1");
         let is_p_prime = OffchainModule::is_prime(&pk.params.p, 10).unwrap();
         assert!(is_p_prime);
         let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 10).unwrap();
         assert!(is_q_prime);
-        
+
         let is_proof_valid = shuffle_proof_test(vote_id, pk);
-        assert!(is_proof_valid);  
+        assert!(is_proof_valid);
     });
 }
 
 #[test]
 fn test_shuffle_proof_vote_id25_p4283_x1500() {
     let (mut t, _, _) = ExternalityBuilder::build();
-    t.execute_with(|| {        
-        let vote_id = 25usize;        
-        let (_, _, pk) = Helper::setup_system(b"4283", b"1500");        
+    t.execute_with(|| {
+        let vote_id = 25usize;
+        let (_, _, pk) = Helper::setup_system(b"4283", b"1500");
         let is_p_prime = OffchainModule::is_prime(&pk.params.p, 10).unwrap();
         assert!(is_p_prime);
         let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 10).unwrap();
         assert!(is_q_prime);
-        
+
         let is_proof_valid = shuffle_proof_test(vote_id, pk);
-        assert!(is_proof_valid);  
+        assert!(is_proof_valid);
     });
 }
 
 #[test]
 fn test_shuffle_proof_vote_id231_p202178360940839_x35() {
     let (mut t, _, _) = ExternalityBuilder::build();
-    t.execute_with(|| {        
+    t.execute_with(|| {
         // good primes to use for testing
         // p: 202178360940839 -> q: 101089180470419
         // p: 4283 -> q: 2141
         // p: 59 -> q: 29
-        // p: 47 -> q: 23      
-        let vote_id = 231usize;        
-        let (_, _, pk) = Helper::setup_system(b"202178360940839", b"35");        
+        // p: 47 -> q: 23
+        let vote_id = 231usize;
+        let (_, _, pk) = Helper::setup_system(b"202178360940839", b"35");
         let is_p_prime = OffchainModule::is_prime(&pk.params.p, 10).unwrap();
         assert!(is_p_prime);
         let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 10).unwrap();
         assert!(is_q_prime);
-        
+
         let is_proof_valid = shuffle_proof_test(vote_id, pk);
-        assert!(is_proof_valid);  
+        assert!(is_proof_valid);
     });
 }
 
-fn shuffle_proof_test(vote_id: usize, pk: ElGamalPK) -> bool {        
+fn shuffle_proof_test(vote_id: usize, pk: ElGamalPK) -> bool {
     let messages = [
-        BigUint::from(0u32), 
-        BigUint::from(1u32), 
-        BigUint::from(2u32)
-        ];
-        
+        BigUint::from(0u32),
+        BigUint::from(1u32),
+        BigUint::from(2u32),
+    ];
+
     // create the submitter (i.e. the public key submitter)
     let account: <TestRuntime as system::Trait>::AccountId = Default::default();
     let who = Origin::signed(account);
@@ -544,7 +544,7 @@ fn shuffle_proof_test(vote_id: usize, pk: ElGamalPK) -> bool {
     // store created public key and public parameters
     let public_key_storage = OffchainModule::store_public_key(who, pk.clone().into());
     assert_ok!(public_key_storage);
-    
+
     // encrypt the message -> encrypted message
     // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
     let randoms = [b"7", b"6", b"5"];
@@ -552,29 +552,31 @@ fn shuffle_proof_test(vote_id: usize, pk: ElGamalPK) -> bool {
     // create the voter (i.e. the transaction signer)
     let account: <TestRuntime as system::Trait>::AccountId = Default::default();
     let voter = Origin::signed(account);
-    
+
     for index in 0..3 {
         let random = BigUint::parse_bytes(randoms[index], 10).unwrap();
 
         // transform the ballot into a from that the blockchain can handle
         // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
-        let encrypted_vote: Ballot = ElGamal::encrypt(&messages[index], &random, &pk).into();
+        let encrypted_vote: Ballot =
+            ElGamal::encrypt(&messages[index], &random, &pk).into();
 
-        let vote_submission_result = OffchainModule::cast_ballot(voter.clone(), encrypted_vote.clone());
+        let vote_submission_result =
+            OffchainModule::cast_ballot(voter.clone(), encrypted_vote.clone());
         assert_ok!(vote_submission_result);
     }
 
     // get the encrypted votes
     let votes_from_chain: Vec<Cipher> = Wrapper(OffchainModule::ballots()).into();
     assert!(votes_from_chain.len() > 0);
-    
+
     // shuffle the votes
     let shuffle_result = OffchainModule::shuffle_ballots();
     let shuffled: (Vec<Cipher>, Vec<BigUint>, Vec<usize>) = shuffle_result.unwrap();
     let shuffled_ciphers = shuffled.0;
     let re_encryption_randoms = shuffled.1;
     let permutation = &shuffled.2;
-    
+
     // TEST
     // GENERATE PROOF
     let result = OffchainModule::generate_shuffle_proof(
@@ -583,7 +585,7 @@ fn shuffle_proof_test(vote_id: usize, pk: ElGamalPK) -> bool {
         shuffled_ciphers.clone(),
         re_encryption_randoms,
         permutation,
-        &pk
+        &pk,
     );
     let proof: (
         BigUint, // challenge
@@ -600,7 +602,13 @@ fn shuffle_proof_test(vote_id: usize, pk: ElGamalPK) -> bool {
     ) = result.unwrap();
 
     // VERIFY PROOF
-    let verification = OffchainModule::verify_shuffle_proof(vote_id, proof, votes_from_chain, shuffled_ciphers, &pk);
+    let verification = OffchainModule::verify_shuffle_proof(
+        vote_id,
+        proof,
+        votes_from_chain,
+        shuffled_ciphers,
+        &pk,
+    );
     let is_proof_valid = verification.unwrap();
     is_proof_valid
 }
@@ -609,8 +617,12 @@ fn shuffle_proof_test(vote_id: usize, pk: ElGamalPK) -> bool {
 fn test_permute_vector() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        let test_vec: Vec<BigUint> = vec![BigUint::from(5u32), BigUint::from(10u32), BigUint::from(15u32)];
-        let permutation: Vec<usize> = vec![2,0,1];
+        let test_vec: Vec<BigUint> = vec![
+            BigUint::from(5u32),
+            BigUint::from(10u32),
+            BigUint::from(15u32),
+        ];
+        let permutation: Vec<usize> = vec![2, 0, 1];
 
         let result = OffchainModule::permute_vector(test_vec.clone(), &permutation);
         assert_eq!(result[0], test_vec[2]);
