@@ -1,7 +1,7 @@
 use crate::{Error, Module, Trait};
 use crypto::{
     helper::Helper,
-    proofs::ShuffleProof,
+    proofs::shuffle::ShuffleProof,
     types::{Cipher, ModuloOperations, PublicKey},
 };
 use num_bigint::BigUint;
