@@ -113,8 +113,11 @@ impl<T: Trait> Module<T> {
         // vec_c = permutation_commitments
         // vec_u = challenges
         let c_tilde = Self::zip_vectors_multiply_a_pow_b(&vec_c, &vec_u, p);
+
         if_std! {
-            // println!("verifier - \nvec_u: {:?},\nvec_c: {:?}\nc_tilde: {:?}\n", vec_u, vec_c, c_tilde);
+            println!("verifier - vec_u: {:?}", vec_u);
+            println!("verifier - vec_c: {:?}", vec_c);
+            println!("verifier - c_tilde: {:?}\n", c_tilde);
         }
 
         // vec_a = vector of all components a (encryption { a, b })
@@ -152,12 +155,6 @@ impl<T: Trait> Module<T> {
             size,
             pk,
         )?;
-
-        if_std! {
-            // println!("verifier - \n t4_1: {:?},\n t4_2: {:?}\n", t4_1, t4_2);
-            // println!("verifier - t3: {:?}", t3);
-            // println!("verifier - \n vec_t_hat: {:?}\n", vec_t_hat);
-        }
 
         // generate challenge from (y, t)
         // public value y = ((e, e_tilde, vec_c, vec_c_hat, pk)
@@ -203,24 +200,34 @@ impl<T: Trait> Module<T> {
         let prod_h_s_tilde = Self::zip_vectors_multiply_a_pow_b(&vec_h, &vec_s_tilde, p);
 
         if_std! {
-            // println!("verifier - prod(h_i pow s_tilde_i): {:?}\n", prod_h_s_tilde);
+            println!("verifier - vec_h: {:?}", vec_h);
+            println!("verifier - vec_s_tilde: {:?}", vec_s_tilde);
+            println!("verifier - prod(h_i^s_tilde_i): {:?}\n", prod_h_s_tilde);
         }
 
         let g_pow_s3 = g.modpow(s3, p);
 
         if_std! {
-            // println!("verifier - g_pow_s3: {:?}, g: {:?}, s3: {:?}\n", g_pow_s3, g, s3);
+            println!("verifier - g: {:?}", g);
+            println!("verifier - s3: {:?}", s3);
+            println!("verifier - g_pow_s3: {:?}\n", g_pow_s3);
         }
 
         let c_tilde_pow_challenge = c_tilde.modpow(challenge, p);
 
         if_std! {
-            // println!("verifier - c~^c: {:?}, c_tilde: {:?}, challenge: {:?}\n", c_tilde_pow_challenge, c_tilde, challenge);
+            println!("verifier - challenge: {:?}", challenge);
+            println!("verifier - c_tilde: {:?}", c_tilde);
+            println!("verifier - c~^c: {:?}\n", c_tilde_pow_challenge);
         }
 
         let t3 = c_tilde_pow_challenge
             .modmul(&g_pow_s3, p)
             .modmul(&prod_h_s_tilde, p);
+
+        if_std! {
+            println!("verifier - t3: {:?}\n", t3);
+        }
 
         // we need to swap pk and g
         // since our encryption conatins (a,b) with a = g^r

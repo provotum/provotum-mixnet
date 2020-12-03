@@ -2,9 +2,16 @@
 #![feature(unsized_locals)]
 extern crate alloc;
 
+#[allow(clippy::many_single_char_names)]
 mod helpers;
+
+#[allow(clippy::many_single_char_names)]
 mod logic;
+
+#[allow(clippy::many_single_char_names)]
 mod shuffle;
+
+#[allow(clippy::many_single_char_names)]
 pub mod types;
 
 #[cfg(test)]

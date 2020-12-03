@@ -105,13 +105,6 @@ impl<T: Trait> Module<T> {
                 size,
             )?;
 
-        if_std! {
-            // println!("prover - \n t4_1: {:?},\n t4_2: {:?}\n", t4_1, t4_2);
-            // println!("prover - t3: {:?}", t3);
-            // println!("prover - \n vec_t_hat: {:?}\n", vec_t_hat);
-            // println!("prover - vec_h: {:?}\n", vec_h);
-        }
-
         // generate challenge from (y, t)
         // public value y = ((e, e_tilde, vec_c, vec_c_hat, pk)
         // public commitment t = (t1, t2, t3, (t4_1, t4_2), (t_hat_0, ..., t_hat_(size-1)))
@@ -226,10 +219,12 @@ impl<T: Trait> Module<T> {
         let s3 = w3.modsub(&challenge.modmul(&r, q), q);
 
         if_std! {
-            // println!("prover - vec_r: {:?}\n", vec_r);
-            // println!("prover - vec_u: {:?}, length: {:?}\n", vec_u, vec_u.len());
-            // println!("prover - r: {:?}\n", r);
-            // println!("prover - w3: {:?}, challenge: {:?}, s3: {:?}\n", w3, challenge, s3);
+            println!("prover - vec_r: {:?}", vec_r);
+            println!("prover - vec_u: {:?}", vec_u);
+            println!("prover - r: {:?}\n", r);
+            println!("prover - w3: {:?}", w3);
+            println!("prover - challenge: {:?}", challenge);
+            println!("prover - s3 = w3 - challenge * r mod q: {:?}\n", s3);
         }
 
         // vec_r_tilde -> random values of re-encryption
@@ -351,9 +346,13 @@ impl<T: Trait> Module<T> {
         let t3 = g_pow_w3.modmul(&prod, p);
 
         if_std! {
-            // println!("prover - vec_h: {:?}\n", vec_h);
-            // println!("prover - vec_w_tilde: {:?}\n", vec_w_tilde);
-            // println!("prover - g: {:?}, w3: {:?}, g: {:?}\n", g, w3, g_pow_w3);
+            println!("prover - vec_h: {:?}", vec_h);
+            println!("prover - vec_w_tilde: {:?}", vec_w_tilde);
+            println!("prover - prod(vec_h_i^vec_w_tilde_i): {:?}\n", prod);
+            println!("prover - g: {:?}", g);
+            println!("prover - w3: {:?}", w3);
+            println!("prover - g^w3: {:?}\n", g_pow_w3);
+            println!("prover - t3 = g^w3 * prod mod p: {:?}", t3);
         }
 
         // chain with shuffled encryptions

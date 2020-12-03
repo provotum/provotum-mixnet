@@ -6,6 +6,7 @@ use crypto::{encryption::ElGamal, helper::Helper, types::Cipher, types::PublicKe
 use frame_support::assert_ok;
 use frame_system as system;
 use num_traits::Zero;
+use sp_std::vec;
 
 fn setup_public_key() {
     // create the submitter (i.e. the public key submitter)
@@ -555,10 +556,15 @@ fn test_shuffle_proof_xl_system() {
 }
 
 fn shuffle_proof_test(vote_id: usize, pk: ElGamalPK) -> bool {
-    let messages = [
+    let messages = vec![
         BigUint::from(0u32),
         BigUint::from(1u32),
         BigUint::from(2u32),
+        BigUint::from(3u32),
+        BigUint::from(4u32),
+        BigUint::from(5u32),
+        BigUint::from(6u32),
+        BigUint::from(7u32),
     ];
 
     // create the submitter (i.e. the public key submitter)
@@ -571,13 +577,16 @@ fn shuffle_proof_test(vote_id: usize, pk: ElGamalPK) -> bool {
 
     // encrypt the message -> encrypted message
     // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
-    let randoms = [b"7", b"6", b"5"];
+    let randoms = vec![
+        b"123123", b"923845", b"523200", b"123123", b"900000", b"520000", b"123000", b"923000",
+    ];
+    assert_eq!(messages.len(), randoms.len());
 
     // create the voter (i.e. the transaction signer)
     let account: <TestRuntime as system::Trait>::AccountId = Default::default();
     let voter = Origin::signed(account);
 
-    for index in 0..3 {
+    for index in 0..messages.len() {
         let random = BigUint::parse_bytes(randoms[index], 10).unwrap();
 
         // transform the ballot into a from that the blockchain can handle
