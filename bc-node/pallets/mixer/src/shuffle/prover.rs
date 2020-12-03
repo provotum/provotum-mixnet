@@ -6,7 +6,7 @@ use crypto::{
 };
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
-use sp_std::{if_std, vec::Vec};
+use sp_std::vec::Vec;
 
 /// all functions related to zero-knowledge proofs in the offchain worker
 impl<T: Trait> Module<T> {
@@ -79,8 +79,13 @@ impl<T: Trait> Module<T> {
 
         // get {size} challenges
         // vec_u = get_challenges(size, hash(e, e_tilde, vec_c, pk))
-        let vec_u =
-            ShuffleProof::get_challenges(size, e.clone(), e_tilde.clone(), vec_c.clone(), pk);
+        let vec_u = ShuffleProof::get_challenges(
+            size,
+            e.clone(),
+            e_tilde.clone(),
+            vec_c.clone(),
+            pk,
+        );
 
         // permute the challenges -> same order as randoms + permuation
         let u_tilde = Self::permute_vector(vec_u.clone(), permutation);
@@ -219,15 +224,6 @@ impl<T: Trait> Module<T> {
         // s3 = w3 - challenge * r % q
         let s3 = w3.modsub(&challenge.modmul(&r, q), q);
 
-        if_std! {
-            println!("prover - vec_r: {:?}", vec_r);
-            println!("prover - vec_u: {:?}", vec_u);
-            println!("prover - r: {:?}\n", r);
-            println!("prover - w3: {:?}", w3);
-            println!("prover - challenge: {:?}", challenge);
-            println!("prover - s3 = w3 - challenge * r mod q: {:?}\n", s3);
-        }
-
         // vec_r_tilde -> random values of re-encryption
         // get r_tilde
         let r_tilde = Self::zip_vectors_sum_products(&vec_r_tilde, &vec_u, q);
@@ -346,16 +342,6 @@ impl<T: Trait> Module<T> {
         let prod = Self::zip_vectors_multiply_a_pow_b(&vec_h, &vec_w_tilde, p);
         let t3 = g_pow_w3.modmul(&prod, p);
 
-        if_std! {
-            println!("prover - vec_h: {:?}", vec_h);
-            println!("prover - vec_w_tilde: {:?}", vec_w_tilde);
-            println!("prover - prod(vec_h_i^vec_w_tilde_i): {:?}\n", prod);
-            println!("prover - g: {:?}", g);
-            println!("prover - w3: {:?}", w3);
-            println!("prover - g^w3: {:?}\n", g_pow_w3);
-            println!("prover - t3 = g^w3 * prod mod p: {:?}", t3);
-        }
-
         // chain with shuffled encryptions
         // generate t4_1, t4_2
 
@@ -379,7 +365,8 @@ impl<T: Trait> Module<T> {
         // for an explanation see: Verifiable Re-Encryption Mixnets (Haenni, Locher, Koenig, Dubuis) page 9
         let inv_pk = pk.invmod(p).ok_or_else(|| Error::InvModError)?;
         let inv_pk_pow_w4 = inv_pk.modpow(&w4, p);
-        let vec_b_tilde: Vec<BigUint> = shuffled_encryptions.into_iter().map(|c| c.b).collect();
+        let vec_b_tilde: Vec<BigUint> =
+            shuffled_encryptions.into_iter().map(|c| c.b).collect();
         let prod_b_tilde_w_tilde =
             Self::zip_vectors_multiply_a_pow_b(&vec_b_tilde, &vec_w_tilde, p);
         let t4_2 = inv_pk_pow_w4.modmul(&prod_b_tilde_w_tilde, p);

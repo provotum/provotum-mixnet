@@ -506,6 +506,22 @@ fn test_shuffle_proof_small_system() {
 }
 
 #[test]
+fn test_shuffle_proof_tiny_system() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let vote_id = 1usize;
+        let (_, _, pk) = Helper::setup_tiny_system();
+        let is_p_prime = OffchainModule::is_prime(&pk.params.p, 10).unwrap();
+        assert!(is_p_prime);
+        let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 10).unwrap();
+        assert!(is_q_prime);
+
+        let is_proof_valid = shuffle_proof_test(vote_id, pk);
+        assert!(is_proof_valid);
+    });
+}
+
+#[test]
 fn test_shuffle_proof_medium_system() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
@@ -560,11 +576,9 @@ fn shuffle_proof_test(vote_id: usize, pk: ElGamalPK) -> bool {
         BigUint::from(0u32),
         BigUint::from(1u32),
         BigUint::from(2u32),
-        BigUint::from(3u32),
-        BigUint::from(4u32),
-        BigUint::from(5u32),
-        BigUint::from(6u32),
-        BigUint::from(7u32),
+        BigUint::from(0u32),
+        BigUint::from(1u32),
+        BigUint::from(2u32),
     ];
 
     // create the submitter (i.e. the public key submitter)
@@ -577,9 +591,7 @@ fn shuffle_proof_test(vote_id: usize, pk: ElGamalPK) -> bool {
 
     // encrypt the message -> encrypted message
     // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
-    let randoms = vec![
-        b"123123", b"923845", b"523200", b"123123", b"900000", b"520000", b"123000", b"923000",
-    ];
+    let randoms = vec![b"08", b"17", b"01", b"16", b"11", b"00"];
     assert_eq!(messages.len(), randoms.len());
 
     // create the voter (i.e. the transaction signer)

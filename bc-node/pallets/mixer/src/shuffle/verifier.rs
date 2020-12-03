@@ -7,7 +7,7 @@ use crypto::{
 };
 use num_bigint::BigUint;
 use num_traits::One;
-use sp_std::{if_std, vec, vec::Vec};
+use sp_std::{vec, vec::Vec};
 
 /// all functions related to zero-knowledge proofs in the offchain worker
 impl<T: Trait> Module<T> {
@@ -75,8 +75,13 @@ impl<T: Trait> Module<T> {
 
         // get {size} challenges
         // vec_u = get_challenges(size, hash(e, e_tilde, vec_c, pk))
-        let vec_u =
-            ShuffleProof::get_challenges(size, e.clone(), e_tilde.clone(), vec_c.clone(), pk);
+        let vec_u = ShuffleProof::get_challenges(
+            size,
+            e.clone(),
+            e_tilde.clone(),
+            vec_c.clone(),
+            pk,
+        );
 
         // get c_hat_0
         // h = the 2. public generator
@@ -113,12 +118,6 @@ impl<T: Trait> Module<T> {
         // vec_c = permutation_commitments
         // vec_u = challenges
         let c_tilde = Self::zip_vectors_multiply_a_pow_b(&vec_c, &vec_u, p);
-
-        if_std! {
-            println!("verifier - vec_u: {:?}", vec_u);
-            println!("verifier - vec_c: {:?}", vec_c);
-            println!("verifier - c_tilde: {:?}\n", c_tilde);
-        }
 
         // vec_a = vector of all components a (encryption { a, b })
         // vec_b = vector of all components b (encryption { a, b })
@@ -161,7 +160,8 @@ impl<T: Trait> Module<T> {
         // public commitment t = (t1, t2, t3, (t4_1, t4_2), (t_hat_0, ..., t_hat_(size-1)))
         let public_value = (e, e_tilde, vec_c, vec_c_hat, pk);
         let public_commitment = (t1, t2, t3, (t4_1, t4_2), vec_t_hat);
-        let recomputed_challenge = ShuffleProof::get_challenge(public_value, public_commitment);
+        let recomputed_challenge =
+            ShuffleProof::get_challenge(public_value, public_commitment);
 
         let is_proof_valid = recomputed_challenge == challenge;
         Ok(is_proof_valid)
@@ -198,36 +198,11 @@ impl<T: Trait> Module<T> {
 
         // get t3 = c_tilde^challenge * g^s3 * Π(h_i^s_tilde_i) mod p
         let prod_h_s_tilde = Self::zip_vectors_multiply_a_pow_b(&vec_h, &vec_s_tilde, p);
-
-        if_std! {
-            println!("verifier - vec_h: {:?}", vec_h);
-            println!("verifier - vec_s_tilde: {:?}", vec_s_tilde);
-            println!("verifier - prod(h_i^s_tilde_i): {:?}\n", prod_h_s_tilde);
-        }
-
         let g_pow_s3 = g.modpow(s3, p);
-
-        if_std! {
-            println!("verifier - g: {:?}", g);
-            println!("verifier - s3: {:?}", s3);
-            println!("verifier - g_pow_s3: {:?}\n", g_pow_s3);
-        }
-
         let c_tilde_pow_challenge = c_tilde.modpow(challenge, p);
-
-        if_std! {
-            println!("verifier - challenge: {:?}", challenge);
-            println!("verifier - c_tilde: {:?}", c_tilde);
-            println!("verifier - c~^c: {:?}\n", c_tilde_pow_challenge);
-        }
-
         let t3 = c_tilde_pow_challenge
             .modmul(&g_pow_s3, p)
             .modmul(&prod_h_s_tilde, p);
-
-        if_std! {
-            println!("verifier - t3: {:?}\n", t3);
-        }
 
         // we need to swap pk and g
         // since our encryption conatins (a,b) with a = g^r
