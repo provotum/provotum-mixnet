@@ -41,29 +41,27 @@ jobs:
       - name: Run Tests
         run: cargo +nightly test --verbose --no-fail-fast --release
 
-  # it seems that formatting is currently broken when using rust nightly
-  # format:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: Cache Dependencies
-  #       uses: actions/cache@v2
-  #       with:
-  #         path: |
-  #           ~/.cargo/registry
-  #           ~/.cargo/git
-  #           target
-  #         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-format
-          
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         profile: minimal
-  #         toolchain: nightly
-  #         override: true
-  #         components: rustfmt
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-crypto
 
-  #     - name: check formatting
-  #       run: cargo +nightly fmt --all -- --check
+      - name: Install Latest Rust Nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          target: wasm32-unknown-unknown
+
+      - name: Benchmark Crypto Library
+        run: cargo +nightly bench --features bench
 
   lint:
     runs-on: ubuntu-latest
