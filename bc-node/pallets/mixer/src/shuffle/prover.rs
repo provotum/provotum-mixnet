@@ -57,13 +57,14 @@ impl<T: Trait> Module<T> {
         // the size of the shuffle (# of encrypted votes)
         let size = encryptions.len();
         let params = &pk.params;
+        let p = &params.p;
         let q = &params.q();
         let e = encryptions;
         let e_tilde = shuffled_encryptions;
         let vec_r_tilde = re_encryption_randoms;
 
         // get {size} independent generators: h
-        let vec_h = Helper::get_generators(id, q, size);
+        let vec_h = Helper::get_generators(id, p, size);
 
         // commit to the given permutation: (vec_c, vec_r)
         let randoms: Vec<BigUint> = Self::get_random_biguints_less_than(q, size)?;

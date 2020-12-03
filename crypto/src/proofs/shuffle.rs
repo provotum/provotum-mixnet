@@ -214,12 +214,12 @@ mod tests {
     #[should_panic(expected = "permutation and randoms need to have the same length!")]
     fn it_should_panic_generate_permutation_commitment_different_size_permutations_randoms() {
         let (params, _, pk) = Helper::setup_md_system();
-        let q = pk.params.q();
+        let p = &params.p;
         let vote_id = 123usize;
 
         let randoms: [BigUint; 0] = [];
         let permutation = [1usize];
-        let generators = Helper::get_generators(vote_id, &q, 1usize);
+        let generators = Helper::get_generators(vote_id, p, 1usize);
 
         ShuffleProof::generate_permutation_commitment(
             &params,
@@ -266,6 +266,7 @@ mod tests {
     #[test]
     fn it_should_generate_permutation_commitment() {
         let (params, _, _) = Helper::setup_md_system();
+        let p = &params.p;
         let q = params.q();
         let vote_id = 123usize;
 
@@ -281,7 +282,7 @@ mod tests {
         ];
 
         // get random generators ∈ G_q
-        let generators = Helper::get_generators(vote_id, &q, size);
+        let generators = Helper::get_generators(vote_id, p, size);
 
         // generate commitment
         let permutation_commitment = ShuffleProof::generate_permutation_commitment(
@@ -392,6 +393,7 @@ mod tests {
         let vote_id = 123usize;
         let size = 3usize;
         let q = &pk.params.q();
+        let p = &pk.params.p;
         let params = &pk.params;
 
         // generates a shuffle of three random encryptions of values: zero, one, two
@@ -414,7 +416,7 @@ mod tests {
         }
 
         // get {size} independent generators
-        let generators = Helper::get_generators(vote_id, q, size);
+        let generators = Helper::get_generators(vote_id, p, size);
 
         // get the permutation commitents
         let permutation_commitment = ShuffleProof::generate_permutation_commitment(

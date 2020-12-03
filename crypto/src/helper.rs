@@ -48,6 +48,13 @@ impl Helper {
         Self::setup_system(p, x)
     }
 
+    pub fn setup_tiny_system() -> (ElGamalParams, PrivateKey, PublicKey) {
+        // 6bit key
+        let p = BigUint::parse_bytes(b"47", 10).unwrap();
+        let x = BigUint::parse_bytes(b"17", 10).unwrap();
+        Self::setup_system(p, x)
+    }
+
     // helper function to setup ElGamal system before a test
     fn setup_system(p: BigUint, x: BigUint) -> (ElGamalParams, PrivateKey, PublicKey) {
         let params = ElGamalParams {
@@ -100,28 +107,28 @@ impl Helper {
     /// Computes n independent generators of G_q ∈ Z*_p.
     /// The algorithm is an adaption of the NIST standard FIPS PUB 186-4 (Appendix A.2.3).
     /// Making the generators dependent on election id guarantees that the resulting values are specific to the current election.
-    pub fn get_generators(id: usize, q: &BigUint, number: usize) -> Vec<BigUint> {
-        let mut generators: Vec<BigUint> = Vec::new();
-        for i in 0..number {
-            let zero = BigUint::zero();
-            let one = BigUint::one();
-            let two = BigUint::from(2u32);
+    pub fn get_generators(id: usize, p: &BigUint, number: usize) -> Vec<BigUint> {
+        let mut vec_h: Vec<BigUint> = Vec::new();
+        let zero = BigUint::zero();
+        let one = BigUint::one();
+        let two = BigUint::from(2u32);
 
+        for i in 0..number {
             // start
             let mut x = zero.clone();
-
             let mut h_i = zero.clone();
+
             while h_i == zero || h_i == one {
                 x += one.clone();
 
                 // hash all inputs and transform to a biguint
                 h_i = Self::hash_inputs_to_biguint(id, "ggen", i, x.clone());
-                h_i %= q;
-                h_i = h_i.modpow(&two, q);
+                h_i %= p;
+                h_i = h_i.modpow(&two, p);
             }
-            generators.push(h_i);
+            vec_h.push(h_i);
         }
-        generators
+        vec_h
     }
 
     /// Uses the Blak2 hash function and produces a hash of a BigUint. The result is returned as a Vec<u8>.
@@ -298,6 +305,18 @@ mod tests {
     }
 
     #[test]
+    fn it_should_create_tiny_system() {
+        let (params, sk, pk) = Helper::setup_tiny_system();
+
+        // check that p & are prime
+        assert!(Random::is_prime(&params.p, 20));
+        assert!(Random::is_prime(&params.q(), 20));
+
+        // public key check: verify that h == g^x mod p
+        assert_eq!(pk.h, sk.params.g.modpow(&sk.x, &sk.params.p));
+    }
+
+    #[test]
     fn it_should_create_md_system() {
         let (params, sk, pk) = Helper::setup_md_system();
 
@@ -310,6 +329,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "takes more than 10s to complete, only run when necessary"]
     fn it_should_create_lg_system() {
         let (params, sk, pk) = Helper::setup_lg_system();
 
@@ -322,6 +342,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "takes more than 10s to complete, only run when necessary"]
     fn it_should_create_xl_system() {
         let (params, sk, pk) = Helper::setup_xl_system();
 
@@ -457,11 +478,15 @@ mod tests {
     fn it_should_get_generators() {
         let one = BigUint::one();
         let id: usize = 1;
+        let num: usize = 10;
         let (params, _, _) = Helper::setup_md_system();
 
-        let generators = Helper::get_generators(id, &params.q(), 10);
-        assert_eq!(generators.len(), 10);
-        assert!(generators.iter().all(|value| value.clone() > one));
+        let generators = Helper::get_generators(id, &params.p, num);
+        assert_eq!(generators.len(), num);
+        assert!(generators.iter().all(|gen| gen.clone() > one));
+        assert!(generators
+            .iter()
+            .all(|gen| Helper::is_generator(&params.p, &params.q(), gen)));
     }
 
     #[test]

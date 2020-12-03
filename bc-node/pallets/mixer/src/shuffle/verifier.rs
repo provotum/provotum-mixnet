@@ -71,7 +71,7 @@ impl<T: Trait> Module<T> {
         let q = &params.q();
 
         // get {size} independent generators: vec_h
-        let vec_h = Helper::get_generators(id, q, size);
+        let vec_h = Helper::get_generators(id, p, size);
 
         // get {size} challenges
         // vec_u = get_challenges(size, hash(e, e_tilde, vec_c, pk))
