@@ -1,9 +1,8 @@
-use crate::{Error, Module, Trait};
+use crate::{types::BigS, types::ShuffleProof as Proof, Error, Module, Trait};
 use crypto::{
     helper::Helper,
     proofs::shuffle::ShuffleProof,
-    types::ElGamalParams,
-    types::{Cipher, ModuloOperations, PublicKey},
+    types::{BigT, BigY, Cipher, ElGamalParams, ModuloOperations, PublicKey},
 };
 use num_bigint::BigUint;
 use num_traits::One;
@@ -18,27 +17,15 @@ impl<T: Trait> Module<T> {
     /// the public encryption key pk.
     pub fn verify_shuffle_proof(
         id: usize, // election id
-        proof: (
-            BigUint, // challenge
-            (
-                BigUint,      // s1
-                BigUint,      // s2
-                BigUint,      // s3
-                BigUint,      // s4
-                Vec<BigUint>, // vec_s_hat
-                Vec<BigUint>, // vec_s_tilde
-            ),
-            Vec<BigUint>, // permutation_commitments
-            Vec<BigUint>, // permutation_chain_commitments
-        ),
+        proof: Proof,
         encryptions: Vec<Cipher>,
         shuffled_encryptions: Vec<Cipher>,
         pk: &PublicKey,
     ) -> Result<bool, Error<T>> {
         let e = encryptions;
         let e_tilde = shuffled_encryptions;
-        let (challenge, s, vec_c, vec_c_hat) = proof;
-        let (s1, s2, s3, s4, vec_s_hat, vec_s_tilde) = s;
+        let (challenge, s, vec_c, vec_c_hat): Proof = proof;
+        let (s1, s2, s3, s4, vec_s_hat, vec_s_tilde): BigS = s;
 
         // input checks
         assert!(
@@ -156,12 +143,12 @@ impl<T: Trait> Module<T> {
         )?;
 
         // generate challenge from (y, t)
-        // public value y = ((e, e_tilde, vec_c, vec_c_hat, pk)
+        // public value y = ((e, e_tilde, vec_c, vec_c_hat, public_key) -> public_key = component h of pk
         // public commitment t = (t1, t2, t3, (t4_1, t4_2), (t_hat_0, ..., t_hat_(size-1)))
-        let public_value = (e, e_tilde, vec_c, vec_c_hat, pk);
-        let public_commitment = (t1, t2, t3, (t4_1, t4_2), vec_t_hat);
+        let public_value: BigY = (e, e_tilde, vec_c.clone(), vec_c_hat.clone(), &pk.h);
+        let public_commitment: BigT = (t1, t2, t3, t4_1, t4_2, vec_t_hat);
         let recomputed_challenge =
-            ShuffleProof::get_challenge(public_value, public_commitment);
+            ShuffleProof::get_challenge(public_value, public_commitment, q);
 
         let is_proof_valid = recomputed_challenge == challenge;
         Ok(is_proof_valid)

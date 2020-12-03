@@ -1,8 +1,8 @@
-use crate::{Error, Module, Trait};
+use crate::{types::BigS, types::ShuffleProof as Proof, Error, Module, Trait};
 use crypto::{
     helper::Helper,
     proofs::shuffle::ShuffleProof,
-    types::{Cipher, ModuloOperations, PublicKey},
+    types::{BigT, BigY, Cipher, ModuloOperations, PublicKey},
 };
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
@@ -23,22 +23,7 @@ impl<T: Trait> Module<T> {
         re_encryption_randoms: Vec<BigUint>,
         permutation: &[usize],
         pk: &PublicKey,
-    ) -> Result<
-        (
-            BigUint, // challenge
-            (
-                BigUint,      // s1
-                BigUint,      // s2
-                BigUint,      // s3
-                BigUint,      // s4
-                Vec<BigUint>, // vec_s_hat
-                Vec<BigUint>, // vec_s_tilde
-            ),
-            Vec<BigUint>, // permutation_commitments
-            Vec<BigUint>, // permutation_chain_commitments
-        ),
-        Error<T>,
-    > {
+    ) -> Result<Proof, Error<T>> {
         // input checks
         assert!(
             encryptions.len() == shuffled_encryptions.len(),
@@ -112,21 +97,15 @@ impl<T: Trait> Module<T> {
             )?;
 
         // generate challenge from (y, t)
-        // public value y = ((e, e_tilde, vec_c, vec_c_hat, pk)
+        // public value y = ((e, e_tilde, vec_c, vec_c_hat, public_key) -> public_key = component h of pk
         // public commitment t = (t1, t2, t3, (t4_1, t4_2), (t_hat_0, ..., t_hat_(size-1)))
-        let public_value = (e, e_tilde, vec_c.clone(), vec_c_hat.clone(), pk);
-        let public_commitment = (
-            t1.clone(),
-            t2.clone(),
-            t3.clone(),
-            (t4_1.clone(), t4_2.clone()),
-            vec_t_hat.clone(),
-        );
-        let challenge = ShuffleProof::get_challenge(public_value, public_commitment);
+        let public_value: BigY = (e, e_tilde, vec_c.clone(), vec_c_hat.clone(), &pk.h);
+        let public_commitment: BigT = (t1, t2, t3, t4_1, t4_2, vec_t_hat);
+        let challenge = ShuffleProof::get_challenge(public_value, public_commitment, q);
 
         // generate s values
         // s = (s1, s2, s3, s4, (s_hat_0, ..., s_hat_(size-1)), (s_tilde_0, ..., s_tilde_(size-1)))
-        let (s1, s2, s3, s4, vec_s_hat, vec_s_tilde) = Self::generate_s_values(
+        let s = Self::generate_s_values(
             &challenge,
             q,
             vec_r,
@@ -142,16 +121,9 @@ impl<T: Trait> Module<T> {
             u_tilde,
             size,
         );
-        let s = (
-            s1,
-            s2,
-            s3,
-            s4.clone(),
-            vec_s_hat.clone(),
-            vec_s_tilde.clone(),
-        );
         // return (challenge, s, permutation_commitments, chain_commitments)
-        Ok((challenge, s, vec_c, vec_c_hat))
+        let proof: Proof = (challenge, s, vec_c, vec_c_hat);
+        Ok(proof)
     }
 
     fn generate_s_values(
@@ -169,14 +141,7 @@ impl<T: Trait> Module<T> {
         vec_u: Vec<BigUint>,
         u_tilde: Vec<BigUint>,
         size: usize,
-    ) -> (
-        BigUint,      // s1
-        BigUint,      // s2
-        BigUint,      // s3
-        BigUint,      // s4
-        Vec<BigUint>, // vec_s_hat
-        Vec<BigUint>, // vec_s_tilde
-    ) {
+    ) -> BigS {
         // get r_flat
         // Σ(r_i) mod q where r_i are the random values from the permutation commitment
         let r_flat = vec_r

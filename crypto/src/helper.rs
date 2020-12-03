@@ -1,4 +1,4 @@
-use crate::types::{Cipher, ElGamalParams, PrivateKey, PublicKey};
+use crate::types::{BigT, BigY, Cipher, ElGamalParams, PrivateKey, PublicKey};
 use alloc::vec::Vec;
 use blake2::{Blake2b, Digest};
 use num_bigint::BigUint;
@@ -7,7 +7,10 @@ use num_traits::{One, Zero};
 pub struct Helper;
 
 impl Helper {
-    pub fn generate_key_pair(params: &ElGamalParams, r: &BigUint) -> (PublicKey, PrivateKey) {
+    pub fn generate_key_pair(
+        params: &ElGamalParams,
+        r: &BigUint,
+    ) -> (PublicKey, PrivateKey) {
         let sk = PrivateKey {
             params: params.clone(),
             x: r.clone(),
@@ -91,7 +94,12 @@ impl Helper {
     }
 
     /// Uses the Blak2 hash function and produces a hash of four different inputs. The result is returned as a BigUint.
-    pub fn hash_inputs_to_biguint(id: usize, constant: &str, i: usize, x: BigUint) -> BigUint {
+    pub fn hash_inputs_to_biguint(
+        id: usize,
+        constant: &str,
+        i: usize,
+        x: BigUint,
+    ) -> BigUint {
         let hasher = Blake2b::new();
         let hash = hasher
             .chain(id.to_be_bytes())
@@ -223,42 +231,29 @@ impl Helper {
     /// Computes the hash of all inputs.
     ///
     /// Inputs:
-    /// - encryptions: Vec<Cipher>
-    /// - shuffled_encryptions: Vec<Cipher>
-    /// - commitments: Vec<BigUint>
-    /// - pk: PublicKey
-    pub fn hash_challenge_inputs(
-        public_value: (
-            Vec<Cipher>,
-            Vec<Cipher>,
-            Vec<BigUint>,
-            Vec<BigUint>,
-            &PublicKey,
-        ),
-        public_commitment: (BigUint, BigUint, BigUint, (BigUint, BigUint), Vec<BigUint>),
-    ) -> BigUint {
-        let (encryptions, shuffled_encryptions, permutation_commitments, chain_commitments, pk) =
-            public_value;
-        let (t1, t2, t3, (t4_1, t4_2), t_hat) = public_commitment;
+    /// - public_value: Y
+    /// - public_commitment: T
+    pub fn hash_challenge_inputs(public_value: BigY, public_commitment: BigT) -> BigUint {
+        let (e, e_tilde, vec_c, vec_c_hat, public_key) = public_value;
+        let (t1, t2, t3, t4_1, t4_2, vec_t_hat) = public_commitment;
 
         // hash all inputs into a single BigUint
         let mut hash = Blake2b::new();
 
         // hash public value
-        let hash_encryptions = Helper::hash_vec_ciphers(encryptions);
-        hash = hash.chain(hash_encryptions);
+        let hash_e = Helper::hash_vec_ciphers(e);
+        hash = hash.chain(hash_e);
 
-        let hash_shuffled_encryptions = Helper::hash_vec_ciphers(shuffled_encryptions);
-        hash = hash.chain(hash_shuffled_encryptions);
+        let hash_e_tilde = Helper::hash_vec_ciphers(e_tilde);
+        hash = hash.chain(hash_e_tilde);
 
-        let hash_permutation_commitments = Helper::hash_vec_biguints(permutation_commitments);
-        hash = hash.chain(hash_permutation_commitments);
+        let hash_vec_c = Helper::hash_vec_biguints(vec_c);
+        hash = hash.chain(hash_vec_c);
 
-        let hash_chain_commitments = Helper::hash_vec_biguints(chain_commitments);
-        hash = hash.chain(hash_chain_commitments);
+        let hash_vec_c_hat = Helper::hash_vec_biguints(vec_c_hat);
+        hash = hash.chain(hash_vec_c_hat);
 
-        // transform the public key: h (BigUint) to byte array + hash it
-        let hash_pk = Helper::hash_biguint(&pk.h);
+        let hash_pk = Helper::hash_biguint(public_key);
         hash = hash.chain(hash_pk);
 
         // hash public commitments
@@ -266,8 +261,8 @@ impl Helper {
         let hash_t_values = Helper::hash_vec_biguints(t_values.to_vec());
         hash = hash.chain(hash_t_values);
 
-        let hash_t_hat_values = Helper::hash_vec_biguints(t_hat);
-        hash = hash.chain(hash_t_hat_values);
+        let hash_vec_t_hat = Helper::hash_vec_biguints(vec_t_hat);
+        hash = hash.chain(hash_vec_t_hat);
 
         // final byte array of all chained hashes + transform back to BigUint
         let digest = hash.finalize();
@@ -431,10 +426,10 @@ mod tests {
     #[test]
     fn it_should_hash_bigunit() {
         let expected_result = vec![
-            149, 69, 186, 55, 178, 48, 216, 162, 231, 22, 196, 112, 117, 134, 84, 39, 128, 129, 91,
-            124, 64, 136, 237, 203, 154, 246, 169, 69, 45, 80, 243, 36, 116, 213, 186, 154, 171,
-            82, 166, 122, 202, 134, 78, 242, 105, 105, 129, 194, 234, 223, 73, 2, 4, 22, 19, 106,
-            253, 131, 143, 176, 72, 210, 22, 83,
+            149, 69, 186, 55, 178, 48, 216, 162, 231, 22, 196, 112, 117, 134, 84, 39,
+            128, 129, 91, 124, 64, 136, 237, 203, 154, 246, 169, 69, 45, 80, 243, 36,
+            116, 213, 186, 154, 171, 82, 166, 122, 202, 134, 78, 242, 105, 105, 129, 194,
+            234, 223, 73, 2, 4, 22, 19, 106, 253, 131, 143, 176, 72, 210, 22, 83,
         ];
         let input = BigUint::one();
         let hash = Helper::hash_biguint(&input);
@@ -448,10 +443,10 @@ mod tests {
     #[test]
     fn it_should_hash_vec_biguints() {
         let expected_result = vec![
-            149, 69, 186, 55, 178, 48, 216, 162, 231, 22, 196, 112, 117, 134, 84, 39, 128, 129, 91,
-            124, 64, 136, 237, 203, 154, 246, 169, 69, 45, 80, 243, 36, 116, 213, 186, 154, 171,
-            82, 166, 122, 202, 134, 78, 242, 105, 105, 129, 194, 234, 223, 73, 2, 4, 22, 19, 106,
-            253, 131, 143, 176, 72, 210, 22, 83,
+            149, 69, 186, 55, 178, 48, 216, 162, 231, 22, 196, 112, 117, 134, 84, 39,
+            128, 129, 91, 124, 64, 136, 237, 203, 154, 246, 169, 69, 45, 80, 243, 36,
+            116, 213, 186, 154, 171, 82, 166, 122, 202, 134, 78, 242, 105, 105, 129, 194,
+            234, 223, 73, 2, 4, 22, 19, 106, 253, 131, 143, 176, 72, 210, 22, 83,
         ];
         let input = [BigUint::one()];
         let hash = Helper::hash_vec_biguints(input.to_vec());
@@ -461,10 +456,10 @@ mod tests {
     #[test]
     fn it_should_hash_vec_ciphers() {
         let expected_result = vec![
-            113, 148, 21, 201, 186, 138, 71, 207, 134, 55, 217, 216, 57, 88, 4, 19, 240, 140, 162,
-            173, 176, 176, 248, 95, 170, 219, 110, 44, 253, 92, 250, 157, 124, 191, 67, 183, 127,
-            166, 232, 113, 54, 224, 45, 35, 197, 177, 160, 28, 75, 81, 153, 115, 249, 46, 178, 219,
-            192, 95, 124, 192, 190, 183, 165, 53,
+            113, 148, 21, 201, 186, 138, 71, 207, 134, 55, 217, 216, 57, 88, 4, 19, 240,
+            140, 162, 173, 176, 176, 248, 95, 170, 219, 110, 44, 253, 92, 250, 157, 124,
+            191, 67, 183, 127, 166, 232, 113, 54, 224, 45, 35, 197, 177, 160, 28, 75, 81,
+            153, 115, 249, 46, 178, 219, 192, 95, 124, 192, 190, 183, 165, 53,
         ];
         let input = [Cipher {
             a: BigUint::from(3u32),
@@ -484,9 +479,11 @@ mod tests {
         let generators = Helper::get_generators(id, &params.p, num);
         assert_eq!(generators.len(), num);
         assert!(generators.iter().all(|gen| gen.clone() > one));
-        assert!(generators
-            .iter()
-            .all(|gen| Helper::is_generator(&params.p, &params.q(), gen)));
+        assert!(generators.iter().all(|gen| Helper::is_generator(
+            &params.p,
+            &params.q(),
+            gen
+        )));
     }
 
     #[test]

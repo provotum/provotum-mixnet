@@ -136,3 +136,21 @@ impl Into<ElGamalParams> for PublicParameters {
         }
     }
 }
+
+/// Algorithm 8.47: The s value of the ShuffleProof
+pub type BigS = (
+    BigUint,      // s1
+    BigUint,      // s2
+    BigUint,      // s3
+    BigUint,      // s4
+    Vec<BigUint>, // vec_s_hat
+    Vec<BigUint>, // vec_s_tilde
+);
+
+/// Algorithm 8.47: The ShuffleProof
+pub type ShuffleProof = (
+    BigUint,      // challenge
+    BigS,         // S
+    Vec<BigUint>, // permutation_commitments
+    Vec<BigUint>, // permutation_chain_commitments
+);

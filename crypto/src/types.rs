@@ -62,6 +62,25 @@ pub struct PermutationCommitment {
     pub randoms: Vec<BigUint>,
 }
 
+/// Algorithm 8.47: The public value Y
+pub type BigY<'a> = (
+    Vec<Cipher>,  // e
+    Vec<Cipher>,  // e_tilde
+    Vec<BigUint>, // vec_c
+    Vec<BigUint>, // vec_c_hat
+    &'a BigUint,  // public key: the value h of pk
+);
+
+/// Algorithm 8.47: The public commitment t
+pub type BigT = (
+    BigUint,      // t1
+    BigUint,      // t2
+    BigUint,      // t3
+    BigUint,      // t4_1
+    BigUint,      // t4_2
+    Vec<BigUint>, // vec_t_hat
+);
+
 pub trait ModuloOperations {
     /// Calculates the modular multiplicative of a BigUint: result = self * rhs % modulus.
     fn modmul(&self, rhs: &Self, modulus: &Self) -> Self;
