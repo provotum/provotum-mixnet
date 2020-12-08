@@ -45,7 +45,7 @@ pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
 // the offchain worker pallet
-pub use pallet_offchain_mixer;
+pub use pallet_mixnet;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -268,12 +268,12 @@ impl pallet_sudo::Trait for Runtime {
 }
 
 ////////////////////////////////////////////////
-/// off-chain worker (mixer) pallet configuation
+/// off-chain worker (mixnet) pallet configuation
 
-impl pallet_offchain_mixer::Trait for Runtime {
+impl pallet_mixnet::Trait for Runtime {
     type Event = Event;
     type Call = Call;
-    type AuthorityId = pallet_offchain_mixer::keys::TestAuthId;
+    type AuthorityId = pallet_mixnet::keys::TestAuthId;
 }
 
 // Payload data to be signed when making signed transaction from off-chain workers
@@ -340,7 +340,7 @@ where
     type Extrinsic = UncheckedExtrinsic;
 }
 
-// end of off-chain worker (mixer) pallet configuation
+// end of off-chain worker (mixnet) pallet configuation
 ///////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -361,8 +361,8 @@ construct_runtime!(
         TransactionPayment: pallet_transaction_payment::{Module, Storage},
         Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 
-        // include the custom logic from the mixer off-chain worker pallet.
-        OffchainPallet: pallet_offchain_mixer::{Module, Call, Storage, Event<T>},
+        // include the custom logic from the pallet-mixnet.
+        PalletMixnet: pallet_mixnet::{Module, Call, Storage, Event<T>},
     }
 );
 

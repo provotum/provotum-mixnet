@@ -51,7 +51,7 @@ fn test_cast_ballot_works() {
         assert_eq!(<Ballots>::get(), vec![ballot.clone()]);
         // An event is emitted
         assert!(System::events().iter().any(|er| er.event
-            == TestEvent::pallet_mixer(RawEvent::VoteSubmitted(acct, ballot.clone()))));
+            == TestEvent::pallet_mixnet(RawEvent::VoteSubmitted(acct, ballot.clone()))));
 
         // Insert another ballot
         let ballot2 = ballot.clone();

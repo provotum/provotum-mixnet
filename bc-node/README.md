@@ -132,7 +132,7 @@ the following:
 
 The runtime in this project is constructed using many FRAME pallets that ship with the
 [core Substrate repository](https://github.com/paritytech/substrate/tree/master/frame) and a
-template pallet that is [defined in the `pallets`](./pallets/mixer/src/lib.rs) directory.
+template pallet that is [defined in the `pallets`](./pallets/mixnet/src/lib.rs) directory.
 
 A FRAME pallet is compromised of a number of blockchain primitives:
 

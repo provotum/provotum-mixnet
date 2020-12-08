@@ -19,7 +19,7 @@ app_crypto!(sr25519, KEY_TYPE);
 
 pub struct TestAuthId;
 
-// implemented for mixer-pallet
+// implemented for pallet-mixnet
 impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
     type RuntimeAppPublic = Public;
     type GenericSignature = sp_core::sr25519::Signature;

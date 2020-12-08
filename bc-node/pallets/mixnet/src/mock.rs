@@ -1,4 +1,4 @@
-use crate as pallet_mixer;
+use crate as pallet_mixnet;
 use crate::Call;
 use codec::alloc::sync::Arc;
 use frame_support::{
@@ -29,9 +29,9 @@ impl_outer_origin! {
 
 impl_outer_event! {
     pub enum TestEvent for TestRuntime {
-        // events of crate: pallet_mixer
+        // events of crate: pallet_mixnet
         system<T>,
-        pallet_mixer<T>,
+        pallet_mixnet<T>,
     }
 }
 
@@ -117,14 +117,14 @@ where
 pub type System = system::Module<TestRuntime>;
 
 ////////////////////////////////////////
-/// Mock Implementation of pallet_mixer
-impl pallet_mixer::Trait for TestRuntime {
+/// Mock Implementation of pallet_mixnet
+impl pallet_mixnet::Trait for TestRuntime {
     type Call = Call<TestRuntime>;
     type Event = TestEvent;
-    type AuthorityId = pallet_mixer::keys::TestAuthId;
+    type AuthorityId = pallet_mixnet::keys::TestAuthId;
 }
 
-pub type OffchainModule = pallet_mixer::Module<TestRuntime>;
+pub type OffchainModule = pallet_mixnet::Module<TestRuntime>;
 
 pub struct ExternalityBuilder;
 
@@ -143,7 +143,7 @@ impl ExternalityBuilder {
         keystore
             .write()
             .sr25519_generate_new(
-                pallet_mixer::keys::KEY_TYPE,
+                pallet_mixnet::keys::KEY_TYPE,
                 Some(&format!("{}/hunter1", PHRASE)),
             )
             .unwrap();

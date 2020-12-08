@@ -4,7 +4,7 @@ description = 'Off-Chain Mixer for Provotum E-Voting System.'
 edition = '2018'
 homepage = 'https://github.com/meck93/provotum-mixnet'
 license = 'Unlicense'
-name = 'pallet-offchain-mixer'
+name = 'pallet-mixnet'
 repository = 'https://github.com/meck93/provotum-mixnet/bc-node'
 version = '2.0.0'
 

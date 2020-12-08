@@ -3489,7 +3489,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-offchain-mixer"
+name = "pallet-mixnet"
 version = "2.0.0"
 dependencies = [
  "crypto",
@@ -4176,7 +4176,7 @@ dependencies = [
  "pallet-aura",
  "pallet-balances",
  "pallet-grandpa",
- "pallet-offchain-mixer",
+ "pallet-mixnet",
  "pallet-randomness-collective-flip",
  "pallet-sudo",
  "pallet-timestamp",

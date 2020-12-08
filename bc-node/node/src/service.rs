@@ -1,6 +1,6 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use provotum_runtime::{self, opaque::Block, pallet_offchain_mixer, RuntimeApi};
+use provotum_runtime::{self, opaque::Block, pallet_mixnet, RuntimeApi};
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
@@ -61,9 +61,9 @@ pub fn new_partial(
     // FIXME: this shall be done at runtime via an RPC call
     keystore
         .write()
-        .insert_ephemeral_from_seed_by_type::<pallet_offchain_mixer::keys::Pair>(
+        .insert_ephemeral_from_seed_by_type::<pallet_mixnet::keys::Pair>(
             "//Alice",
-            pallet_offchain_mixer::keys::KEY_TYPE,
+            pallet_mixnet::keys::KEY_TYPE,
         )
         .expect("Creating key with account Alice should succeed.");
 

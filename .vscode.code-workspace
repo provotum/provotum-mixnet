@@ -24,7 +24,7 @@
         "type": "lldb",
         "request": "launch",
         "name": "Debug Shuffle Proof Test",
-        "program": "${workspaceFolder:bc-node}/target/debug/deps/pallet_offchain_mixer-21f440ab907d9121",
+        "program": "${workspaceFolder:bc-node}/target/debug/deps/pallet_mixnet-21f440ab907d9121",
         "args": [
           "test_shuffle_proof --nocapture"
         ],
