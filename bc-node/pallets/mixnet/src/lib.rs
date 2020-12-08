@@ -63,6 +63,10 @@ pub trait Trait: system::Trait + CreateSignedTransaction<Call<Self>> {
 
 decl_storage! {
     trait Store for Module<T: Trait> as OffchainModule {
+        pub VotingAuthorities get(fn voting_authorities) config(): Vec<T::AccountId>;
+
+        pub Sealers get(fn sealers) config(): Vec<T::AccountId>;
+
         /// The system's public key
         PublicKey get(fn public_key): Option<SubstratePK>;
 
