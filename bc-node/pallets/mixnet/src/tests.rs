@@ -7,7 +7,7 @@ use crypto::{
     helper::Helper,
     types::{Cipher as BigCipher, PublicKey as ElGamalPK},
 };
-use frame_support::assert_ok;
+use frame_support::{assert_err, assert_ok};
 use frame_system as system;
 use hex_literal::hex;
 use num_traits::Zero;
@@ -52,6 +52,15 @@ fn test_setup_public_key_work() {
     t.execute_with(|| {
         let (_, _, pk) = Helper::setup_sm_system();
         setup_public_key(pk.into());
+    });
+}
+
+#[test]
+fn test_setup_vote_works() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let (params, _, _) = Helper::setup_sm_system();
+        setup_vote(params.into());
     });
 }
 
@@ -103,19 +112,136 @@ fn test_fetch_public_key_does_not_exist() {
 fn test_create_vote_not_a_voting_authority() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        // TODO
+        // create the submitter (i.e. the default voter)
+        // NOT a voting authority
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let who = Origin::signed(account);
+
+        // create the vote
+        let (params, _, _) = Helper::setup_sm_system();
+        let vote_id = "20201212".as_bytes().to_vec();
+        let vote_title = "Popular Vote of 12.12.2020".as_bytes().to_vec();
+
+        let topic_id = "20201212-01".as_bytes().to_vec();
+        let topic_question = "Moritz for President?".as_bytes().to_vec();
+        let topic: Topic = (topic_id, topic_question);
+        let topics = vec![topic];
+
+        assert_err!(
+            OffchainModule::create_vote(who, vote_id, vote_title, params.into(), topics),
+            Error::<TestRuntime>::NotAVotingAuthority
+        )
     });
 }
 #[test]
 fn test_create_vote_works() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        let vote_id = "20201212".as_bytes().to_vec();
-        let topic_id = "20201212-01".as_bytes().to_vec();
+        // create the submitter (i.e. the voting_authority)
+        // use Alice as VotingAuthority
+        let account_id: [u8; 32] =
+            hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
+        let account =
+            <TestRuntime as system::Trait>::AccountId::decode(&mut &account_id[..]).unwrap();
+        let who = Origin::signed(account);
+
+        // create the vote
         let (params, _, _) = Helper::setup_sm_system();
-        let (vote_id_, topic_id_) = setup_vote(params.into());
-        assert_eq!(vote_id, vote_id_);
-        assert_eq!(topic_id, topic_id_);
+        let vote_id = "20201212".as_bytes().to_vec();
+        let vote_title = "Popular Vote of 12.12.2020".as_bytes().to_vec();
+
+        let topic_id = "20201212-01".as_bytes().to_vec();
+        let topic_question = "Moritz for President?".as_bytes().to_vec();
+        let topic: Topic = (topic_id, topic_question);
+        let topics = vec![topic];
+
+        let vote_created =
+            OffchainModule::create_vote(who, vote_id, vote_title, params.into(), topics);
+        assert_ok!(vote_created);
+    });
+}
+
+#[test]
+fn test_store_question_not_a_voting_authority() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // create fake authority
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let who = Origin::signed(account);
+
+        // create fake vote_id
+        let vote_id = "fake vote id".as_bytes().to_vec();
+
+        // Create A New Topic
+        let new_topic_id = "20201212-02".as_bytes().to_vec();
+        let topic_question = "Moritz for King?".as_bytes().to_vec();
+        let topic: Topic = (new_topic_id.clone(), topic_question);
+
+        // Try to store the Topic (Question)
+        assert_err!(
+            OffchainModule::store_question(who, vote_id, topic),
+            Error::<TestRuntime>::NotAVotingAuthority
+        );
+    });
+}
+
+#[test]
+fn test_store_question_no_vote_exists() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // create the submitter (i.e. the voting_authority)
+        // use Alice as VotingAuthority
+        let account_id: [u8; 32] =
+            hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
+        let account =
+            <TestRuntime as system::Trait>::AccountId::decode(&mut &account_id[..]).unwrap();
+        let who = Origin::signed(account);
+
+        // create fake vote_id
+        let vote_id = "fake vote id".as_bytes().to_vec();
+
+        // Create A New Topic
+        let new_topic_id = "20201212-02".as_bytes().to_vec();
+        let topic_question = "Moritz for King?".as_bytes().to_vec();
+        let topic: Topic = (new_topic_id.clone(), topic_question);
+
+        // Try to store the Topic (Question)
+        assert_err!(
+            OffchainModule::store_question(who, vote_id, topic),
+            Error::<TestRuntime>::VoteDoesNotExist
+        );
+    });
+}
+
+#[test]
+fn test_store_question_works() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // create the submitter (i.e. the voting_authority)
+        // use Alice as VotingAuthority
+        let account_id: [u8; 32] =
+            hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
+        let account =
+            <TestRuntime as system::Trait>::AccountId::decode(&mut &account_id[..]).unwrap();
+        let who = Origin::signed(account);
+
+        // Setup Vote & Store initial Topic
+        let (params, _, _) = Helper::setup_sm_system();
+        let (vote_id, topic_id) = setup_vote(params.into());
+
+        // Create A New Topic
+        let new_topic_id = "20201212-02".as_bytes().to_vec();
+        let topic_question = "Moritz for King?".as_bytes().to_vec();
+        let topic: Topic = (new_topic_id.clone(), topic_question);
+
+        // Store the Topic (Question)
+        let question_stored = OffchainModule::store_question(who, vote_id.clone(), topic);
+        assert_ok!(question_stored);
+
+        let topics = OffchainModule::topics(vote_id);
+        assert_eq!(topics.len(), 2usize);
+        assert_eq!(topics[0].0, topic_id);
+        assert_eq!(topics[1].0, new_topic_id);
     });
 }
 
@@ -123,7 +249,24 @@ fn test_create_vote_works() {
 fn test_cast_ballot_no_vote_exists() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        // TODO
+        // use the default voter
+        let acct: <TestRuntime as system::Trait>::AccountId = Default::default();
+
+        // create not existing topic_id and vote_id
+        let topic_id = "Topic Doesn't Exist".as_bytes().to_vec();
+        let vote_id = "Vote Doesn't Exist".as_bytes().to_vec();
+
+        // create fake cipher & ballot
+        let cipher = Cipher {
+            a: "1".as_bytes().to_vec(),
+            b: "2".as_bytes().to_vec(),
+        };
+        let answers = vec![(topic_id, cipher)];
+        let ballot: Ballot = Ballot { answers };
+        assert_err!(
+            OffchainModule::cast_ballot(Origin::signed(acct), vote_id.clone(), ballot.clone()),
+            Error::<TestRuntime>::VoteDoesNotExist
+        );
     });
 }
 
@@ -141,7 +284,6 @@ fn test_cast_ballot_works() {
 
         // Create the voter
         let acct: <TestRuntime as system::Trait>::AccountId = Default::default();
-        println!("acct: {:?}", acct);
 
         // submit the value 32
         let num: u64 = 32;

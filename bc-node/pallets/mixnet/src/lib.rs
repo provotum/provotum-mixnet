@@ -104,8 +104,11 @@ decl_event!(
         /// public key stored event -> [from/who, public key]
         PublicKeyStored(AccountId, SubstratePK),
 
-        /// A voting authority set the elections public parameters. [election, who, params]
+        /// A voting authority set the vote's public parameters. [vote, who, params]
         VoteCreatedWithPublicParameters(VoteId, AccountId, PublicParameters),
+
+        /// A voting authority set the question of a topic of a vote [vote, (topic_id, question)]
+        VoteTopicQuestionStored(VoteId, Topic),
     }
 );
 
@@ -183,6 +186,8 @@ decl_module! {
         #[weight = (10000, Pays::No)]
         fn create_vote(origin, vote_id: Vec<u8>, title: Title, params: PublicParameters, topics: Vec<Topic>) {
             let who: T::AccountId = ensure_signed(origin)?;
+
+            // only the voting_authority should be able to create a vote
             helpers::assertions::ensure_voting_authority::<T>(&who)?;
 
             debug::info!("Requester {:?} is a voting authority", who);
@@ -205,6 +210,26 @@ decl_module! {
             Topics::insert(&vote_id, topics);
 
             Self::deposit_event(RawEvent::VoteCreatedWithPublicParameters(vote_id, who.clone(), params));
+        }
+
+        /// Add a question to the vote.
+        /// Can only be called from a voting authority.
+        #[weight = (10000, Pays::No)]
+        fn store_question(origin, vote_id: VoteId, topic: Topic) {
+            let who = ensure_signed(origin)?;
+
+            // only the voting_authority should be able to set the question
+            helpers::assertions::ensure_voting_authority::<T>(&who)?;
+
+            // check that the vote_id exists
+            ensure!(Votes::<T>::contains_key(&vote_id), Error::<T>::VoteDoesNotExist);
+            debug::info!("Is voting authority! topic_id: {:?}, question: {:?}", topic.0, topic.1);
+
+            let mut topics: Vec<Topic> = Topics::get(&vote_id);
+            topics.push(topic.clone());
+            Topics::insert(&vote_id, topics);
+
+            Self::deposit_event(RawEvent::VoteTopicQuestionStored(vote_id, topic));
         }
 
         #[weight = (10000, Pays::No)]

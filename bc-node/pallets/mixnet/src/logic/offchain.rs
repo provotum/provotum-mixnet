@@ -1,6 +1,6 @@
 use crate::sp_api_hidden_includes_decl_storage::hidden_include::{StorageMap, StorageValue};
 use crate::types::{Ballot, Cipher, TopicId};
-use crate::{Call, Error, Module, PublicKey, Topics, Trait, VoteIds, Votes};
+use crate::{Call, Error, Module, PublicKey, Trait, Votes};
 use core::convert::TryInto;
 use crypto::{encryption::ElGamal, types::PublicKey as ElGamalPK};
 use frame_support::{debug, ensure};
