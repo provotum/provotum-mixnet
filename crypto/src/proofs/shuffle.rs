@@ -185,11 +185,7 @@ impl ShuffleProof {
     /// Inputs:
     /// - public value: ((encryptions, shuffled_encryptions, permutation_commitments, chain_commitments, public_key)
     /// - public commitment: (t1, t2, t3, (t4_1, t4_2), (t_hat_0, ..., t_hat_(size-1)))
-    pub fn get_challenge(
-        public_value: BigY,
-        public_commitment: BigT,
-        q: &BigUint,
-    ) -> BigUint {
+    pub fn get_challenge(public_value: BigY, public_commitment: BigT, q: &BigUint) -> BigUint {
         let value = Helper::hash_challenge_inputs(public_value, public_commitment);
         value % q
     }
@@ -205,15 +201,14 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "permutation and randoms need to have the same length!")]
-    fn it_should_panic_generate_permutation_commitment_different_size_permutations_randoms(
-    ) {
-        let (params, _, pk) = Helper::setup_md_system();
+    fn it_should_panic_generate_permutation_commitment_different_size_permutations_randoms() {
+        let (params, _, _) = Helper::setup_md_system();
         let p = &params.p;
-        let vote_id = 123usize;
+        let vote_id = "2020-12-12_01".as_bytes();
 
         let randoms: [BigUint; 0] = [];
         let permutation = [1usize];
-        let generators = Helper::get_generators(vote_id, p, 1usize);
+        let generators = Helper::get_generators(&vote_id, p, 1usize);
 
         ShuffleProof::generate_permutation_commitment(
             &params,
@@ -225,8 +220,7 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "permutation and generators need to have the same length!")]
-    fn it_should_panic_generate_permutation_commitment_different_size_permutations_generators(
-    ) {
+    fn it_should_panic_generate_permutation_commitment_different_size_permutations_generators() {
         let (params, _, _) = Helper::setup_md_system();
 
         let randoms = [BigUint::one()];
@@ -263,7 +257,7 @@ mod tests {
         let (params, _, _) = Helper::setup_md_system();
         let p = &params.p;
         let q = params.q();
-        let vote_id = 123usize;
+        let vote_id = "2020-12-12_01".as_bytes();
 
         // create a list of permutation
         let size = 3usize;
@@ -277,7 +271,7 @@ mod tests {
         ];
 
         // get random generators ∈ G_q
-        let generators = Helper::get_generators(vote_id, p, size);
+        let generators = Helper::get_generators(&vote_id, p, size);
 
         // generate commitment
         let permutation_commitment = ShuffleProof::generate_permutation_commitment(
@@ -312,19 +306,11 @@ mod tests {
         let commitments = Vec::new();
 
         // TEST
-        ShuffleProof::get_challenges(
-            size,
-            encryptions,
-            shuffled_encryptions,
-            commitments,
-            &pk,
-        );
+        ShuffleProof::get_challenges(size, encryptions, shuffled_encryptions, commitments, &pk);
     }
 
     #[test]
-    #[should_panic(
-        expected = "encryptions and shuffled_encryptions need to have the same length!"
-    )]
+    #[should_panic(expected = "encryptions and shuffled_encryptions need to have the same length!")]
     fn it_should_panic_get_challenges_different_sizes_encryptions_shuffled_encryptions() {
         // SETUP
         let (_, _, pk) = Helper::setup_md_system();
@@ -339,13 +325,7 @@ mod tests {
         let commitments = Vec::new();
 
         // TEST
-        ShuffleProof::get_challenges(
-            size,
-            encryptions,
-            shuffled_encryptions,
-            commitments,
-            &pk,
-        );
+        ShuffleProof::get_challenges(size, encryptions, shuffled_encryptions, commitments, &pk);
     }
 
     #[test]
@@ -369,13 +349,7 @@ mod tests {
         let commitments = Vec::new();
 
         // TEST
-        ShuffleProof::get_challenges(
-            size,
-            encryptions,
-            shuffled_encryptions,
-            commitments,
-            &pk,
-        );
+        ShuffleProof::get_challenges(size, encryptions, shuffled_encryptions, commitments, &pk);
     }
 
     #[test]
@@ -405,15 +379,14 @@ mod tests {
         // SETUP
         let (_, _, pk) = Helper::setup_md_system();
 
-        let vote_id = 123usize;
+        let vote_id = "2020-12-12_01".as_bytes();
         let size = 3usize;
         let q = &pk.params.q();
         let p = &pk.params.p;
         let params = &pk.params;
 
         // generates a shuffle of three random encryptions of values: zero, one, two
-        let encryptions =
-            Random::generate_random_encryptions(&pk, &pk.params.q()).to_vec();
+        let encryptions = Random::generate_random_encryptions(&pk, &pk.params.q()).to_vec();
         let shuffle = Random::generate_shuffle(&pk, &pk.params.q(), encryptions.clone());
 
         // get the shuffled_encryptions & permutation from the shuffle
@@ -432,7 +405,7 @@ mod tests {
         }
 
         // get {size} independent generators
-        let generators = Helper::get_generators(vote_id, p, size);
+        let generators = Helper::get_generators(&vote_id, p, size);
 
         // get the permutation commitents
         let permutation_commitment = ShuffleProof::generate_permutation_commitment(
@@ -444,13 +417,8 @@ mod tests {
         let commitments = permutation_commitment.commitments;
 
         // TEST: challenge value generation
-        let challenges = ShuffleProof::get_challenges(
-            size,
-            encryptions,
-            shuffled_encryptions,
-            commitments,
-            &pk,
-        );
+        let challenges =
+            ShuffleProof::get_challenges(size, encryptions, shuffled_encryptions, commitments, &pk);
 
         // check that:
         // 1. three challenges are generated
@@ -509,8 +477,7 @@ mod tests {
         }
 
         // TEST
-        let commitent_chain =
-            ShuffleProof::generate_commitment_chain(challenges, randoms, &params);
+        let commitent_chain = ShuffleProof::generate_commitment_chain(challenges, randoms, &params);
 
         // check that:
         // 1. all commitment values are < q

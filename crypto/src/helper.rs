@@ -7,10 +7,7 @@ use num_traits::{One, Zero};
 pub struct Helper;
 
 impl Helper {
-    pub fn generate_key_pair(
-        params: &ElGamalParams,
-        r: &BigUint,
-    ) -> (PublicKey, PrivateKey) {
+    pub fn generate_key_pair(params: &ElGamalParams, r: &BigUint) -> (PublicKey, PrivateKey) {
         let sk = PrivateKey {
             params: params.clone(),
             x: r.clone(),
@@ -94,15 +91,10 @@ impl Helper {
     }
 
     /// Uses the Blak2 hash function and produces a hash of four different inputs. The result is returned as a BigUint.
-    pub fn hash_inputs_to_biguint(
-        id: usize,
-        constant: &str,
-        i: usize,
-        x: BigUint,
-    ) -> BigUint {
+    pub fn hash_inputs_to_biguint(id: &[u8], constant: &str, i: usize, x: BigUint) -> BigUint {
         let hasher = Blake2b::new();
         let hash = hasher
-            .chain(id.to_be_bytes())
+            .chain(id)
             .chain(constant.as_bytes())
             .chain(i.to_be_bytes())
             .chain(x.to_bytes_be())
@@ -115,7 +107,7 @@ impl Helper {
     /// Computes n independent generators of G_q ∈ Z*_p.
     /// The algorithm is an adaption of the NIST standard FIPS PUB 186-4 (Appendix A.2.3).
     /// Making the generators dependent on election id guarantees that the resulting values are specific to the current election.
-    pub fn get_generators(id: usize, p: &BigUint, number: usize) -> Vec<BigUint> {
+    pub fn get_generators(id: &[u8], p: &BigUint, number: usize) -> Vec<BigUint> {
         let mut vec_h: Vec<BigUint> = Vec::new();
         let zero = BigUint::zero();
         let one = BigUint::one();
@@ -408,14 +400,14 @@ mod tests {
 
     #[test]
     fn it_should_hash_and_return_biguint() {
-        let id: usize = 1;
+        let id = "2020-12-12_01".as_bytes();
         let constant = "ggen";
         let mut i: usize = 1;
         let x = BigUint::one();
-        let hash1 = Helper::hash_inputs_to_biguint(id, constant, i, x.clone());
+        let hash1 = Helper::hash_inputs_to_biguint(&id, constant, i, x.clone());
 
         i = 2;
-        let hash2 = Helper::hash_inputs_to_biguint(id, constant, i, x);
+        let hash2 = Helper::hash_inputs_to_biguint(&id, constant, i, x);
 
         let one = BigUint::one();
         assert!(hash1 > one.clone());
@@ -426,10 +418,10 @@ mod tests {
     #[test]
     fn it_should_hash_bigunit() {
         let expected_result = vec![
-            149, 69, 186, 55, 178, 48, 216, 162, 231, 22, 196, 112, 117, 134, 84, 39,
-            128, 129, 91, 124, 64, 136, 237, 203, 154, 246, 169, 69, 45, 80, 243, 36,
-            116, 213, 186, 154, 171, 82, 166, 122, 202, 134, 78, 242, 105, 105, 129, 194,
-            234, 223, 73, 2, 4, 22, 19, 106, 253, 131, 143, 176, 72, 210, 22, 83,
+            149, 69, 186, 55, 178, 48, 216, 162, 231, 22, 196, 112, 117, 134, 84, 39, 128, 129, 91,
+            124, 64, 136, 237, 203, 154, 246, 169, 69, 45, 80, 243, 36, 116, 213, 186, 154, 171,
+            82, 166, 122, 202, 134, 78, 242, 105, 105, 129, 194, 234, 223, 73, 2, 4, 22, 19, 106,
+            253, 131, 143, 176, 72, 210, 22, 83,
         ];
         let input = BigUint::one();
         let hash = Helper::hash_biguint(&input);
@@ -443,10 +435,10 @@ mod tests {
     #[test]
     fn it_should_hash_vec_biguints() {
         let expected_result = vec![
-            149, 69, 186, 55, 178, 48, 216, 162, 231, 22, 196, 112, 117, 134, 84, 39,
-            128, 129, 91, 124, 64, 136, 237, 203, 154, 246, 169, 69, 45, 80, 243, 36,
-            116, 213, 186, 154, 171, 82, 166, 122, 202, 134, 78, 242, 105, 105, 129, 194,
-            234, 223, 73, 2, 4, 22, 19, 106, 253, 131, 143, 176, 72, 210, 22, 83,
+            149, 69, 186, 55, 178, 48, 216, 162, 231, 22, 196, 112, 117, 134, 84, 39, 128, 129, 91,
+            124, 64, 136, 237, 203, 154, 246, 169, 69, 45, 80, 243, 36, 116, 213, 186, 154, 171,
+            82, 166, 122, 202, 134, 78, 242, 105, 105, 129, 194, 234, 223, 73, 2, 4, 22, 19, 106,
+            253, 131, 143, 176, 72, 210, 22, 83,
         ];
         let input = [BigUint::one()];
         let hash = Helper::hash_vec_biguints(input.to_vec());
@@ -456,10 +448,10 @@ mod tests {
     #[test]
     fn it_should_hash_vec_ciphers() {
         let expected_result = vec![
-            113, 148, 21, 201, 186, 138, 71, 207, 134, 55, 217, 216, 57, 88, 4, 19, 240,
-            140, 162, 173, 176, 176, 248, 95, 170, 219, 110, 44, 253, 92, 250, 157, 124,
-            191, 67, 183, 127, 166, 232, 113, 54, 224, 45, 35, 197, 177, 160, 28, 75, 81,
-            153, 115, 249, 46, 178, 219, 192, 95, 124, 192, 190, 183, 165, 53,
+            113, 148, 21, 201, 186, 138, 71, 207, 134, 55, 217, 216, 57, 88, 4, 19, 240, 140, 162,
+            173, 176, 176, 248, 95, 170, 219, 110, 44, 253, 92, 250, 157, 124, 191, 67, 183, 127,
+            166, 232, 113, 54, 224, 45, 35, 197, 177, 160, 28, 75, 81, 153, 115, 249, 46, 178, 219,
+            192, 95, 124, 192, 190, 183, 165, 53,
         ];
         let input = [Cipher {
             a: BigUint::from(3u32),
@@ -472,18 +464,16 @@ mod tests {
     #[test]
     fn it_should_get_generators() {
         let one = BigUint::one();
-        let id: usize = 1;
+        let id = "2020-12-12_01".as_bytes();
         let num: usize = 10;
         let (params, _, _) = Helper::setup_md_system();
 
-        let generators = Helper::get_generators(id, &params.p, num);
+        let generators = Helper::get_generators(&id, &params.p, num);
         assert_eq!(generators.len(), num);
         assert!(generators.iter().all(|gen| gen.clone() > one));
-        assert!(generators.iter().all(|gen| Helper::is_generator(
-            &params.p,
-            &params.q(),
-            gen
-        )));
+        assert!(generators
+            .iter()
+            .all(|gen| Helper::is_generator(&params.p, &params.q(), gen)));
     }
 
     #[test]

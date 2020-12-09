@@ -1,29 +1,29 @@
-use crypto::types::{Cipher, ElGamalParams, PublicKey as ElGamalPK};
+use crypto::types::{Cipher as BigCipher, ElGamalParams, PublicKey as ElGamalPK};
 use frame_support::codec::{Decode, Encode};
 use num_bigint::BigUint;
 use num_traits::One;
 use sp_std::vec::Vec;
 
-/// the Cipher from the crypto crate.
+/// the BigCipher from the crypto crate.
 /// different types which the blockchain can handle.
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
-pub struct Ballot {
+pub struct Cipher {
     pub a: Vec<u8>,
     pub b: Vec<u8>,
 }
 
-impl Into<Ballot> for Cipher {
-    fn into(self) -> Ballot {
-        Ballot {
+impl Into<Cipher> for BigCipher {
+    fn into(self) -> Cipher {
+        Cipher {
             a: self.a.to_bytes_be(),
             b: self.b.to_bytes_be(),
         }
     }
 }
 
-impl Into<Cipher> for Ballot {
-    fn into(self) -> Cipher {
-        Cipher {
+impl Into<BigCipher> for Cipher {
+    fn into(self) -> BigCipher {
+        BigCipher {
             a: BigUint::from_bytes_be(&self.a),
             b: BigUint::from_bytes_be(&self.b),
         }
@@ -31,24 +31,24 @@ impl Into<Cipher> for Ballot {
 }
 
 /// required to perform into() conversion for trait Vec
-/// for Vec<Ballot> is not allowed, since trait Vec is not defined here
+/// for Vec<Cipher> is not allowed, since trait Vec is not defined here
 pub struct Wrapper<T>(pub Vec<T>);
 
-impl Into<Vec<Cipher>> for Wrapper<Ballot> {
+impl Into<Vec<BigCipher>> for Wrapper<Cipher> {
+    fn into(self) -> Vec<BigCipher> {
+        self.0
+            .into_iter()
+            .map(|v| v.into())
+            .collect::<Vec<BigCipher>>()
+    }
+}
+
+impl Into<Vec<Cipher>> for Wrapper<BigCipher> {
     fn into(self) -> Vec<Cipher> {
         self.0
             .into_iter()
             .map(|v| v.into())
             .collect::<Vec<Cipher>>()
-    }
-}
-
-impl Into<Vec<Ballot>> for Wrapper<Cipher> {
-    fn into(self) -> Vec<Ballot> {
-        self.0
-            .into_iter()
-            .map(|v| v.into())
-            .collect::<Vec<Ballot>>()
     }
 }
 
@@ -154,3 +154,43 @@ pub type ShuffleProof = (
     Vec<BigUint>, // permutation_commitments
     Vec<BigUint>, // permutation_chain_commitments
 );
+
+pub type VoteId = Vec<u8>;
+pub type Title = Vec<u8>;
+
+// both types are strings encoded as bytes
+pub type TopicId = Vec<u8>;
+pub type TopicQuestion = Vec<u8>;
+
+// topicId and question (string as Vec<u8>)
+pub type Topic = (TopicId, TopicQuestion);
+
+/// A ballot is composed of all answers of a voter
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
+pub struct Ballot {
+    pub answers: Vec<(TopicId, Cipher)>,
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug)]
+pub enum VotePhase {
+    KeyGeneration,
+    Voting,
+    Tallying,
+}
+
+// Default defines the starting value when VotePhase is created
+impl Default for VotePhase {
+    fn default() -> Self {
+        Self::KeyGeneration
+    }
+}
+
+/// A vote groups the voting authority, the title of the vote,
+/// the phase the vote is currently in and the public parameters
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
+pub struct Vote<AccountId> {
+    pub voting_authority: AccountId,
+    pub title: Title,
+    pub phase: VotePhase,
+    pub params: PublicParameters,
+}

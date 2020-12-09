@@ -2,7 +2,7 @@ use crate::{types::BigS, types::ShuffleProof as Proof, Error, Module, Trait};
 use crypto::{
     helper::Helper,
     proofs::shuffle::ShuffleProof,
-    types::{BigT, BigY, Cipher, ElGamalParams, ModuloOperations, PublicKey},
+    types::{BigT, BigY, Cipher as BigCipher, ElGamalParams, ModuloOperations, PublicKey},
 };
 use num_bigint::BigUint;
 use num_traits::One;
@@ -16,10 +16,10 @@ impl<T: Trait> Module<T> {
     /// The public values are the ElGamal encryptions e and e~ and
     /// the public encryption key pk.
     pub fn verify_shuffle_proof(
-        id: usize, // election id
+        id: &Vec<u8>, // topicId (vote question)
         proof: Proof,
-        encryptions: Vec<Cipher>,
-        shuffled_encryptions: Vec<Cipher>,
+        encryptions: Vec<BigCipher>,
+        shuffled_encryptions: Vec<BigCipher>,
         pk: &PublicKey,
     ) -> Result<bool, Error<T>> {
         let e = encryptions;
@@ -62,13 +62,8 @@ impl<T: Trait> Module<T> {
 
         // get {size} challenges
         // vec_u = get_challenges(size, hash(e, e_tilde, vec_c, pk))
-        let vec_u = ShuffleProof::get_challenges(
-            size,
-            e.clone(),
-            e_tilde.clone(),
-            vec_c.clone(),
-            pk,
-        );
+        let vec_u =
+            ShuffleProof::get_challenges(size, e.clone(), e_tilde.clone(), vec_c.clone(), pk);
 
         // get c_hat_0
         // h = the 2. public generator
@@ -147,8 +142,7 @@ impl<T: Trait> Module<T> {
         // public commitment t = (t1, t2, t3, (t4_1, t4_2), (t_hat_0, ..., t_hat_(size-1)))
         let public_value: BigY = (e, e_tilde, vec_c.clone(), vec_c_hat.clone(), &pk.h);
         let public_commitment: BigT = (t1, t2, t3, t4_1, t4_2, vec_t_hat);
-        let recomputed_challenge =
-            ShuffleProof::get_challenge(public_value, public_commitment, q);
+        let recomputed_challenge = ShuffleProof::get_challenge(public_value, public_commitment, q);
 
         let is_proof_valid = recomputed_challenge == challenge;
         Ok(is_proof_valid)
@@ -161,7 +155,7 @@ impl<T: Trait> Module<T> {
         challenge: &BigUint,
         a_tilde: &BigUint,
         b_tilde: &BigUint,
-        e_tilde: &Vec<Cipher>,
+        e_tilde: &Vec<BigCipher>,
         vec_h: &Vec<BigUint>,
         vec_s_tilde: &Vec<BigUint>,
         s1: &BigUint,

@@ -2,7 +2,7 @@ use crate::{types::BigS, types::ShuffleProof as Proof, Error, Module, Trait};
 use crypto::{
     helper::Helper,
     proofs::shuffle::ShuffleProof,
-    types::{BigT, BigY, Cipher, ModuloOperations, PublicKey},
+    types::{BigT, BigY, Cipher as BigCipher, ModuloOperations, PublicKey},
 };
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
@@ -17,9 +17,9 @@ impl<T: Trait> Module<T> {
     /// The algorithm implements Wikström’s proof of a shuffle
     /// except for the fact that the offline and online phases are merged.
     pub fn generate_shuffle_proof(
-        id: usize,
-        encryptions: Vec<Cipher>,
-        shuffled_encryptions: Vec<Cipher>,
+        id: &Vec<u8>, // topicId (vote question)
+        encryptions: Vec<BigCipher>,
+        shuffled_encryptions: Vec<BigCipher>,
         re_encryption_randoms: Vec<BigUint>,
         permutation: &[usize],
         pk: &PublicKey,
@@ -64,13 +64,8 @@ impl<T: Trait> Module<T> {
 
         // get {size} challenges
         // vec_u = get_challenges(size, hash(e, e_tilde, vec_c, pk))
-        let vec_u = ShuffleProof::get_challenges(
-            size,
-            e.clone(),
-            e_tilde.clone(),
-            vec_c.clone(),
-            pk,
-        );
+        let vec_u =
+            ShuffleProof::get_challenges(size, e.clone(), e_tilde.clone(), vec_c.clone(), pk);
 
         // permute the challenges -> same order as randoms + permuation
         let u_tilde = Self::permute_vector(vec_u.clone(), permutation);
@@ -225,7 +220,7 @@ impl<T: Trait> Module<T> {
         r_hat: Vec<BigUint>,
         u_tilde: Vec<BigUint>,
         vec_h: Vec<BigUint>,
-        shuffled_encryptions: Vec<Cipher>,
+        shuffled_encryptions: Vec<BigCipher>,
         public_key: &PublicKey,
         size: usize,
     ) -> Result<
@@ -330,8 +325,7 @@ impl<T: Trait> Module<T> {
         // for an explanation see: Verifiable Re-Encryption Mixnets (Haenni, Locher, Koenig, Dubuis) page 9
         let inv_pk = pk.invmod(p).ok_or_else(|| Error::InvModError)?;
         let inv_pk_pow_w4 = inv_pk.modpow(&w4, p);
-        let vec_b_tilde: Vec<BigUint> =
-            shuffled_encryptions.into_iter().map(|c| c.b).collect();
+        let vec_b_tilde: Vec<BigUint> = shuffled_encryptions.into_iter().map(|c| c.b).collect();
         let prod_b_tilde_w_tilde =
             Self::zip_vectors_multiply_a_pow_b(&vec_b_tilde, &vec_w_tilde, p);
         let t4_2 = inv_pk_pow_w4.modmul(&prod_b_tilde_w_tilde, p);

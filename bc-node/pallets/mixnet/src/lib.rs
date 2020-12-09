@@ -25,7 +25,7 @@ pub mod keys;
 
 use codec::{Decode, Encode};
 use frame_support::{
-    debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
+    debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult, ensure,
     weights::Pays,
 };
 use frame_system::{
@@ -36,7 +36,10 @@ use num_bigint::BigUint;
 use num_traits::One;
 use sp_runtime::{offchain as rt_offchain, RuntimeDebug};
 use sp_std::{prelude::*, str, vec::Vec};
-use types::{Ballot, PublicKey as SubstratePK};
+use types::{
+    Ballot, Cipher, PublicKey as SubstratePK, PublicParameters, Title, Topic, TopicId, Vote,
+    VoteId, VotePhase,
+};
 
 /// the type to sign and send transactions.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
@@ -64,17 +67,28 @@ pub trait Trait: system::Trait + CreateSignedTransaction<Call<Self>> {
 decl_storage! {
     trait Store for Module<T: Trait> as OffchainModule {
         pub VotingAuthorities get(fn voting_authorities) config(): Vec<T::AccountId>;
-
         pub Sealers get(fn sealers) config(): Vec<T::AccountId>;
-
-        /// The system's public key
-        PublicKey get(fn public_key): Option<SubstratePK>;
-
-        /// A vector containing all submitted votes
-        Ballots get(fn ballots): Vec<Ballot>;
 
         /// A vector containing the IDs of voters that have submitted their ballots
         Voters get(fn voters): Vec<T::AccountId>;
+
+        /// Set of all voteIds
+        VoteIds get(fn vote_ids): Vec<VoteId>;
+
+        /// Maps a vote (i.e. the voteId) to a due date
+        Votes get(fn votes): map hasher(blake2_128_concat) VoteId => Vote<T::AccountId>;
+
+        /// Maps a voteId to a topic (topicId, question)
+        Topics get(fn topics): map hasher(blake2_128_concat) VoteId => Vec<Topic>;
+
+        /// Maps an voter and a vote to a ballot. Used to verify if a voter has already voted.
+        Ballots get(fn ballots): double_map hasher(blake2_128_concat) VoteId, hasher(blake2_128_concat) T::AccountId => Ballot;
+
+        /// Maps a topicId (question) to a list of Ciphers
+        Ciphers get(fn ciphers): map hasher(blake2_128_concat) TopicId => Vec<Cipher>;
+
+        /// The system's public key
+        PublicKey get(fn public_key): Option<SubstratePK>;
     }
 }
 
@@ -84,11 +98,14 @@ decl_event!(
     where
         AccountId = <T as system::Trait>::AccountId,
     {
-        /// ballot submission event -> [from/who, encrypted ballot]
-        VoteSubmitted(AccountId, Ballot),
+        /// ballot submission event -> [from/who, ballot]
+        BallotSubmitted(AccountId, VoteId, Ballot),
 
         /// public key stored event -> [from/who, public key]
         PublicKeyStored(AccountId, SubstratePK),
+
+        /// A voting authority set the elections public parameters. [election, who, params]
+        VoteCreatedWithPublicParameters(VoteId, AccountId, PublicParameters),
     }
 );
 
@@ -96,6 +113,12 @@ decl_error! {
     pub enum Error for Module<T: Trait> {
         // Error returned when not sure which off-chain worker function to executed
         UnknownOffchainMux,
+
+        // Error returned when Vec<u8> cannot be parsed into BigUint
+        ParseError,
+
+        // Error returned when requester is not a voting authority
+        NotAVotingAuthority,
 
         // Error returned when making signed transactions in off-chain worker
         NoLocalAcctForSigning,
@@ -114,7 +137,7 @@ decl_error! {
         PermutationSizeZeroError,
 
         // Error returned when ballots are empty when trying to shuffle them
-        ShuffleBallotsSizeZeroError,
+        ShuffleCiphersSizeZeroError,
 
         // Error returned when public key doesn't exist
         PublicKeyNotExistsError,
@@ -124,6 +147,9 @@ decl_error! {
 
         // Error returned when division modulo operation fails
         DivModError,
+
+        // Error returned when vote_id does not exist yet
+        VoteDoesNotExist,
     }
 }
 
@@ -152,18 +178,50 @@ decl_module! {
           Ok(())
         }
 
+        /// Create a vote and store public crypto parameters.
+        /// Can only be called from a voting authority.
         #[weight = (10000, Pays::No)]
-        pub fn cast_ballot(origin, ballot: Ballot) -> DispatchResult {
+        fn create_vote(origin, vote_id: Vec<u8>, title: Title, params: PublicParameters, topics: Vec<Topic>) {
+            let who: T::AccountId = ensure_signed(origin)?;
+            helpers::assertions::ensure_voting_authority::<T>(&who)?;
+
+            debug::info!("Requester {:?} is a voting authority", who);
+            debug::info!("ElectionId {:?}", vote_id);
+
+            let vote = Vote::<T::AccountId> {
+                voting_authority: who.clone(),
+                title: title.clone(),
+                phase: VotePhase::default(),
+                params: params.clone()
+            };
+
+            debug::info!("Created vote {:?}", vote);
+
+            let mut vote_ids: Vec<VoteId> = VoteIds::get();
+            vote_ids.push(vote_id.clone());
+            VoteIds::put(vote_ids);
+
+            Votes::<T>::insert(&vote_id, vote);
+            Topics::insert(&vote_id, topics);
+
+            Self::deposit_event(RawEvent::VoteCreatedWithPublicParameters(vote_id, who.clone(), params));
+        }
+
+        #[weight = (10000, Pays::No)]
+        pub fn cast_ballot(origin, vote_id: VoteId, ballot: Ballot) -> DispatchResult {
           // check that the extrinsic was signed and get the signer.
           let who = ensure_signed(origin)?;
           let address_bytes = who.encode();
           debug::info!("Voter {:?} (encoded: {:?}) cast a ballot.", &who, address_bytes);
 
+          // check that the vote_id exists
+          ensure!(Votes::<T>::contains_key(&vote_id), Error::<T>::VoteDoesNotExist);
+
           // store the ballot
-          Self::store_ballot(who.clone(), ballot.clone());
+          Self::store_ballot(&who, &vote_id, ballot.clone());
 
           // notify that the ballot has been submitted and successfully stored
-          Self::deposit_event(RawEvent::VoteSubmitted(who, ballot));
+          Self::deposit_event(RawEvent::BallotSubmitted(who, vote_id, ballot));
 
           // Return a successful DispatchResult
           Ok(())
@@ -171,15 +229,6 @@ decl_module! {
 
         fn offchain_worker(block_number: T::BlockNumber) {
             debug::info!("off-chain worker: entering...");
-
-            let result = Self::offchain_signed_tx(block_number);
-            match result {
-                Ok(_) => debug::info!(
-                    "off-chain worker: successfully submitted signed_tx {:?}",
-                    block_number
-                ),
-                Err(e) => debug::error!("off-chain worker - error: {:?}", e),
-            }
 
             let number: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
             let random = Self::get_random_biguint_less_than(&number);

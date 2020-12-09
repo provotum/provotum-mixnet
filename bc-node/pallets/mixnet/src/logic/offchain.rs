@@ -1,14 +1,23 @@
-use crate::sp_api_hidden_includes_decl_storage::hidden_include::StorageValue;
-use crate::types::Ballot;
-use crate::{Call, Error, Module, PublicKey, Trait};
+use crate::sp_api_hidden_includes_decl_storage::hidden_include::{StorageMap, StorageValue};
+use crate::types::{Ballot, Cipher, TopicId};
+use crate::{Call, Error, Module, PublicKey, Topics, Trait, VoteIds, Votes};
 use core::convert::TryInto;
 use crypto::{encryption::ElGamal, types::PublicKey as ElGamalPK};
-use frame_support::debug;
+use frame_support::{debug, ensure};
 use frame_system::offchain::{SendSignedTransaction, Signer};
 use num_bigint::BigUint;
+use sp_std::{vec, vec::Vec};
 
 impl<T: Trait> Module<T> {
-    pub fn offchain_signed_tx(block_number: T::BlockNumber) -> Result<(), Error<T>> {
+    pub fn offchain_signed_tx(
+        block_number: T::BlockNumber,
+        vote_id: Vec<u8>,
+        topic_id: Vec<u8>,
+    ) -> Result<(), Error<T>> {
+        ensure!(
+            Votes::<T>::contains_key(&vote_id),
+            Error::<T>::VoteDoesNotExist
+        );
         // We retrieve a signer and check if it is valid.
         // ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.Signer.html
         let signer = Signer::<T, T::AuthorityId>::any_account();
@@ -29,15 +38,17 @@ impl<T: Trait> Module<T> {
         let r = Self::get_random_biguint_less_than(q)?;
 
         // encrypt the current block number
-        let ballot: Ballot = ElGamal::encrypt(&number_as_biguint, &r, &pk).into();
+        let cipher: Cipher = ElGamal::encrypt(&number_as_biguint, &r, &pk).into();
+        let answers: Vec<(TopicId, Cipher)> = vec![(topic_id, cipher)];
+        let ballot: Ballot = Ballot { answers };
 
         // `result` is in the type of `Option<(Account<T>, Result<(), ()>)>`. It is:
         //   - `None`: no account is available for sending transaction
         //   - `Some((account, Ok(())))`: transaction is successfully sent
         //   - `Some((account, Err(())))`: error occured when sending the transaction
         let result = signer.send_signed_transaction(|_acct|
-    // This is the on-chain function
-          Call::cast_ballot(ballot.clone()));
+        // This is the on-chain function
+          Call::cast_ballot(vote_id.clone(), ballot.clone()));
 
         // Display error if the signed tx fails.
         if let Some((acc, res)) = result {
