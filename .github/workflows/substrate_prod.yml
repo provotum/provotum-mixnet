@@ -13,17 +13,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest ]
-    
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
-    
     defaults:
       run:
         working-directory: bc-node
-
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v2
-
       - name: Cache Dependencies
         uses: actions/cache@v2
         with:
@@ -32,28 +29,23 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-prod
-
       - name: Setup Unix
         run: |
           curl https://getsubstrate.io -sSf | bash -s -- --fast
-
       - name: Setup Rust toolchain
         run: |
           rustup default stable
           rustup toolchain install nightly-2020-10-06
           rustup target add wasm32-unknown-unknown --toolchain nightly-2020-10-06
           rustup update
-
       - name: Build Prod Binary
         run: cargo +nightly-2020-10-06 build --release
-
       - name: Test Prod Binary
         run: cargo +nightly-2020-10-06 test --release
-
       # this step uploads the built prod binary as an artifact (output)
       - name: Upload Prod Binary
         uses: actions/upload-artifact@v2
-        with: 
+        with:
           name: provotum-prod-${{ github.sha }}-${{ github.run_id }}
           path: ${{ github.workspace }}/bc-node/target/release/provotum
           retention-days: 30
