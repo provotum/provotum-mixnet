@@ -14,6 +14,8 @@ mod shuffle;
 #[allow(clippy::many_single_char_names)]
 pub mod types;
 
+mod bench;
+
 #[cfg(test)]
 mod mock;
 

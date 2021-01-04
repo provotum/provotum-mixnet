@@ -30,6 +30,41 @@ Once the development environment is set up, build the node template. This comman
 WASM_BUILD_TOOLCHAIN=nightly-2020-10-06 cargo build --release
 ```
 
+### Tests
+
+Run the following command to execute all tests.
+
+```bash
+cargo +nightly-2020-10-06 test
+```
+
+### Benchmarks
+
+Navigate into the folder: `bc-node/node` and run the following command to check that all benchmarks are working correctly. _Note: This executes the tests._
+
+```bash
+cargo +nightly-2020-10-06 test -p pallet-mixnet --features runtime-benchmarks
+```
+
+Build the provotum node including the benchmark feature by running the following command: 
+
+```bash
+cargo +nightly-2020-10-06 build --features runtime-benchmarks
+```
+
+Navigate back to the folder: `bc-node`. 
+1. To list all existing commands of the `pallet-mixnet` crate run the following command: 
+
+```bash
+./target/debug/provotum benchmark --chain dev --pallet "pallet_mixnet" --extrinsic "*" --repeat 0
+```
+
+2. To perform all benchmarks run the following command. _Note: The number of times each benchmark is executed can be changed via `--repeat`._ 
+
+```bash
+./target/debug/provotum benchmark --chain dev --pallet "pallet_mixnet" --extrinsic "*" --repeat 10
+```
+
 ## Run
 
 ### Single Node Development Chain
@@ -57,7 +92,7 @@ RUST_LOG=debug RUST_BACKTRACE=1 ./target/release/provotum -lruntime=debug --dev
 If you want to see the multi-node consensus algorithm in action, refer to
 [our Start a Private Network tutorial](https://substrate.dev/docs/en/tutorials/start-a-private-network/).
 
-## Template Structure
+## Structure
 
 A Substrate project such as this consists of a number of components that are spread across a few
 directories.
