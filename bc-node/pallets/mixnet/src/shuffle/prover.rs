@@ -56,7 +56,7 @@ impl<T: Trait> Module<T> {
         let permutation_commitment = ShuffleProof::generate_permutation_commitment(
             params,
             permutation,
-            randoms.clone(),
+            randoms,
             vec_h.clone(),
         );
         let vec_c = permutation_commitment.commitments;
@@ -85,7 +85,7 @@ impl<T: Trait> Module<T> {
             Self::generate_t_and_w_values(
                 vec_r_hat.clone(),
                 u_tilde.clone(),
-                vec_h.clone(),
+                vec_h,
                 e_tilde.clone(),
                 pk,
                 size,
@@ -309,7 +309,7 @@ impl<T: Trait> Module<T> {
         // g^-w4 = (g^-1)^w4 = (g^w4)^-1 = invmod(g^w4)
         // for an explanation see: Verifiable Re-Encryption Mixnets (Haenni, Locher, Koenig, Dubuis) page 9
         let g_pow_w4 = g.modpow(&w4, p);
-        let inv_g_pow_w4 = g_pow_w4.invmod(p).ok_or_else(|| Error::InvModError)?;
+        let inv_g_pow_w4 = g_pow_w4.invmod(p).ok_or(Error::InvModError)?;
 
         let vec_a_tilde: Vec<BigUint> = shuffled_encryptions
             .clone()
@@ -323,7 +323,7 @@ impl<T: Trait> Module<T> {
         // pk is the public key
         // pk^-w4 = (pk^-1)^w4 = invmod(pk)^w4 mod p
         // for an explanation see: Verifiable Re-Encryption Mixnets (Haenni, Locher, Koenig, Dubuis) page 9
-        let inv_pk = pk.invmod(p).ok_or_else(|| Error::InvModError)?;
+        let inv_pk = pk.invmod(p).ok_or(Error::InvModError)?;
         let inv_pk_pow_w4 = inv_pk.modpow(&w4, p);
         let vec_b_tilde: Vec<BigUint> = shuffled_encryptions.into_iter().map(|c| c.b).collect();
         let prod_b_tilde_w_tilde =

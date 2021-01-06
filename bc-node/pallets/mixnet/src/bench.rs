@@ -1,7 +1,7 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use super::*;
-use crate::types::{PublicParameters, Wrapper};
+use crate::types::{PublicParameters, ShuffleProof as Proof, Wrapper};
 use crypto::{
     encryption::ElGamal, helper::Helper, types::Cipher as BigCipher, types::PublicKey as ElGamalPK,
 };
@@ -189,6 +189,46 @@ benchmarks! {
     }: {
         let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
     }
+
+    verify_shuffle_proof_3 {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(3)?;
+        let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
+    }: {
+        let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
+        ensure!(success, "proof did not verify!");
+    }
+
+    verify_shuffle_proof_10 {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(10)?;
+        let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
+    }: {
+        let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
+        ensure!(success, "proof did not verify!");
+    }
+
+    verify_shuffle_proof_30 {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(30)?;
+        let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
+    }: {
+        let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
+        ensure!(success, "proof did not verify!");
+    }
+
+    verify_shuffle_proof_100 {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(100)?;
+        let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
+    }: {
+        let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
+        ensure!(success, "proof did not verify!");
+    }
+
+    verify_shuffle_proof_1000 {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(1000)?;
+        let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
+    }: {
+        let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
+        ensure!(success, "proof did not verify!");
+    }
 }
 
 #[cfg(test)]
@@ -205,6 +245,7 @@ mod tests {
             assert_ok!(test_benchmark_random_range::<TestRuntime>());
             assert_ok!(test_benchmark_shuffle_ciphers_3::<TestRuntime>());
             assert_ok!(test_benchmark_shuffle_proof_3::<TestRuntime>());
+            assert_ok!(test_benchmark_verify_shuffle_proof_3::<TestRuntime>());
         });
     }
 }

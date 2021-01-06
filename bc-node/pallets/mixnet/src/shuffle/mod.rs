@@ -6,7 +6,6 @@ use crate::types::{Cipher, PublicKey as SubstratePK, QAsBigUint, TopicId, Wrappe
 use crate::{Ciphers, Error, Module, PublicKey, Trait};
 use crypto::encryption::ElGamal;
 use crypto::types::Cipher as BigCipher;
-use frame_support::debug;
 use num_bigint::BigUint;
 use sp_std::vec::Vec;
 

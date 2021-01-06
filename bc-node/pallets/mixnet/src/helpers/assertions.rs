@@ -8,7 +8,7 @@ pub fn ensure_voting_authority<T: Trait>(account_id: &T::AccountId) -> Result<()
         Ok(_) => Ok(()),
         Err(_) => {
             debug::info!("Requester is not a voting authority!");
-            Err(Error::<T>::NotAVotingAuthority)?
+            return Err(Error::<T>::NotAVotingAuthority)
         }
     }
 }

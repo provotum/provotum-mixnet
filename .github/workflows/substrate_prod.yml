@@ -18,7 +18,7 @@ jobs:
     defaults:
       run:
         working-directory: ${{ github.workspace }}/bc-node
-    timeout-minutes: 60
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v2
       - name: Cache Dependencies
@@ -57,7 +57,7 @@ jobs:
           retention-days: 30
 
       - name: Benchmark Pallet Mixnet
-        run: ${{ github.workspace }}/bc-node/target/release/provotum benchmark --chain dev --pallet "pallet_mixnet" --extrinsic "*" --repeat 5 --steps 10 > ${{ github.workspace }}/bc-node/benchmarking-results
+        run: ${{ github.workspace }}/bc-node/target/release/provotum benchmark --chain dev --pallet "pallet_mixnet" --extrinsic "*" --repeat 3 > ${{ github.workspace }}/bc-node/benchmarking-results
 
       # this step uploads the built prod binary as an artifact (output)
       - name: Upload Benchmark Results

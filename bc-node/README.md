@@ -38,6 +38,12 @@ Run the following command to execute all tests.
 cargo +nightly-2020-10-06 test
 ```
 
+Run the following command to execute the test of the `pallet-mixnet` crate:
+
+```bash
+cargo +nightly-2020-10-06 test -p pallet-mixnet --features runtime-benchmarks
+```
+
 ### Benchmarks
 
 Navigate into the folder: `bc-node/node` and run the following command to check that all benchmarks are working correctly. _Note: This executes the tests._
@@ -51,6 +57,8 @@ Build the provotum node including the benchmark feature by running the following
 ```bash
 cargo +nightly-2020-10-06 build --features runtime-benchmarks
 ```
+
+**Note:** To produce results that closely resemble the production environment, make sure to use the flag `--release`. Please, be aware that this will increase the compilation time. Also, the binary will end up inside `./target/release` and not `./target/debug`.
 
 Navigate back to the folder: `bc-node`. 
 1. To list all existing commands of the `pallet-mixnet` crate run the following command: 

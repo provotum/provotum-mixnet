@@ -17,11 +17,10 @@ impl<T: Trait> Module<T> {
     ) -> BigUint {
         assert!(a.len() == b.len(), "vectors must have the same length!");
         let iterator = a.iter().zip(b.iter());
-        let value = iterator.fold(BigUint::one(), |prod, (a_i, b_i)| {
+        iterator.fold(BigUint::one(), |prod, (a_i, b_i)| {
             // Π(a_i^b_i % modulus) % modulus
             prod.modmul(&a_i.modpow(b_i, modulus), modulus)
-        });
-        value
+        })
     }
 
     /// zips vectors a and b.
@@ -36,9 +35,8 @@ impl<T: Trait> Module<T> {
         assert!(a.len() == b.len(), "vectors must have the same length!");
         let iterator = a.iter().zip(b.iter());
         // Σ(a_i * b_i) % modulus
-        let value = iterator.fold(BigUint::zero(), |sum, (a_i, b_i)| {
+        iterator.fold(BigUint::zero(), |sum, (a_i, b_i)| {
             sum.modadd(&a_i.modmul(b_i, modulus), modulus)
-        });
-        value
+        })
     }
 }

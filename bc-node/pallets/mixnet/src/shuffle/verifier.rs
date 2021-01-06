@@ -78,9 +78,7 @@ impl<T: Trait> Module<T> {
         let prod_h = vec_h
             .iter()
             .fold(BigUint::one(), |prod, gen| prod.modmul(gen, p));
-        let c_flat = prod_vec_c
-            .moddiv(&prod_h, p)
-            .ok_or_else(|| Error::DivModError)?;
+        let c_flat = prod_vec_c.moddiv(&prod_h, p).ok_or(Error::DivModError)?;
 
         // get u = Π(vec_u_i) mod q
         // vec_u = challenges
@@ -91,10 +89,8 @@ impl<T: Trait> Module<T> {
         // get value c_hat = c_hat_n / h^u mod p
         // vec_c_hat = permutation_chain_commitments
         let h_pow_u = h.modpow(&u, p);
-        let c_hat_n = vec_c_hat.get(size - 1).ok_or_else(|| Error::InvModError)?;
-        let c_hat = c_hat_n
-            .moddiv(&h_pow_u, p)
-            .ok_or_else(|| Error::DivModError)?;
+        let c_hat_n = vec_c_hat.get(size - 1).ok_or(Error::InvModError)?;
+        let c_hat = c_hat_n.moddiv(&h_pow_u, p).ok_or(Error::DivModError)?;
 
         // get value c_tilde = Π(c_i^u_i) mod p
         // vec_c = permutation_commitments
@@ -140,7 +136,7 @@ impl<T: Trait> Module<T> {
         // generate challenge from (y, t)
         // public value y = ((e, e_tilde, vec_c, vec_c_hat, public_key) -> public_key = component h of pk
         // public commitment t = (t1, t2, t3, (t4_1, t4_2), (t_hat_0, ..., t_hat_(size-1)))
-        let public_value: BigY = (e, e_tilde, vec_c.clone(), vec_c_hat.clone(), &pk.h);
+        let public_value: BigY = (e, e_tilde, vec_c, vec_c_hat, &pk.h);
         let public_commitment: BigT = (t1, t2, t3, t4_1, t4_2, vec_t_hat);
         let recomputed_challenge = ShuffleProof::get_challenge(public_value, public_commitment, q);
 
@@ -194,7 +190,7 @@ impl<T: Trait> Module<T> {
         // g^-s4 = (g^-1)^s4 = (g^s4)^-1 = invmod(g^s4)
         // for an explanation see: Verifiable Re-Encryption Mixnets (Haenni, Locher, Koenig, Dubuis) page 9
         let mut g_pow_minus_s4 = g.modpow(&s4, p);
-        g_pow_minus_s4 = g_pow_minus_s4.invmod(p).ok_or_else(|| Error::InvModError)?;
+        g_pow_minus_s4 = g_pow_minus_s4.invmod(p).ok_or(Error::InvModError)?;
 
         // compute prod_a = Π(vec_a_tilde_i^s_tilde_i)
         // compute prod_b = Π(vec_b_tilde_i^s_tilde_i)
@@ -229,7 +225,7 @@ impl<T: Trait> Module<T> {
         // pk^-s4 = (pk^-1)^s4 = (pk^s4)^-1 = invmod(pk^s4)
         // for an explanation see: Verifiable Re-Encryption Mixnets (Haenni, Locher, Koenig, Dubuis) page 9
         let pk_pow_s4 = pk.modpow(s4, p);
-        let pk_pow_minus_s4 = pk_pow_s4.invmod(p).ok_or_else(|| Error::InvModError)?;
+        let pk_pow_minus_s4 = pk_pow_s4.invmod(p).ok_or(Error::InvModError)?;
 
         // compute t4_2
         let mut t4_2 = b_tilde.modpow(challenge, p);

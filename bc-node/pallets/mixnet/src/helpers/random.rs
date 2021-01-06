@@ -204,9 +204,8 @@ impl<T: Trait> Module<T> {
 
         // permute the input vector
         // same order as permutation vector
-        for i in 0..input.len() {
-            let j_i = permutation[i];
-            let u_j_i = input[j_i].clone();
+        for j_i in permutation.iter() {
+            let u_j_i = input[*j_i].clone();
             temp_.push(u_j_i);
         }
 

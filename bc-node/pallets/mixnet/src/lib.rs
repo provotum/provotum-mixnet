@@ -184,7 +184,7 @@ decl_module! {
         /// Create a vote and store public crypto parameters.
         /// Can only be called from a voting authority.
         #[weight = (10000, Pays::No)]
-        fn create_vote(origin, vote_id: Vec<u8>, title: Title, params: PublicParameters, topics: Vec<Topic>) -> DispatchResult {
+        fn create_vote(origin, vote_id: VoteId, title: Title, params: PublicParameters, topics: Vec<Topic>) -> DispatchResult {
             let who: T::AccountId = ensure_signed(origin)?;
 
             // only the voting_authority should be able to create a vote
@@ -192,7 +192,7 @@ decl_module! {
 
             let vote = Vote::<T::AccountId> {
                 voting_authority: who.clone(),
-                title: title.clone(),
+                title,
                 phase: VotePhase::default(),
                 params: params.clone()
             };
@@ -204,7 +204,7 @@ decl_module! {
             Votes::<T>::insert(&vote_id, vote);
             Topics::insert(&vote_id, topics);
 
-            Self::deposit_event(RawEvent::VoteCreatedWithPublicParameters(vote_id, who.clone(), params));
+            Self::deposit_event(RawEvent::VoteCreatedWithPublicParameters(vote_id, who, params));
 
             // Return a successful DispatchResult
             Ok(())
