@@ -170,8 +170,6 @@ decl_module! {
         pub fn store_public_key(origin, pk: SubstratePK) -> DispatchResult {
           // check that the extrinsic was signed and get the signer.
           let who = ensure_signed(origin)?;
-          let address_bytes = who.encode();
-          debug::info!("Voter {:?} (encoded: {:?}).", &who, address_bytes);
 
           // store the public key
           PublicKey::put(pk.clone());
@@ -192,17 +190,12 @@ decl_module! {
             // only the voting_authority should be able to create a vote
             helpers::assertions::ensure_voting_authority::<T>(&who)?;
 
-            debug::info!("Requester {:?} is a voting authority", who);
-            debug::info!("ElectionId {:?}", vote_id);
-
             let vote = Vote::<T::AccountId> {
                 voting_authority: who.clone(),
                 title: title.clone(),
                 phase: VotePhase::default(),
                 params: params.clone()
             };
-
-            debug::info!("Created vote {:?}", vote);
 
             let mut vote_ids: Vec<VoteId> = VoteIds::get();
             vote_ids.push(vote_id.clone());
@@ -228,7 +221,6 @@ decl_module! {
 
             // check that the vote_id exists
             ensure!(Votes::<T>::contains_key(&vote_id), Error::<T>::VoteDoesNotExist);
-            debug::info!("Is voting authority! topic_id: {:?}, question: {:?}", topic.0, topic.1);
 
             let mut topics: Vec<Topic> = Topics::get(&vote_id);
             topics.push(topic.clone());
@@ -244,8 +236,6 @@ decl_module! {
         pub fn cast_ballot(origin, vote_id: VoteId, ballot: Ballot) -> DispatchResult {
           // check that the extrinsic was signed and get the signer.
           let who = ensure_signed(origin)?;
-          let address_bytes = who.encode();
-          debug::info!("Voter {:?} (encoded: {:?}) cast a ballot.", &who, address_bytes);
 
           // check that the vote_id exists
           ensure!(Votes::<T>::contains_key(&vote_id), Error::<T>::VoteDoesNotExist);
@@ -306,11 +296,6 @@ decl_module! {
             debug::info!("off-chain worker: done...");
         }
     }
-}
-
-fn test<T: Trait>() -> Result<(), Error<T>> {
-    debug::info!("test");
-    Ok(())
 }
 
 impl<T: Trait> rt_offchain::storage_lock::BlockNumberProvider for Module<T> {

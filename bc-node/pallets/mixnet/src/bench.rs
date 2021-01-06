@@ -1,8 +1,10 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use super::*;
-use crate::types::PublicParameters;
-use crypto::{encryption::ElGamal, helper::Helper, types::PublicKey as ElGamalPK};
+use crate::types::{PublicParameters, Wrapper};
+use crypto::{
+    encryption::ElGamal, helper::Helper, types::Cipher as BigCipher, types::PublicKey as ElGamalPK,
+};
 use frame_benchmarking::{benchmarks, whitelisted_caller};
 use frame_system::RawOrigin;
 use hex_literal::hex;
@@ -10,13 +12,14 @@ use sp_std::vec;
 
 use crate::Module as PalletMixnet;
 
-fn setup_public_key<T: Trait>(pk: SubstratePK) {
+fn setup_public_key<T: Trait>(pk: SubstratePK) -> Result<(), &'static str> {
     // create the submitter (i.e. the public key submitter)
     let account: T::AccountId = whitelisted_caller();
     let who = RawOrigin::Signed(account.into());
 
     // store created public key and public parameters
-    PalletMixnet::<T>::store_public_key(who.into(), pk);
+    let _setup_result = PalletMixnet::<T>::store_public_key(who.into(), pk)?;
+    Ok(())
 }
 
 fn setup_vote<T: Trait>(params: PublicParameters) -> Result<(Vec<u8>, Vec<u8>), &'static str> {
@@ -40,11 +43,11 @@ fn setup_vote<T: Trait>(params: PublicParameters) -> Result<(Vec<u8>, Vec<u8>), 
     Ok((vote_id, topic_id))
 }
 
-fn setup_shuffle<T: Trait>(size: usize) -> Result<Vec<u8>, &'static str> {
+fn setup_shuffle<T: Trait>(size: usize) -> Result<(Vec<u8>, Vec<u8>, ElGamalPK), &'static str> {
     // setup
     let (params, _, pk) = Helper::setup_lg_system();
     let (vote_id, topic_id) = setup_vote::<T>(params.into())?;
-    setup_public_key::<T>(pk.clone().into());
+    setup_public_key::<T>(pk.clone().into())?;
 
     // create messages and random values
     let q = &pk.params.q();
@@ -66,7 +69,35 @@ fn setup_shuffle<T: Trait>(size: usize) -> Result<Vec<u8>, &'static str> {
         let ballot: Ballot = Ballot { answers };
         PalletMixnet::<T>::cast_ballot(voter.clone().into(), vote_id.clone(), ballot)?;
     }
-    Ok(topic_id)
+    Ok((topic_id, vote_id, pk))
+}
+
+fn setup_shuffle_proof<T: Trait>(
+    size: usize,
+) -> Result<
+    (
+        Vec<u8>,
+        Vec<BigCipher>,
+        Vec<BigCipher>,
+        Vec<BigUint>,
+        Vec<usize>,
+        ElGamalPK,
+    ),
+    &'static str,
+> {
+    let (topic_id, vote_id, pk) = setup_shuffle::<T>(size)?;
+
+    // get the encrypted votes
+    let e: Vec<BigCipher> = Wrapper(PalletMixnet::<T>::ciphers(&topic_id)).into();
+    ensure!(e.len() == size, "# of votes on chain is not correct");
+
+    // shuffle the votes
+    let result = PalletMixnet::<T>::shuffle_ciphers(&topic_id);
+    let s: (Vec<BigCipher>, Vec<BigUint>, Vec<usize>) = result.unwrap();
+    let e_hat = s.0; // the shuffled votes
+    let r = s.1; // the re-encryption randoms
+    let permutation = s.2;
+    Ok((vote_id, e, e_hat, r, permutation, pk))
 }
 
 benchmarks! {
@@ -80,7 +111,7 @@ benchmarks! {
         let who = RawOrigin::Signed(account.into());
     }: {
         // store created public key and public parameters
-        PalletMixnet::<T>::store_public_key(who.into(), pk.clone().into())
+        let _result = PalletMixnet::<T>::store_public_key(who.into(), pk.clone().into());
     }
     verify {
         // fetch the public key from the chain
@@ -91,30 +122,72 @@ benchmarks! {
     random_range {
         let lower: usize = 0;
         let upper: usize = 100;
-        let mut value: usize = 0;
+        let mut _value: usize = 0;
     }: {
-        value = PalletMixnet::<T>::get_random_range(lower, upper).unwrap();
+        _value = PalletMixnet::<T>::get_random_range(lower, upper).unwrap();
     } verify {
-        ensure!(value < upper, "value >= upper");
-        ensure!(lower < value, "value <= lower");
+        ensure!(_value < upper, "_value >= upper");
+        ensure!(lower < _value, "_value <= lower");
     }
 
-    shuffle_ciphers_three_votes {
-        let topic_id = setup_shuffle::<T>(3)?;
+    shuffle_ciphers_3 {
+        let (topic_id, _, _) = setup_shuffle::<T>(3)?;
     }: {
-        PalletMixnet::<T>::shuffle_ciphers(&topic_id)
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&topic_id);
     }
 
-    shuffle_ciphers_thirty_votes {
-        let topic_id = setup_shuffle::<T>(30)?;
+    shuffle_ciphers_10 {
+        let (topic_id, _, _) = setup_shuffle::<T>(10)?;
     }: {
-        PalletMixnet::<T>::shuffle_ciphers(&topic_id)
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&topic_id);
     }
 
-    shuffle_ciphers_onehundred_votes {
-        let topic_id = setup_shuffle::<T>(100)?;
+    shuffle_ciphers_30 {
+        let (topic_id, _, _) = setup_shuffle::<T>(30)?;
     }: {
-        PalletMixnet::<T>::shuffle_ciphers(&topic_id)
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&topic_id);
+    }
+
+    shuffle_ciphers_100 {
+        let (topic_id, _, _) = setup_shuffle::<T>(100)?;
+    }: {
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&topic_id);
+    }
+
+    shuffle_ciphers_1000 {
+        let (topic_id, _, _) = setup_shuffle::<T>(1000)?;
+    }: {
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&topic_id);
+    }
+
+    shuffle_proof_3 {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(3)?;
+    }: {
+        let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
+    }
+
+    shuffle_proof_10 {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(10)?;
+    }: {
+        let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
+    }
+
+    shuffle_proof_30 {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(30)?;
+    }: {
+        let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
+    }
+
+    shuffle_proof_100 {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(100)?;
+    }: {
+        let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
+    }
+
+    shuffle_proof_1000 {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(1000)?;
+    }: {
+        let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
     }
 }
 
@@ -130,7 +203,8 @@ mod tests {
         t.execute_with(|| {
             assert_ok!(test_benchmark_store_public_key::<TestRuntime>());
             assert_ok!(test_benchmark_random_range::<TestRuntime>());
-            assert_ok!(test_benchmark_shuffle_ciphers_three_votes::<TestRuntime>());
+            assert_ok!(test_benchmark_shuffle_ciphers_3::<TestRuntime>());
+            assert_ok!(test_benchmark_shuffle_proof_3::<TestRuntime>());
         });
     }
 }

@@ -55,7 +55,7 @@ fn bench_elgamal(c: &mut Criterion) {
     // benchmark config
     let mut group = c.benchmark_group("elgamal");
     group.measurement_time(Duration::new(15, 0));
-    group.sample_size(350);
+    group.sample_size(100);
 
     group.bench_function("encryption", |b| {
         b.iter_with_setup(
@@ -148,11 +148,20 @@ fn bench_elgamal(c: &mut Criterion) {
 fn bench_shuffling(c: &mut Criterion) {
     // benchmark config
     let mut group = c.benchmark_group("shuffling");
-    group.sample_size(20);
+    group.sample_size(10);
 
     group.bench_function("3 votes", |b| {
         b.iter_with_setup(
             || setup_shuffling(3),
+            |(encryptions, permutation, randoms, pk)| {
+                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+            },
+        )
+    });
+
+    group.bench_function("10 votes", |b| {
+        b.iter_with_setup(
+            || setup_shuffling(10),
             |(encryptions, permutation, randoms, pk)| {
                 ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
             },
@@ -171,6 +180,15 @@ fn bench_shuffling(c: &mut Criterion) {
     group.bench_function("100 votes", |b| {
         b.iter_with_setup(
             || setup_shuffling(100),
+            |(encryptions, permutation, randoms, pk)| {
+                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+            },
+        )
+    });
+
+    group.bench_function("1000 votes", |b| {
+        b.iter_with_setup(
+            || setup_shuffling(1000),
             |(encryptions, permutation, randoms, pk)| {
                 ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
             },

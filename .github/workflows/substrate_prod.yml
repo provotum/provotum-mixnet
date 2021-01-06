@@ -57,4 +57,12 @@ jobs:
           retention-days: 30
 
       - name: Benchmark Pallet Mixnet
-        run: ${{ github.workspace }}/bc-node/target/release/provotum benchmark --chain dev --pallet "pallet_mixnet" --extrinsic "*" --repeat 2
+        run: ${{ github.workspace }}/bc-node/target/release/provotum benchmark --chain dev --pallet "pallet_mixnet" --extrinsic "*" --repeat 5 --steps 10 > ${{ github.workspace }}/bc-node/benchmarking-results
+
+      # this step uploads the built prod binary as an artifact (output)
+      - name: Upload Benchmark Results
+        uses: actions/upload-artifact@v2
+        with:
+          name: provotum-benchmark-prod-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ github.workspace }}/bc-node/benchmarking-results
+          retention-days: 60

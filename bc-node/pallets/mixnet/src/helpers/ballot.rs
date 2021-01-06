@@ -9,7 +9,6 @@ impl<T: Trait> Module<T> {
     pub fn store_ballot(from: &T::AccountId, vote_id: &VoteId, ballot: Ballot) {
         // store the encrypted ballot
         Ballots::<T>::insert(vote_id, from, ballot.clone());
-        debug::info!("Encrypted Ballot: {:?} has been stored.", ballot);
 
         for (topic_id, cipher) in ballot.answers {
             // store the encrypted cipher with the respective topic_id

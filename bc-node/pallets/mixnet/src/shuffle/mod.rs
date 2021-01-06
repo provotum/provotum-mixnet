@@ -1,8 +1,7 @@
 pub mod prover;
 pub mod verifier;
 
-use crate::sp_api_hidden_includes_decl_storage::hidden_include::{StorageMap, StorageValue,
-};
+use crate::sp_api_hidden_includes_decl_storage::hidden_include::{StorageMap, StorageValue};
 use crate::types::{Cipher, PublicKey as SubstratePK, QAsBigUint, TopicId, Wrapper};
 use crate::{Ciphers, Error, Module, PublicKey, Trait};
 use crypto::encryption::ElGamal;
@@ -43,7 +42,6 @@ impl<T: Trait> Module<T> {
         let shuffled_ciphers: Vec<BigCipher> = shuffle.into_iter().map(|item| item.0).collect();
 
         // return the shuffled ciphers, randoms, permutation as result
-        debug::info!("The ciphers have been shuffled");
         Ok((shuffled_ciphers, randoms, permutation))
     }
 }
