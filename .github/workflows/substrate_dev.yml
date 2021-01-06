@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: bc-node
+        working-directory: ${{ github.workspace }}/bc-node
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v2
@@ -35,16 +35,21 @@ jobs:
       - name: Setup Unix
         run: |
           curl https://getsubstrate.io -sSf | bash -s -- --fast
+
       - name: Setup Rust toolchain
         run: |
           rustup default stable
           rustup toolchain install nightly-2020-10-06
           rustup target add wasm32-unknown-unknown --toolchain nightly-2020-10-06
           rustup update
+
       - name: Build Dev Binary
-        run: cargo +nightly-2020-10-06 build --verbose
+        run: cargo +nightly-2020-10-06 build --features runtime-benchmarks --verbose
+        working-directory: ${{ github.workspace }}/bc-node/node
+
       - name: Test Dev Binary
         run: cargo +nightly-2020-10-06 test --verbose -- --nocapture
+
       # this step uploads the built dev binary as an artifact (output)
       - name: Upload Dev Binary
         uses: actions/upload-artifact@v2

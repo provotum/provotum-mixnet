@@ -186,7 +186,7 @@ decl_module! {
         /// Create a vote and store public crypto parameters.
         /// Can only be called from a voting authority.
         #[weight = (10000, Pays::No)]
-        fn create_vote(origin, vote_id: Vec<u8>, title: Title, params: PublicParameters, topics: Vec<Topic>) {
+        fn create_vote(origin, vote_id: Vec<u8>, title: Title, params: PublicParameters, topics: Vec<Topic>) -> DispatchResult {
             let who: T::AccountId = ensure_signed(origin)?;
 
             // only the voting_authority should be able to create a vote
@@ -212,12 +212,15 @@ decl_module! {
             Topics::insert(&vote_id, topics);
 
             Self::deposit_event(RawEvent::VoteCreatedWithPublicParameters(vote_id, who.clone(), params));
+
+            // Return a successful DispatchResult
+            Ok(())
         }
 
         /// Add a question to the vote.
         /// Can only be called from a voting authority.
         #[weight = (10000, Pays::No)]
-        fn store_question(origin, vote_id: VoteId, topic: Topic) {
+        fn store_question(origin, vote_id: VoteId, topic: Topic) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
             // only the voting_authority should be able to set the question
@@ -232,6 +235,9 @@ decl_module! {
             Topics::insert(&vote_id, topics);
 
             Self::deposit_event(RawEvent::VoteTopicQuestionStored(vote_id, topic));
+
+            // Return a successful DispatchResult
+            Ok(())
         }
 
         #[weight = (10000, Pays::No)]
@@ -256,6 +262,11 @@ decl_module! {
 
         fn offchain_worker(block_number: T::BlockNumber) {
             debug::info!("off-chain worker: entering...");
+
+            // Only send messages if we are a potential validator.
+            if sp_io::offchain::is_validator() {
+                debug::info!("hi there i'm a validator");
+            }
 
             let number: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
             let random = Self::get_random_biguint_less_than(&number);
@@ -295,6 +306,11 @@ decl_module! {
             debug::info!("off-chain worker: done...");
         }
     }
+}
+
+fn test<T: Trait>() -> Result<(), Error<T>> {
+    debug::info!("test");
+    Ok(())
 }
 
 impl<T: Trait> rt_offchain::storage_lock::BlockNumberProvider for Module<T> {

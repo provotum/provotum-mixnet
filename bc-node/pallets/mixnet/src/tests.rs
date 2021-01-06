@@ -1,5 +1,7 @@
 use crate::mock::*;
-use crate::types::{Ballot, Cipher, PublicKey as SubstratePK, ShuffleProof as Proof, Wrapper};
+use crate::types::{
+    Ballot, Cipher, PublicKey as SubstratePK, PublicParameters, ShuffleProof as Proof, Wrapper,
+};
 use crate::*;
 use codec::Decode;
 use crypto::{
