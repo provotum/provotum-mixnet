@@ -15,10 +15,17 @@ use sp_std::vec;
 
 use crate::Module as PalletMixnet;
 
+fn get_voting_authority<T: Trait>() -> RawOrigin<T::AccountId> {
+    // use Alice as VotingAuthority
+    let account_id: [u8; 32] =
+        hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
+    let account = T::AccountId::decode(&mut &account_id[..]).unwrap();
+    RawOrigin::Signed(account.into())
+}
+
 fn setup_public_key<T: Trait>(pk: SubstratePK) -> Result<(), &'static str> {
-    // create the submitter (i.e. the public key submitter)
-    let account: T::AccountId = whitelisted_caller();
-    let who = RawOrigin::Signed(account.into());
+    // use Alice as VotingAuthority
+    let who = get_voting_authority::<T>();
 
     // store created public key and public parameters
     let _setup_result = PalletMixnet::<T>::store_public_key(who.into(), pk)?;
@@ -26,12 +33,8 @@ fn setup_public_key<T: Trait>(pk: SubstratePK) -> Result<(), &'static str> {
 }
 
 fn setup_vote<T: Trait>(params: PublicParameters) -> Result<(Vec<u8>, Vec<u8>), &'static str> {
-    // create the submitter (i.e. the voting_authority)
     // use Alice as VotingAuthority
-    let account_id: [u8; 32] =
-        hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
-    let account = T::AccountId::decode(&mut &account_id[..]).unwrap();
-    let who = RawOrigin::Signed(account.into());
+    let who = get_voting_authority::<T>();
 
     // create the vote
     let vote_id = "20201212".as_bytes().to_vec();
@@ -108,10 +111,7 @@ benchmarks! {
 
     store_public_key {
         let (_, _, pk) = Helper::setup_lg_system();
-
-        // create the submitter (i.e. the public key submitter)
-        let account: T::AccountId = whitelisted_caller();
-        let who = RawOrigin::Signed(account.into());
+        let who = get_voting_authority::<T>();
     }: {
         // store created public key and public parameters
         let _result = PalletMixnet::<T>::store_public_key(who.into(), pk.clone().into());
@@ -123,12 +123,8 @@ benchmarks! {
     }
 
     create_vote {
-        // create the submitter (i.e. the voting_authority)
         // use Alice as VotingAuthority
-        let account_id: [u8; 32] =
-        hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
-        let account = T::AccountId::decode(&mut &account_id[..]).unwrap();
-        let who = RawOrigin::Signed(account.into());
+        let who = get_voting_authority::<T>();
 
         // store created public key
         let (params, _, pk) = Helper::setup_lg_system();
@@ -153,12 +149,8 @@ benchmarks! {
         let (params, _, pk) = Helper::setup_lg_system();
         let (vote_id, topic_id) = setup_vote::<T>(params.into())?;
 
-        // create the submitter (i.e. the voting_authority)
         // use Alice as VotingAuthority
-        let account_id: [u8; 32] =
-        hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
-        let account = T::AccountId::decode(&mut &account_id[..]).unwrap();
-        let who = RawOrigin::Signed(account.into());
+        let who = get_voting_authority::<T>();
 
         // create another topic
         let topic_id_2 = "20201212-02".as_bytes().to_vec();

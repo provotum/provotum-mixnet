@@ -15,6 +15,19 @@ minutes).
 curl https://getsubstrate.io -sSf | bash -s -- --fast
 ```
 
+#### Dependencies
+
+If the command above doesn't work, the dependencies can also be installed manually. 
+
+```bash
+sudo apt install -y cmake pkg-config libssl-dev git gcc build-essential git clang libclang-dev
+curl https://sh.rustup.rs -sSf | sh
+rustup default stable
+rustup toolchain install nightly-2020-10-06
+rustup target add wasm32-unknown-unknown --toolchain nightly-2020-10-06
+rustup update 
+```
+
 ### Manual Setup
 
 Find manual setup instructions at the

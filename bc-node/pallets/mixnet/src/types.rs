@@ -198,11 +198,18 @@ pub struct Vote<AccountId> {
 // TODO: replace with real types
 pub type IdpPublicKey = Vec<u8>;
 
-// TODO: update with real values
+// the public key generation proof submitted by the sealer -> this prooves knowledge of a secret key that belongs to the submitted public key
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
 pub struct PublicKeyProof {
     pub challenge: Vec<u8>,
     pub response: Vec<u8>,
+}
+
+// the public key share submitted by each sealer to generated the system's public key
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
+pub struct PublicKeyShare {
+    pub pk: Vec<u8>,
+    pub proof: PublicKeyProof,
 }
 
 // TODO: update with real values
@@ -214,9 +221,10 @@ pub struct DecryptedShareProof {
     pub s: Vec<u8>,
 }
 
-// TODO: replace with real values
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
-pub struct PublicKeyShare {
-    pub public_key: Vec<u8>,
-    pub proof: PublicKeyProof,
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug)]
+pub struct Tally {
+    pub topic_id: TopicId,
+    pub yes: u32,
+    pub no: u32,
+    pub total: u32,
 }
