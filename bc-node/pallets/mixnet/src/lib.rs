@@ -39,8 +39,8 @@ use num_traits::One;
 use sp_runtime::{offchain as rt_offchain, RuntimeDebug};
 use sp_std::{prelude::*, str, vec::Vec};
 use types::{
-    Ballot, Cipher, PublicKey as SubstratePK, PublicParameters, Title, Topic, TopicId, Vote,
-    VoteId, VotePhase,
+    Ballot, Cipher, DecryptedShareProof, IdpPublicKey, PublicKey as SubstratePK, PublicKeyShare,
+    PublicParameters, Title, Topic, TopicId, Vote, VoteId, VotePhase,
 };
 
 /// the type to sign and send transactions.
@@ -89,6 +89,16 @@ decl_storage! {
         /// Maps a topicId (question) to a list of Ciphers
         Ciphers get(fn ciphers): map hasher(blake2_128_concat) TopicId => Vec<Cipher>;
 
+        /// Stores the Identity provider's public key for blind signatures
+        // TODO: Update type of key
+        pub IdentityProviderPublicKey get(fn idp_public_key): Option<IdpPublicKey>;
+
+        /// Stores the public key of a sealer together with its Schnorr proof.
+        PublicKeyShares get(fn key_shares): map hasher(blake2_128_concat) VoteId => Vec<PublicKeyShare>;
+
+        /// Stores the public key of a sealer, indexed by sealer account
+        PublicKeySharesBySealer get(fn key_shares_by_sealer): map hasher(blake2_128_concat) (VoteId, T::AccountId) => PublicKeyShare;
+
         /// The system's public key
         PublicKey get(fn public_key): Option<SubstratePK>;
     }
@@ -111,6 +121,12 @@ decl_event!(
 
         /// A voting authority set the question of a topic of a vote [vote, (topic_id, question)]
         VoteTopicQuestionStored(VoteId, Topic),
+
+        /// A voting authority changed the vote phase [vote_id, newPhase]
+        VotePhaseChanged(VoteId, VotePhase),
+
+        /// The Identity Provider public key was set.
+        IdentityProviderPublicKeySet(Vec<u8>, Vec<u8>),
     }
 );
 
@@ -124,6 +140,9 @@ decl_error! {
 
         // Error returned when requester is not a voting authority
         NotAVotingAuthority,
+
+        // Error returned when requester is not a sealer
+        NotASealer,
 
         // Error returned when making signed transactions in off-chain worker
         NoLocalAcctForSigning,
@@ -166,6 +185,27 @@ decl_module! {
         // Events must be initialized if they are used by the pallet.
         fn deposit_event() = default;
 
+        /// Set a vote phase.
+        #[weight = (10_000, Pays::No)]
+        fn set_vote_phase(origin, vote_id: VoteId, phase: VotePhase) -> DispatchResult {
+            // only the voting_authority should be able to store the key
+            let who: T::AccountId = ensure_signed(origin)?;
+            helpers::assertions::ensure_voting_authority::<T>(&who)?;
+
+            // check that the vote_id exists
+            ensure!(Votes::<T>::contains_key(&vote_id), Error::<T>::VoteDoesNotExist);
+
+            // set the new phase
+            let mut vote: Vote<T::AccountId> = Votes::<T>::get(&vote_id);
+            vote.phase = phase.clone();
+            Votes::<T>::insert(&vote_id, &vote);
+
+            Self::deposit_event(RawEvent::VotePhaseChanged(vote_id, phase));
+
+            // Return a successful DispatchResult
+            Ok(())
+        }
+
         #[weight = (10000, Pays::No)]
         pub fn store_public_key(origin, pk: SubstratePK) -> DispatchResult {
           // check that the extrinsic was signed and get the signer.
@@ -179,6 +219,125 @@ decl_module! {
 
           // Return a successful DispatchResult
           Ok(())
+        }
+
+        /// Allow the identity provider to store its public key.
+        #[weight = (10_000, Pays::No)]
+        fn store_idp_public_key(origin) -> DispatchResult {
+            // only the voting_authority should be able to store the key
+            let who: T::AccountId = ensure_signed(origin)?;
+            helpers::assertions::ensure_voting_authority::<T>(&who)?;
+
+            // TODO: implement logic
+            // IdentityProviderPublicKey::put(public_key);
+            // Self::deposit_event(RawEvent::IdentityProviderPublicKeySet());
+
+            // Return a successful DispatchResult
+            Ok(())
+        }
+
+        /// Store a public key and its proof.
+        /// Can only be called from a sealer.
+        #[weight = (10_000, Pays::No)]
+        fn store_public_key_share(origin, vote_id: VoteId, public_key_share: PublicKeyShare) -> DispatchResult {
+            // only the sealers should be able to store their public key shares
+            let who: T::AccountId = ensure_signed(origin)?;
+            helpers::assertions::ensure_sealer::<T>(&who)?;
+
+            // check that the vote_id exists
+            ensure!(Votes::<T>::contains_key(&vote_id), Error::<T>::VoteDoesNotExist);
+
+            // TODO: implement
+            // let params: PublicParameters = Self::get_params(&vote_id);
+            // let unique_id = who.encode();
+            // debug::info!("AccountId {:?}; Encoded {:?}", who, unique_id);
+            // ensure!(public_key_share.verify(params.p, params.g, unique_id), Error::<T>::PublicKeyProofError);
+            // let mut shares: Vec<PublicKeyShare> = PublicKeyShares::get(&vote_id);
+            // shares.push(public_key_share.clone());
+            // PublicKeyShares::insert(&vote_id, shares);
+            // PublicKeySharesBySealer::<T>::insert((&vote_id, &who), public_key_share.clone());
+            // Self::deposit_event(RawEvent::PublicKeyShareSubmitted(public_key_share));
+            Ok(())
+        }
+
+        /// Combine public key shares into a single public key.
+        #[weight = (10_000, Pays::No)]
+        fn combine_public_key_shares(origin, vote_id: VoteId) -> DispatchResult {
+            // only the voting_authority should be able to combine the public key shares
+            let who: T::AccountId = ensure_signed(origin)?;
+            helpers::assertions::ensure_voting_authority::<T>(&who)?;
+
+            // check that the vote_id exists
+            ensure!(Votes::<T>::contains_key(&vote_id), Error::<T>::VoteDoesNotExist);
+
+            // TODO: implement
+            // let params: PublicParameters = Self::get_params(&vote_id);
+            // let shares: Vec<PublicKeyShare> = PublicKeyShares::get(&vote_id);
+
+            // let public_key = combine_shares(shares, &params);
+
+            // PublicKey::insert(&vote_id, public_key.h.to_bytes_be().1);
+
+            // set_phase::<T>(&vote_id, VotePhase::Voting);
+
+            // Self::deposit_event(RawEvent::PublicKeyCreated(vote_id, public_key.h.to_bytes_be().1));
+            Ok(())
+        }
+
+        /// Register a voter.
+        #[weight = (10_000, Pays::No)]
+        fn register_voter(origin, signature: Vec<u8>) -> DispatchResult {
+            let who: T::AccountId = ensure_signed(origin)?;
+
+            // TODO: implement
+
+            // ensure!(IdentityProviderPublicKey::exists(), Error::<T>::NoneValue);
+
+            // debug::info!("IdP public key is set, verifying signature");
+
+            // let idp_public_key: RSAPublicComponent = IdentityProviderPublicKey::get().unwrap().into();
+
+            // let verified = verify_signature(address_bytes.to_vec(), signature.clone(), idp_public_key);
+
+            // ensure!(verified, Error::<T>::VoterAddressNotVerified);
+
+            // Voters::<T>::insert(&who, &signature);
+
+            // Self::deposit_event(RawEvent::VoterRegistered(who, signature));
+            Ok(())
+        }
+
+        /// Store a decrypted share.
+        #[weight = (10_000, Pays::No)]
+        fn submit_decrypted_share(origin, vote_id: VoteId, topic_id: TopicId, share: Vec<u8>, proof: DecryptedShareProof) -> DispatchResult {
+            // only the sealers should be able to store their decrypted shares
+            let who: T::AccountId = ensure_signed(origin)?;
+            helpers::assertions::ensure_sealer::<T>(&who)?;
+
+            // check that the vote_id exists
+            ensure!(Votes::<T>::contains_key(&vote_id), Error::<T>::VoteDoesNotExist);
+
+            // TODO: implement
+
+            // Self::verify_and_store_decrypted_share(who.clone(), vote_id, subject_id.clone(), share.clone(), proof)?;
+
+            // Self::deposit_event(RawEvent::DecryptedShareSubmitted(who, subject_id, share));
+            Ok(())
+        }
+
+        /// Combine decrypted shares into a final plain text tally.
+        #[weight = (10_000, Pays::No)]
+        fn combine_decrypted_shares(origin, vote_id: VoteId) -> DispatchResult {
+            // only the voting_authority should be able to create the final tally
+            let who: T::AccountId = ensure_signed(origin)?;
+            helpers::assertions::ensure_voting_authority::<T>(&who)?;
+
+            // check that the vote_id exists
+            ensure!(Votes::<T>::contains_key(&vote_id), Error::<T>::VoteDoesNotExist);
+
+            // TODO: compute tally
+            // Self::combine_decrypted_shares(&vote_id);
+            Ok(())
         }
 
         /// Create a vote and store public crypto parameters.

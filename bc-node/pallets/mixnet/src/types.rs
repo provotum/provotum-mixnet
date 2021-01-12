@@ -194,3 +194,29 @@ pub struct Vote<AccountId> {
     pub phase: VotePhase,
     pub params: PublicParameters,
 }
+
+// TODO: replace with real types
+pub type IdpPublicKey = Vec<u8>;
+
+// TODO: update with real values
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
+pub struct PublicKeyProof {
+    pub challenge: Vec<u8>,
+    pub response: Vec<u8>,
+}
+
+// TODO: update with real values
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug)]
+pub struct DecryptedShareProof {
+    pub d: Vec<u8>,
+    pub u: Vec<u8>,
+    pub v: Vec<u8>,
+    pub s: Vec<u8>,
+}
+
+// TODO: replace with real values
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
+pub struct PublicKeyShare {
+    pub public_key: Vec<u8>,
+    pub proof: PublicKeyProof,
+}

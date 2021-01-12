@@ -8,7 +8,18 @@ pub fn ensure_voting_authority<T: Trait>(account_id: &T::AccountId) -> Result<()
         Ok(_) => Ok(()),
         Err(_) => {
             debug::info!("Requester is not a voting authority!");
-            return Err(Error::<T>::NotAVotingAuthority)
+            return Err(Error::<T>::NotAVotingAuthority);
+        }
+    }
+}
+
+pub fn ensure_sealer<T: Trait>(account_id: &T::AccountId) -> Result<(), Error<T>> {
+    let sealers = Module::<T>::sealers();
+    match sealers.binary_search(&account_id) {
+        Ok(_) => Ok(()),
+        Err(_) => {
+            debug::info!("Requester is not a sealer!");
+            return Err(Error::<T>::NotASealer);
         }
     }
 }
