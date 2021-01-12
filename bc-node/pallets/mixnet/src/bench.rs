@@ -1,13 +1,16 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use super::*;
-use crate::types::{PublicParameters, ShuffleProof as Proof, Wrapper};
+use crate::sp_api_hidden_includes_decl_storage::hidden_include::StorageDoubleMap;
+use crate::types::{PublicParameters, ShuffleProof as Proof, Topic, Vote, Wrapper};
 use crypto::{
     encryption::ElGamal, helper::Helper, types::Cipher as BigCipher, types::PublicKey as ElGamalPK,
 };
 use frame_benchmarking::{benchmarks, whitelisted_caller};
 use frame_system::RawOrigin;
 use hex_literal::hex;
+use num_bigint::BigUint;
+use num_traits::One;
 use sp_std::vec;
 
 use crate::Module as PalletMixnet;
@@ -117,6 +120,83 @@ benchmarks! {
         // fetch the public key from the chain
         let pk_from_chain: ElGamalPK = PalletMixnet::<T>::public_key().unwrap().into();
         ensure!(pk_from_chain == pk, "fail pk_from_chain != pk");
+    }
+
+    create_vote {
+        // create the submitter (i.e. the voting_authority)
+        // use Alice as VotingAuthority
+        let account_id: [u8; 32] =
+        hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
+        let account = T::AccountId::decode(&mut &account_id[..]).unwrap();
+        let who = RawOrigin::Signed(account.into());
+
+        // store created public key
+        let (params, _, pk) = Helper::setup_lg_system();
+        PalletMixnet::<T>::store_public_key(who.clone().into(), pk.into())?;
+
+        // create the vote
+        let vote_id = "20201212".as_bytes().to_vec();
+        let vote_title = "Popular Vote of 12.12.2020".as_bytes().to_vec();
+
+        let topic_id = "20201212-01".as_bytes().to_vec();
+        let topic_question = "Moritz for President?".as_bytes().to_vec();
+        let topic: Topic = (topic_id.clone(), topic_question);
+        let topics = vec![topic];
+    }: {
+        let _result = PalletMixnet::<T>::create_vote(who.into(), vote_id.clone(), vote_title.clone(), params.into(), topics)?;
+    } verify {
+        let vote: Vote<T::AccountId> = PalletMixnet::<T>::votes(vote_id);
+        ensure!(vote_title == vote.title, "title are not the same!");
+    }
+
+    store_question {
+        let (params, _, pk) = Helper::setup_lg_system();
+        let (vote_id, topic_id) = setup_vote::<T>(params.into())?;
+
+        // create the submitter (i.e. the voting_authority)
+        // use Alice as VotingAuthority
+        let account_id: [u8; 32] =
+        hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
+        let account = T::AccountId::decode(&mut &account_id[..]).unwrap();
+        let who = RawOrigin::Signed(account.into());
+
+        // create another topic
+        let topic_id_2 = "20201212-02".as_bytes().to_vec();
+        let topic_question = "Moritz for King?".as_bytes().to_vec();
+        let topic: Topic = (topic_id_2.clone(), topic_question.clone());
+    }: {
+        let _result = PalletMixnet::<T>::store_question(who.into(), vote_id.clone(), topic);
+    } verify {
+        let topic_: Vec<Topic> = PalletMixnet::<T>::topics(vote_id);
+        ensure!(topic_id == topic_[0].0, "topic ids are not the same!");
+        ensure!(topic_id_2 == topic_[1].0, "topic ids are not the same!");
+        ensure!(topic_question == topic_[1].1, "topic questions are not the same!");
+    }
+
+    cast_ballot {
+        // setup
+        let (params, _, pk) = Helper::setup_lg_system();
+        let (vote_id, topic_id) = setup_vote::<T>(params.into())?;
+
+        // create messages and random values
+        let q = &pk.params.q();
+        let message = BigUint::one();
+        let random = PalletMixnet::<T>::get_random_biguint_less_than(q)?;
+
+        // create the voter (i.e. the transaction signer)
+        let account: T::AccountId = whitelisted_caller();
+        let voter = RawOrigin::Signed(account.clone().into());
+
+        // transform the ballot into a from that the blockchain can handle
+        // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
+        let cipher: Cipher = ElGamal::encrypt(&message, &random, &pk).into();
+        let answers: Vec<(TopicId, Cipher)> = vec![(topic_id, cipher)];
+        let ballot: Ballot = Ballot { answers };
+    }: {
+        let _result = PalletMixnet::<T>::cast_ballot(voter.clone().into(), vote_id.clone(), ballot.clone())?;
+    } verify {
+        let ballot_: Ballot = Ballots::<T>::get(vote_id, account);
+        ensure!(ballot == ballot_, "ballots are not the same!");
     }
 
     random_range {
@@ -242,6 +322,9 @@ mod tests {
         let (mut t, _, _) = ExternalityBuilder::build();
         t.execute_with(|| {
             assert_ok!(test_benchmark_store_public_key::<TestRuntime>());
+            assert_ok!(test_benchmark_store_question::<TestRuntime>());
+            assert_ok!(test_benchmark_create_vote::<TestRuntime>());
+            assert_ok!(test_benchmark_cast_ballot::<TestRuntime>());
             assert_ok!(test_benchmark_random_range::<TestRuntime>());
             assert_ok!(test_benchmark_shuffle_ciphers_3::<TestRuntime>());
             assert_ok!(test_benchmark_shuffle_proof_3::<TestRuntime>());
