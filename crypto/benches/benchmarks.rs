@@ -2,11 +2,11 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use crypto::{
     encryption::ElGamal,
     helper::Helper,
+    proofs::keygen::KeyGenerationProof,
     types::{Cipher, PublicKey},
 };
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
-use std::time::Duration;
 
 fn setup_shuffling(nr_of_votes: usize) -> (Vec<Cipher>, Vec<usize>, Vec<BigUint>, PublicKey) {
     let (_, _, pk) = Helper::setup_lg_system();
@@ -54,8 +54,6 @@ fn setup_shuffling(nr_of_votes: usize) -> (Vec<Cipher>, Vec<usize>, Vec<BigUint>
 fn bench_elgamal(c: &mut Criterion) {
     // benchmark config
     let mut group = c.benchmark_group("elgamal");
-    group.measurement_time(Duration::new(15, 0));
-    group.sample_size(100);
 
     group.bench_function("encryption", |b| {
         b.iter_with_setup(
@@ -145,6 +143,34 @@ fn bench_elgamal(c: &mut Criterion) {
     });
 }
 
+fn bench_proofs(c: &mut Criterion) {
+    // benchmark config
+    let mut group = c.benchmark_group("proofs");
+
+    group.bench_function("keygen proof: generate proof", |b| {
+        b.iter_with_setup(
+            || {
+                let (params, sk, pk) = Helper::setup_lg_system();
+                let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+                (params, sk, pk, r)
+            },
+            |(params, sk, pk, r)| KeyGenerationProof::generate(&params, &sk, &pk, &r),
+        )
+    });
+
+    group.bench_function("keygen proof: verify proof", |b| {
+        b.iter_with_setup(
+            || {
+                let (params, sk, pk) = Helper::setup_lg_system();
+                let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+                let proof = KeyGenerationProof::generate(&params, &sk, &pk, &r);
+                (params, pk, proof)
+            },
+            |(params, pk, proof)| KeyGenerationProof::verify(&params, &pk, &proof),
+        )
+    });
+}
+
 fn bench_shuffling(c: &mut Criterion) {
     // benchmark config
     let mut group = c.benchmark_group("shuffling");
@@ -198,5 +224,5 @@ fn bench_shuffling(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_elgamal, bench_shuffling);
+criterion_group!(benches, bench_elgamal, bench_proofs, bench_shuffling);
 criterion_main!(benches);

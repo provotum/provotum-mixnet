@@ -8,6 +8,7 @@ use num_bigint::{BigUint, RandBigInt};
 use num_traits::{One, Zero};
 use rand::Rng;
 
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Random;
 
 impl Random {

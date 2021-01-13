@@ -7,6 +7,7 @@ use alloc::{vec, vec::Vec};
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub struct ShuffleProof;
 
 impl ShuffleProof {

@@ -1,25 +1,119 @@
-pub struct KeyGenerationProof;
+use crate::{
+    helper::Helper,
+    types::{ElGamalParams, ModuloOperations, PrivateKey, PublicKey},
+};
+use num_bigint::BigUint;
+
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+pub struct KeyGenerationProof {
+    pub challenge: BigUint,
+    pub response: BigUint,
+}
 
 impl KeyGenerationProof {
-    pub fn generate_proof() {}
+    /// Generates a proof of knowledge of a secret key (sk) that belongs to a public key (pk = g^sk) using the Schnorr protocol. It is a proof of knowledge of a discrete logarithm of x = log_g(g^x).
+    ///
+    /// Step by Step:
+    /// 1. generate a "second" key pair (a,b) = (random value from Z_q, g^a mod p)
+    /// 2. compute challenge
+    /// 3. compute d = a + c*sk
+    pub fn generate(
+        params: &ElGamalParams,
+        sk: &PrivateKey,
+        pk: &PublicKey,
+        r: &BigUint,
+    ) -> KeyGenerationProof {
+        // system parameters
+        let g = &params.g;
+        let q = &params.q();
+        let p = &params.p;
 
-    pub fn verify_proof() {}
+        // the public key
+        let h = &pk.h;
+
+        // the private key
+        let x = &sk.x;
+
+        // the commitment
+        let a = r;
+        let b = &g.modpow(r, p);
+
+        // compute challenge -> hash public values (hash(unique_id, h, b) mod q)
+        let mut c = Helper::hash_key_gen_proof_inputs("keygen", h, b);
+        c %= q;
+
+        // compute the response
+        let d = a.modadd(&c.modmul(x, q), q);
+
+        KeyGenerationProof {
+            challenge: c,
+            response: d,
+        }
+    }
+
+    /// Verifies a proof of knowledge of a secret key (sk) that belongs to a public key (pk = g^sk) using the Schnorr protocol. It is a proof of knowledge of a discrete logarithm of x = log_g(g^x).
+    ///
+    /// Step by Step:
+    /// 1. recompute b = g^d/h^c
+    /// 2. recompute the challenge c
+    /// 3. verify that the challenge is correct
+    /// 4. verify that: g^d == b * h^c
+    pub fn verify(params: &ElGamalParams, pk: &PublicKey, proof: &KeyGenerationProof) -> bool {
+        // system parameters
+        let g = &params.g;
+        let q = &params.q();
+        let p = &params.p;
+
+        // the public key
+        let h = &pk.h;
+
+        // the proof
+        let c = &proof.challenge;
+        let d = &proof.response;
+
+        // recompute b
+        let g_pow_d = g.modpow(d, p);
+        let h_pow_c = h.modpow(c, p);
+        let b = g_pow_d.moddiv(&h_pow_c, p).unwrap();
+
+        // recompute the hash
+        let mut c_ = Helper::hash_key_gen_proof_inputs("keygen", h, &b);
+        c_ %= q;
+
+        // verify that the challenges are the same
+        let v1 = *c == c_;
+
+        // verify that the responses are the same
+        let v2 = g_pow_d == b.modmul(&h_pow_c, p);
+
+        v1 && v2
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{random::Random, types::ElGamalParams};
+    use crate::{helper::Helper, proofs::keygen::KeyGenerationProof, random::Random};
     use num_bigint::BigUint;
 
     #[test]
-    fn it_should_test_something() {
-        let params = ElGamalParams {
-          p: BigUint::parse_bytes(b"B7E151628AED2A6ABF7158809CF4F3C762E7160F38B4DA56A784D9045190CFEF324E7738926CFBE5F4BF8D8D8C31D763DA06C80ABB1185EB4F7C7B5757F5958490CFD47D7C19BB42158D9554F7B46BCED55C4D79FD5F24D6613C31C3839A2DDF8A9A276BCFBFA1C877C56284DAB79CD4C2B3293D20E9E5EAF02AC60ACC942593", 16).unwrap(),
-          g: BigUint::parse_bytes(b"4", 10).unwrap(),
-          h: BigUint::parse_bytes(b"9", 10).unwrap(),
-      };
-        assert!(Random::is_prime(&params.p, 10), "p is not prime!");
-        let q = params.q();
-        assert!(Random::is_prime(&q, 10), "q is not prime!");
+    fn it_should_create_keygen_proof_tiny() {
+        let (params, sk, pk) = Helper::setup_tiny_system();
+        let r = BigUint::parse_bytes(b"A", 16).unwrap();
+
+        let proof = KeyGenerationProof::generate(&params, &sk, &pk, &r);
+        assert_eq!(proof.challenge, BigUint::from(5u32));
+        assert_eq!(proof.response, BigUint::from(3u32));
+    }
+
+    #[test]
+    fn it_should_verify_keygen_proof() {
+        let (params, sk, pk) = Helper::setup_sm_system();
+        let r = Random::get_random_less_than(&params.q());
+
+        let proof = KeyGenerationProof::generate(&params, &sk, &pk, &r);
+
+        // verify the proof
+        let is_verified = KeyGenerationProof::verify(&params, &pk, &proof);
+        assert!(is_verified);
     }
 }

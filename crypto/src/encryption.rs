@@ -3,6 +3,7 @@ use alloc::vec::Vec;
 use num_bigint::BigUint;
 use num_traits::Zero;
 
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub struct ElGamal;
 
 impl ElGamal {

@@ -185,6 +185,16 @@ impl Helper {
         BigUint::from_bytes_be(&digest)
     }
 
+    pub fn hash_key_gen_proof_inputs(constant: &str, h: &BigUint, b: &BigUint) -> BigUint {
+        let hasher = Blake2b::new();
+        let hash = hasher
+            .chain(constant.as_bytes())
+            .chain(h.to_bytes_be())
+            .chain(b.to_bytes_be())
+            .finalize();
+        BigUint::from_bytes_be(&hash)
+    }
+
     /// Computes the hash of all inputs.
     ///
     /// Inputs:
