@@ -1,6 +1,6 @@
 use crate::{
     helper::Helper,
-    types::{ElGamalParams, ModuloOperations, PrivateKey, PublicKey},
+    types::{ElGamalParams, ModuloOperations},
 };
 use num_bigint::BigUint;
 
@@ -19,9 +19,10 @@ impl KeyGenerationProof {
     /// 3. compute d = a + c*sk
     pub fn generate(
         params: &ElGamalParams,
-        sk: &PrivateKey,
-        pk: &PublicKey,
+        sk: &BigUint,
+        pk_share: &BigUint,
         r: &BigUint,
+        id: &[u8],
     ) -> KeyGenerationProof {
         // system parameters
         let g = &params.g;
@@ -29,17 +30,17 @@ impl KeyGenerationProof {
         let p = &params.p;
 
         // the public key
-        let h = &pk.h;
+        let h = pk_share;
 
         // the private key
-        let x = &sk.x;
+        let x = sk;
 
         // the commitment
         let a = r;
         let b = &g.modpow(r, p);
 
         // compute challenge -> hash public values (hash(unique_id, h, b) mod q)
-        let mut c = Helper::hash_key_gen_proof_inputs("keygen", h, b);
+        let mut c = Helper::hash_key_gen_proof_inputs(id, "keygen", h, b);
         c %= q;
 
         // compute the response
@@ -58,14 +59,19 @@ impl KeyGenerationProof {
     /// 2. recompute the challenge c
     /// 3. verify that the challenge is correct
     /// 4. verify that: g^d == b * h^c
-    pub fn verify(params: &ElGamalParams, pk: &PublicKey, proof: &KeyGenerationProof) -> bool {
+    pub fn verify(
+        params: &ElGamalParams,
+        pk_share: &BigUint,
+        proof: &KeyGenerationProof,
+        id: &[u8],
+    ) -> bool {
         // system parameters
         let g = &params.g;
         let q = &params.q();
         let p = &params.p;
 
         // the public key
-        let h = &pk.h;
+        let h = pk_share;
 
         // the proof
         let c = &proof.challenge;
@@ -79,7 +85,7 @@ impl KeyGenerationProof {
             .expect("cannot compute mod_inverse in mod_div!");
 
         // recompute the hash
-        let mut c_ = Helper::hash_key_gen_proof_inputs("keygen", h, &b);
+        let mut c_ = Helper::hash_key_gen_proof_inputs(id, "keygen", h, &b);
         c_ %= q;
 
         // verify that the challenges are the same
@@ -99,23 +105,25 @@ mod tests {
 
     #[test]
     fn it_should_create_keygen_proof_tiny() {
+        let sealer_id = "Bob".as_bytes();
         let (params, sk, pk) = Helper::setup_tiny_system();
-        let r = BigUint::parse_bytes(b"A", 16).unwrap();
+        let r = BigUint::parse_bytes(b"B", 16).unwrap();
 
-        let proof = KeyGenerationProof::generate(&params, &sk, &pk, &r);
-        assert_eq!(proof.challenge, BigUint::from(5u32));
-        assert_eq!(proof.response, BigUint::from(3u32));
+        let proof = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &r, sealer_id);
+        assert_eq!(proof.challenge, BigUint::from(15u32));
+        assert_eq!(proof.response, BigUint::from(13u32));
     }
 
     #[test]
     fn it_should_verify_keygen_proof() {
+        let sealer_id = "Charlie".as_bytes();
         let (params, sk, pk) = Helper::setup_sm_system();
         let r = Random::get_random_less_than(&params.q());
 
-        let proof = KeyGenerationProof::generate(&params, &sk, &pk, &r);
+        let proof = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &r, sealer_id);
 
         // verify the proof
-        let is_verified = KeyGenerationProof::verify(&params, &pk, &proof);
+        let is_verified = KeyGenerationProof::verify(&params, &pk.h, &proof, sealer_id);
         assert!(is_verified);
     }
 }

@@ -13,6 +13,17 @@ pub fn ensure_voting_authority<T: Trait>(account_id: &T::AccountId) -> Result<()
     }
 }
 
+pub fn ensure_not_a_voting_authority<T: Trait>(account_id: &T::AccountId) -> Result<(), Error<T>> {
+    let voting_authorities = Module::<T>::voting_authorities();
+    match voting_authorities.binary_search(&account_id) {
+        Ok(_) => {
+            debug::info!("Requester is a voting authority!");
+            return Err(Error::<T>::IsVotingAuthority);
+        }
+        Err(_) => Ok(()),
+    }
+}
+
 pub fn ensure_sealer<T: Trait>(account_id: &T::AccountId) -> Result<(), Error<T>> {
     let sealers = Module::<T>::sealers();
     match sealers.binary_search(&account_id) {

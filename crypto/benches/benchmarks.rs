@@ -150,23 +150,29 @@ fn bench_proofs(c: &mut Criterion) {
     group.bench_function("keygen proof: generate proof", |b| {
         b.iter_with_setup(
             || {
+                let sealer_id = "Bob".as_bytes();
                 let (params, sk, pk) = Helper::setup_lg_system();
                 let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
-                (params, sk, pk, r)
+                (params, sk.x, pk.h, r, sealer_id)
             },
-            |(params, sk, pk, r)| KeyGenerationProof::generate(&params, &sk, &pk, &r),
+            |(params, x, h, r, sealer_id)| {
+                KeyGenerationProof::generate(&params, &x, &h, &r, sealer_id)
+            },
         )
     });
 
     group.bench_function("keygen proof: verify proof", |b| {
         b.iter_with_setup(
             || {
+                let sealer_id = "Bob".as_bytes();
                 let (params, sk, pk) = Helper::setup_lg_system();
                 let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
-                let proof = KeyGenerationProof::generate(&params, &sk, &pk, &r);
-                (params, pk, proof)
+                let proof = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &r, sealer_id);
+                (params, pk.h, proof, sealer_id)
             },
-            |(params, pk, proof)| KeyGenerationProof::verify(&params, &pk, &proof),
+            |(params, h, proof, sealer_id)| {
+                KeyGenerationProof::verify(&params, &h, &proof, sealer_id)
+            },
         )
     });
 }

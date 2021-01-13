@@ -18,12 +18,21 @@ use num_traits::Zero;
 use sp_std::vec;
 
 fn get_voting_authority() -> Origin {
-    // create the submitter (i.e. the voting_authority)
     // use Alice as VotingAuthority
     let account_id: [u8; 32] =
         hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
     let account = <TestRuntime as system::Trait>::AccountId::decode(&mut &account_id[..]).unwrap();
     Origin::signed(account)
+}
+
+fn get_sealer_bob() -> (Origin, <TestRuntime as system::Trait>::AccountId, [u8; 32]) {
+    // use Bob as one of the sealers
+    let bob_account_id: [u8; 32] =
+        hex!("8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48").into();
+
+    let sealer1: <TestRuntime as system::Trait>::AccountId =
+        <TestRuntime as system::Trait>::AccountId::decode(&mut &bob_account_id[..]).unwrap();
+    (Origin::signed(sealer1), sealer1, bob_account_id)
 }
 
 fn setup_public_key(pk: SubstratePK) {
@@ -988,5 +997,107 @@ fn test_set_vote_phase() {
             VotePhase::Tallying
         ));
         assert_eq!(OffchainModule::votes(vote_id).phase, VotePhase::Tallying);
+    });
+}
+
+#[test]
+fn test_store_public_key_share_fail_is_voting_authority() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // Setup
+        let (params, sk, pk) = Helper::setup_md_system();
+        let (vote_id, _) = setup_vote(params.clone().into());
+
+        // create the submitter (i.e. the voting_authority)
+        // use Alice as VotingAuthority
+        let who = get_voting_authority();
+
+        // create public key share + proof
+        let sealer_id = "Bob".as_bytes();
+        let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+        let proof = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &r, sealer_id);
+        let pk_share = PublicKeyShare {
+            proof: proof.into(),
+            pk: pk.h.to_bytes_be(),
+        };
+
+        // submit the public key share
+        assert_err!(
+            OffchainModule::store_public_key_share(who, vote_id, pk_share.into()),
+            Error::<TestRuntime>::IsVotingAuthority
+        )
+    });
+}
+
+#[test]
+fn test_store_public_key_share_fail_no_sealers() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // Setup
+        let (params, sk, pk) = Helper::setup_md_system();
+        let (vote_id, _) = setup_vote(params.clone().into());
+
+        // use a normal user (i.e. the default voter)
+        // NOT a voting authority
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let who = Origin::signed(account);
+        let sealer_id = "Bob".as_bytes();
+
+        // create public key share + proof
+        let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+        let proof = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &r, sealer_id);
+        let pk_share = PublicKeyShare {
+            proof: proof.into(),
+            pk: pk.h.to_bytes_be(),
+        };
+
+        // submit the public key share
+        assert_err!(
+            OffchainModule::store_public_key_share(who, vote_id, pk_share.into()),
+            Error::<TestRuntime>::NotASealer
+        )
+    });
+}
+
+#[test]
+fn test_store_public_key_share() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // Setup
+        let (params, sk, pk) = Helper::setup_md_system();
+        let (vote_id, _) = setup_vote(params.clone().into());
+
+        // use sealer bob
+        let (who, account_id, sealer_id) = get_sealer_bob();
+
+        // create public key share + proof
+        let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+        let proof = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &r, &sealer_id);
+        let pk_share = PublicKeyShare {
+            proof: proof.clone().into(),
+            pk: pk.h.to_bytes_be(),
+        };
+
+        // submit the public key share
+        assert_ok!(OffchainModule::store_public_key_share(
+            who,
+            vote_id.clone(),
+            pk_share.into()
+        ));
+
+        // verify the public key share submission + proof verification
+        let shares: Vec<PublicKeyShare> = OffchainModule::key_shares(vote_id.clone());
+        assert_eq!(shares[0].pk, pk.h.to_bytes_be());
+        assert_eq!(shares[0].proof.challenge, proof.challenge.to_bytes_be());
+        assert_eq!(shares[0].proof.response, proof.response.to_bytes_be());
+
+        let share_by_sealer: PublicKeyShare =
+            OffchainModule::key_share_by_sealer((vote_id, account_id));
+        assert_eq!(share_by_sealer.pk, pk.h.to_bytes_be());
+        assert_eq!(
+            share_by_sealer.proof.challenge,
+            proof.challenge.to_bytes_be()
+        );
+        assert_eq!(share_by_sealer.proof.response, proof.response.to_bytes_be());
     });
 }

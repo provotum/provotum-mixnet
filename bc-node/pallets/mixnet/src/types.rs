@@ -1,3 +1,4 @@
+use crypto::proofs::keygen::KeyGenerationProof;
 use crypto::types::{Cipher as BigCipher, ElGamalParams, PublicKey as ElGamalPK};
 use frame_support::codec::{Decode, Encode};
 use num_bigint::BigUint;
@@ -200,16 +201,34 @@ pub type IdpPublicKey = Vec<u8>;
 
 // the public key generation proof submitted by the sealer -> this prooves knowledge of a secret key that belongs to the submitted public key
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
-pub struct PublicKeyProof {
+pub struct PublicKeyShareProof {
     pub challenge: Vec<u8>,
     pub response: Vec<u8>,
+}
+
+impl Into<PublicKeyShareProof> for KeyGenerationProof {
+    fn into(self) -> PublicKeyShareProof {
+        PublicKeyShareProof {
+            challenge: self.challenge.to_bytes_be(),
+            response: self.response.to_bytes_be(),
+        }
+    }
+}
+
+impl Into<KeyGenerationProof> for PublicKeyShareProof {
+    fn into(self) -> KeyGenerationProof {
+        KeyGenerationProof {
+            challenge: BigUint::from_bytes_be(&self.challenge),
+            response: BigUint::from_bytes_be(&self.response),
+        }
+    }
 }
 
 // the public key share submitted by each sealer to generated the system's public key
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
 pub struct PublicKeyShare {
     pub pk: Vec<u8>,
-    pub proof: PublicKeyProof,
+    pub proof: PublicKeyShareProof,
 }
 
 // TODO: update with real values

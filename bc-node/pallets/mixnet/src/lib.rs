@@ -26,16 +26,19 @@ mod tests;
 pub mod keys;
 
 use crate::helpers::{
-    assertions::{ensure_sealer, ensure_vote_exists, ensure_voting_authority},
+    assertions::{
+        ensure_not_a_voting_authority, ensure_sealer, ensure_vote_exists, ensure_voting_authority,
+    },
     ballot::store_ballot,
     keys::get_public_params,
     phase::set_phase,
 };
 use crate::types::{
     Ballot, Cipher, DecryptedShareProof, IdpPublicKey, PublicKey as SubstratePK, PublicKeyShare,
-    PublicParameters, Tally, Title, Topic, TopicId, Vote, VoteId, VotePhase,
+    PublicKeyShareProof, PublicParameters, Tally, Title, Topic, TopicId, Vote, VoteId, VotePhase,
 };
 use codec::{Decode, Encode};
+use crypto::proofs::keygen::KeyGenerationProof;
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult, ensure,
     weights::Pays,
@@ -44,6 +47,7 @@ use frame_system::{
     self as system, ensure_signed,
     offchain::{AppCrypto, CreateSignedTransaction, SignedPayload, SigningTypes},
 };
+use num_bigint::BigUint;
 use sp_runtime::{offchain as rt_offchain, RuntimeDebug};
 use sp_std::{prelude::*, str, vec::Vec};
 
@@ -106,7 +110,7 @@ decl_storage! {
         PublicKeyShares get(fn key_shares): map hasher(blake2_128_concat) VoteId => Vec<PublicKeyShare>;
 
         /// Stores the public key of a sealer, indexed by sealer account
-        PublicKeySharesBySealer get(fn key_shares_by_sealer): map hasher(blake2_128_concat) (VoteId, T::AccountId) => PublicKeyShare;
+        PublicKeyShareBySealer get(fn key_share_by_sealer): map hasher(blake2_128_concat) (VoteId, T::AccountId) => PublicKeyShare;
 
         /// The system's public key
         PublicKey get(fn public_key): Option<SubstratePK>;
@@ -153,6 +157,9 @@ decl_error! {
         // Error returned when requester is not a voting authority
         NotAVotingAuthority,
 
+        // Error returned when requester is a voting authority
+        IsVotingAuthority,
+
         // Error returned when requester is not a sealer
         NotASealer,
 
@@ -177,6 +184,9 @@ decl_error! {
 
         // Error returned when public key doesn't exist
         PublicKeyNotExistsError,
+
+        // Error returned when the public key share proof doesn't verify
+        PublicKeyShareProofError,
 
         // Error returned when inverse modulo operation fails
         InvModError,
@@ -249,24 +259,29 @@ decl_module! {
         /// Store a public key and its proof.
         /// Can only be called from a sealer.
         #[weight = (10_000, Pays::No)]
-        fn store_public_key_share(origin, vote_id: VoteId, public_key_share: PublicKeyShare) -> DispatchResult {
+        fn store_public_key_share(origin, vote_id: VoteId, pk_share: PublicKeyShare) -> DispatchResult {
             // only sealers can store their public key shares
             let who: T::AccountId = ensure_signed(origin)?;
+            ensure_not_a_voting_authority::<T>(&who)?;
             ensure_sealer::<T>(&who)?;
 
             // get the public parameters
             let params: PublicParameters = get_public_params::<T>(&vote_id)?;
 
-            // let unique_id = who.encode();
-            // ensure!(public_key_share.verify(params.p, params.g, unique_id), Error::<T>::PublicKeyProofError);
+            // verify the public key share proof
+            let sealer_id = who.encode();
+            let proof: PublicKeyShareProof = pk_share.proof.clone();
+            let pk: BigUint = BigUint::from_bytes_be(&pk_share.pk);
+            let proof_valid = KeyGenerationProof::verify(&params.into(), &pk, &proof.into(), &sealer_id);
+            ensure!(proof_valid, Error::<T>::PublicKeyShareProofError);
 
-            // let mut shares: Vec<PublicKeyShare> = PublicKeyShares::get(&vote_id);
-            // shares.push(public_key_share.clone());
-            // PublicKeyShares::insert(&vote_id, shares);
-            // PublicKeySharesBySealer::<T>::insert((&vote_id, &who), public_key_share.clone());
+            // store the public key share
+            let mut shares: Vec<PublicKeyShare> = PublicKeyShares::get(&vote_id);
+            shares.push(pk_share.clone());
+            PublicKeyShares::insert(&vote_id, shares);
+            PublicKeyShareBySealer::<T>::insert((&vote_id, &who), pk_share.clone());
 
-            Self::deposit_event(RawEvent::PublicKeyShareSubmitted(public_key_share));
-
+            Self::deposit_event(RawEvent::PublicKeyShareSubmitted(pk_share));
             Ok(())
         }
 

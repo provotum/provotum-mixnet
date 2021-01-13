@@ -191,15 +191,28 @@ benchmarks! {
         ensure!(ballot == ballot_, "ballots are not the same!");
     }
 
-    random_range {
-        let lower: usize = 0;
-        let upper: usize = 100;
-        let mut _value: usize = 0;
+    verify_public_key_share_proof {
+        // setup
+        let (params, sk, pk) = Helper::setup_lg_system();
+        let q = params.q();
+        let (vote_id, topic_id) = setup_vote::<T>(params.clone().into())?;
+
+        // create the sealer
+        let sealer_id: [u8; 32] =
+        hex!("8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48").into();
+        let sealer_account_id = T::AccountId::decode(&mut &sealer_id[..]).unwrap();
+        let sealer = RawOrigin::Signed(sealer_account_id.into());
+
+        // create public key share + proof
+        let r = PalletMixnet::<T>::get_random_biguint_less_than(&q)?;
+        let proof = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &r, &sealer_id);
+        let pk_share = PublicKeyShare {
+            proof: proof.clone().into(),
+            pk: pk.h.to_bytes_be(),
+        };
+
     }: {
-        _value = PalletMixnet::<T>::get_random_range(lower, upper).unwrap();
-    } verify {
-        ensure!(_value < upper, "_value >= upper");
-        ensure!(lower < _value, "_value <= lower");
+        PalletMixnet::<T>::store_public_key_share(sealer.into(), vote_id, pk_share.clone())?;
     }
 
     shuffle_ciphers_3 {
@@ -317,7 +330,6 @@ mod tests {
             assert_ok!(test_benchmark_store_question::<TestRuntime>());
             assert_ok!(test_benchmark_create_vote::<TestRuntime>());
             assert_ok!(test_benchmark_cast_ballot::<TestRuntime>());
-            assert_ok!(test_benchmark_random_range::<TestRuntime>());
             assert_ok!(test_benchmark_shuffle_ciphers_3::<TestRuntime>());
             assert_ok!(test_benchmark_shuffle_proof_3::<TestRuntime>());
             assert_ok!(test_benchmark_verify_shuffle_proof_3::<TestRuntime>());
