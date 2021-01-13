@@ -53,7 +53,7 @@ impl ElGamal {
         let s = a.modpow(x, p);
 
         // compute multiplicative inverse of s
-        let s_1 = s.invmod(p).unwrap();
+        let s_1 = s.invmod(p).expect("cannot compute mod_inverse!");
 
         // b = g^m*h^r -> mh = b * s^-1
         let mh = b.modmul(&s_1, p);

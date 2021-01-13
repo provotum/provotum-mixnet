@@ -74,7 +74,9 @@ impl KeyGenerationProof {
         // recompute b
         let g_pow_d = g.modpow(d, p);
         let h_pow_c = h.modpow(c, p);
-        let b = g_pow_d.moddiv(&h_pow_c, p).unwrap();
+        let b = g_pow_d
+            .moddiv(&h_pow_c, p)
+            .expect("cannot compute mod_inverse in mod_div!");
 
         // recompute the hash
         let mut c_ = Helper::hash_key_gen_proof_inputs("keygen", h, &b);

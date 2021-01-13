@@ -274,7 +274,9 @@ mod tests {
         // (6/3) mod 10
         // = 6 * 3^-1 mod 10 = 6 * 3.invmod(10) mod 10
         // = 6 * 7 mod 10 = 42 mod 10 = 2
-        let two = six.moddiv(&three, &ten).unwrap();
+        let two = six
+            .moddiv(&three, &ten)
+            .expect("cannot compute mod_inverse in mod_div!");
         assert_eq!(two, BigUint::from(2u32));
     }
 
@@ -372,8 +374,7 @@ mod tests {
 
         let expected_result = BigUint::from(4u32);
 
-        let result = two.invmod(&seven);
-        let inverse: BigUint = result.unwrap();
+        let inverse = two.invmod(&seven).expect("cannot compute mod_inverse!");
         assert_eq!(expected_result, inverse);
     }
 
@@ -384,8 +385,9 @@ mod tests {
 
         let expected_result = BigUint::from(19u32);
 
-        let result = seventeen.invmod(&twentythree);
-        let inverse: BigUint = result.unwrap();
+        let inverse = seventeen
+            .invmod(&twentythree)
+            .expect("cannot compute mod_inverse!");
         assert_eq!(expected_result, inverse);
     }
 
