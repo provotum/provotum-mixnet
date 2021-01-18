@@ -1,8 +1,8 @@
 pub mod prover;
 pub mod verifier;
 
-use crate::sp_api_hidden_includes_decl_storage::hidden_include::{StorageMap, StorageValue};
 use crate::types::{Cipher, PublicKey as SubstratePK, QAsBigUint, TopicId, Wrapper};
+use crate::{sp_api_hidden_includes_decl_storage::hidden_include::StorageMap, types::VoteId};
 use crate::{Ciphers, Error, Module, PublicKey, Trait};
 use crypto::encryption::ElGamal;
 use crypto::types::Cipher as BigCipher;
@@ -12,10 +12,12 @@ use sp_std::vec::Vec;
 /// all functions related to ballot operations in the offchain worker
 impl<T: Trait> Module<T> {
     pub fn shuffle_ciphers(
+        vote_id: &VoteId,
         topic_id: &TopicId,
     ) -> Result<(Vec<BigCipher>, Vec<BigUint>, Vec<usize>), Error<T>> {
         // get the system public key
-        let pk: SubstratePK = PublicKey::get().ok_or(Error::<T>::PublicKeyNotExistsError)?;
+        let pk: SubstratePK =
+            PublicKey::get(&vote_id).ok_or(Error::<T>::PublicKeyNotExistsError)?;
         let q = QAsBigUint::q(&pk.params);
 
         // get the encrypted ballots stored on chain

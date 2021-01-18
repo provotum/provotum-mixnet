@@ -29,7 +29,7 @@ impl<T: Trait> Module<T> {
         let number_as_biguint: BigUint = BigUint::from(number);
 
         // get public key
-        let pk: ElGamalPK = PublicKey::get()
+        let pk: ElGamalPK = PublicKey::get(&vote_id)
             .ok_or(Error::<T>::PublicKeyNotExistsError)?
             .into();
         let q = &pk.params.q();

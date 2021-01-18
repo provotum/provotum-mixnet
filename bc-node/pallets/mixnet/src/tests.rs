@@ -35,12 +35,12 @@ fn get_sealer_bob() -> (Origin, <TestRuntime as system::Trait>::AccountId, [u8; 
     (Origin::signed(sealer1), sealer1, bob_account_id)
 }
 
-fn setup_public_key(pk: SubstratePK) {
+fn setup_public_key(vote_id: VoteId, pk: SubstratePK) {
     // use Alice as VotingAuthority
     let who = get_voting_authority();
 
     // store created public key and public parameters
-    let public_key_storage = OffchainModule::store_public_key(who, pk);
+    let public_key_storage = OffchainModule::store_public_key(who, vote_id, pk);
     assert_ok!(public_key_storage);
 }
 
@@ -65,7 +65,7 @@ fn setup_vote(params: PublicParameters) -> (Vec<u8>, Vec<u8>) {
 
 fn shuffle_proof_test(vote_id: Vec<u8>, topic_id: Vec<u8>, pk: ElGamalPK) -> bool {
     // store created public key and public parameters
-    setup_public_key(pk.clone().into());
+    setup_public_key(vote_id.clone(), pk.clone().into());
 
     let messages = vec![
         BigUint::from(0u32),
@@ -104,7 +104,7 @@ fn shuffle_proof_test(vote_id: Vec<u8>, topic_id: Vec<u8>, pk: ElGamalPK) -> boo
     assert!(big_ciphers_from_chain.len() > 0);
 
     // shuffle the votes
-    let shuffle_result = OffchainModule::shuffle_ciphers(&topic_id);
+    let shuffle_result = OffchainModule::shuffle_ciphers(&vote_id, &topic_id);
     let shuffled: (Vec<BigCipher>, Vec<BigUint>, Vec<usize>) = shuffle_result.unwrap();
     let shuffled_ciphers = shuffled.0;
     let re_encryption_randoms = shuffled.1;
@@ -139,7 +139,8 @@ fn test_setup_public_key_work() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         let (_, _, pk) = Helper::setup_sm_system();
-        setup_public_key(pk.into());
+        let vote_id = "20201212".as_bytes().to_vec();
+        setup_public_key(vote_id, pk.into());
     });
 }
 
@@ -172,16 +173,18 @@ fn test_store_public_key() {
     t.execute_with(|| {
         // use Alice as VotingAuthority
         let who = get_voting_authority();
+        let vote_id = "20201212".as_bytes().to_vec();
 
         // create the public key
         let (_, _, pk) = Helper::setup_md_system();
 
         // store created public key and public parameters
-        let public_key_storage = OffchainModule::store_public_key(who, pk.clone().into());
+        let public_key_storage =
+            OffchainModule::store_public_key(who, vote_id.clone(), pk.clone().into());
         assert_ok!(public_key_storage);
 
         // fetch the public key from the chain
-        let pk_from_chain: ElGamalPK = OffchainModule::public_key().unwrap().into();
+        let pk_from_chain: ElGamalPK = OffchainModule::public_key(vote_id).unwrap().into();
         assert_eq!(pk_from_chain, pk);
     });
 }
@@ -194,13 +197,14 @@ fn test_store_public_key_not_a_voting_authority() {
         // NOT a voting authority
         let account: <TestRuntime as system::Trait>::AccountId = Default::default();
         let who = Origin::signed(account);
+        let vote_id = "20201212".as_bytes().to_vec();
 
         // create the public key
         let (_, _, pk) = Helper::setup_md_system();
 
         // try to store public key
         assert_err!(
-            OffchainModule::store_public_key(who, pk.clone().into()),
+            OffchainModule::store_public_key(who, vote_id, pk.clone().into()),
             Error::<TestRuntime>::NotAVotingAuthority
         )
     });
@@ -211,7 +215,8 @@ fn test_fetch_public_key_does_not_exist() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         // fetch the public key from the chain which doesn't exist
-        let pk_from_chain: Option<SubstratePK> = OffchainModule::public_key();
+        let vote_id = "20201212".as_bytes().to_vec();
+        let pk_from_chain: Option<SubstratePK> = OffchainModule::public_key(vote_id);
         assert_eq!(pk_from_chain, None);
     });
 }
@@ -373,10 +378,10 @@ fn test_cast_ballot_works() {
         // Setup Public Key
         let (params, _, pk) = Helper::setup_sm_system();
         let q = &params.q();
-        setup_public_key(pk.clone().into());
 
         // Setup Vote
         let (vote_id, topic_id) = setup_vote(params.into());
+        setup_public_key(vote_id.clone(), pk.clone().into());
 
         // Create the voter
         let acct: <TestRuntime as system::Trait>::AccountId = Default::default();
@@ -439,11 +444,11 @@ fn test_offchain_signed_tx() {
     t.execute_with(|| {
         // Setup
         let (params, _, pk) = Helper::setup_sm_system();
-        setup_public_key(pk.clone().into());
         let q = &params.q();
 
         // Setup Vote
         let (vote_id, topic_id) = setup_vote(params.into());
+        setup_public_key(vote_id.clone(), pk.clone().into());
 
         let num: u64 = 32;
         let big: BigUint = BigUint::from(num);
@@ -725,7 +730,7 @@ fn test_shuffle_ciphers() {
         // Setup
         let (params, sk, pk) = Helper::setup_md_system();
         let (vote_id, topic_id) = setup_vote(params.into());
-        setup_public_key(pk.clone().into());
+        setup_public_key(vote_id.clone(), pk.clone().into());
 
         // create the public key
         let messages = [
@@ -761,7 +766,7 @@ fn test_shuffle_ciphers() {
         }
 
         // shuffle the votes
-        let shuffle_result = OffchainModule::shuffle_ciphers(&topic_id);
+        let shuffle_result = OffchainModule::shuffle_ciphers(&vote_id, &topic_id);
         let shuffled_big_ciphers: Vec<BigCipher> = shuffle_result.unwrap().0;
         assert!(shuffled_big_ciphers.len() == 3);
 
@@ -792,8 +797,9 @@ fn test_shuffle_ciphers_pk_does_not_exist() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         let topic_id = "Moritz for President?".as_bytes().to_vec();
+        let vote_id = "20201212".as_bytes().to_vec();
         // try to shuffle the ballots -> public key doesn't exist yet
-        OffchainModule::shuffle_ciphers(&topic_id)
+        OffchainModule::shuffle_ciphers(&vote_id, &topic_id)
             .expect_err("The returned value should be: 'Error::<T>::PublicKeyNotExistsError'");
     });
 }
@@ -803,11 +809,12 @@ fn test_shuffle_ciphers_no_ballots() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         let topic_id = "Moritz for President?".as_bytes().to_vec();
+        let vote_id = "20201212".as_bytes().to_vec();
         let (_, _, pk) = Helper::setup_sm_system();
-        setup_public_key(pk.clone().into());
+        setup_public_key(vote_id.clone(), pk.clone().into());
 
         // try -> to shuffle the ballots (which don't exist)
-        OffchainModule::shuffle_ciphers(&topic_id)
+        OffchainModule::shuffle_ciphers(&vote_id, &topic_id)
             .expect_err("The returned value should be: 'Error::<T>::ShuffleCiphersSizeZeroError'");
     });
 }
@@ -921,12 +928,13 @@ fn test_shuffle_proof_xl_system() {
 fn test_set_vote_phase_not_a_voting_authority() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        // Setup Public Key
         let (_, _, pk) = Helper::setup_sm_system();
-        setup_public_key(pk.clone().into());
 
         // create fake vote_id
         let vote_id = "20201212".as_bytes().to_vec();
+
+        // Setup Public Key
+        setup_public_key(vote_id.clone(), pk.clone().into());
 
         // use a normal user (i.e. the default voter)
         // NOT a voting authority
@@ -945,12 +953,13 @@ fn test_set_vote_phase_not_a_voting_authority() {
 fn test_set_vote_phase_vote_does_not_exist() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        // Setup Public Key
         let (_, _, pk) = Helper::setup_sm_system();
-        setup_public_key(pk.clone().into());
 
         // create fake vote_id
         let vote_id = "20201212".as_bytes().to_vec();
+
+        // Setup Public Key
+        setup_public_key(vote_id.clone(), pk.clone().into());
 
         // create the submitter (i.e. the voting_authority)
         // use Alice as VotingAuthority
@@ -968,12 +977,13 @@ fn test_set_vote_phase_vote_does_not_exist() {
 fn test_set_vote_phase() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        // Setup Public Key
         let (params, _, pk) = Helper::setup_sm_system();
-        setup_public_key(pk.clone().into());
 
         // Setup Vote
         let (vote_id, _) = setup_vote(params.into());
+
+        // Setup Public Key
+        setup_public_key(vote_id.clone(), pk.clone().into());
 
         // create the submitter (i.e. the voting_authority)
         // use Alice as VotingAuthority
@@ -1101,3 +1111,5 @@ fn test_store_public_key_share() {
         assert_eq!(share_by_sealer.proof.response, proof.response.to_bytes_be());
     });
 }
+
+// TODO: add combine_public_key_shares test

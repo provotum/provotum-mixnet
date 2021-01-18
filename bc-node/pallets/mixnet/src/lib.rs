@@ -30,7 +30,7 @@ use crate::helpers::{
         ensure_not_a_voting_authority, ensure_sealer, ensure_vote_exists, ensure_voting_authority,
     },
     ballot::store_ballot,
-    keys::get_public_params,
+    keys::{combine_shares, get_public_params},
     phase::set_phase,
 };
 use crate::types::{
@@ -112,8 +112,8 @@ decl_storage! {
         /// Stores the public key of a sealer, indexed by sealer account
         PublicKeyShareBySealer get(fn key_share_by_sealer): map hasher(blake2_128_concat) (VoteId, T::AccountId) => PublicKeyShare;
 
-        /// The system's public key
-        PublicKey get(fn public_key): Option<SubstratePK>;
+        /// Maps a vote to a public key (the vote's/system's public key) used to encrypt ballots.
+        PublicKey get(fn public_key): map hasher(blake2_128_concat) VoteId => Option<SubstratePK>;
     }
 }
 
@@ -127,7 +127,7 @@ decl_event!(
         BallotSubmitted(AccountId, VoteId, Ballot),
 
         /// public key stored event -> [from/who, public key]
-        PublicKeyStored(AccountId, SubstratePK),
+        PublicKeyStored(AccountId, VoteId, SubstratePK),
 
         /// A voting authority set the vote's public parameters. [vote, who, params]
         VoteCreatedWithPublicParameters(VoteId, AccountId, PublicParameters),
@@ -143,6 +143,9 @@ decl_event!(
 
         /// A public key share was submitted. [public key with its proof]
         PublicKeyShareSubmitted(PublicKeyShare),
+
+        /// A system public key has been created. [vote_id, public_key]
+        PublicKeyCreated(VoteId, SubstratePK),
     }
 );
 
@@ -229,16 +232,16 @@ decl_module! {
         }
 
         #[weight = (10000, Pays::No)]
-        pub fn store_public_key(origin, pk: SubstratePK) -> DispatchResult {
+        pub fn store_public_key(origin, vote_id: VoteId, pk: SubstratePK) -> DispatchResult {
             // only the voting_authority should be able to store the key
             let who: T::AccountId = ensure_signed(origin)?;
             ensure_voting_authority::<T>(&who)?;
 
             // store the public key
-            PublicKey::put(pk.clone());
+            PublicKey::insert(vote_id.clone(), pk.clone());
 
             // notify that the public key has been successfully stored
-            Self::deposit_event(RawEvent::PublicKeyStored(who, pk));
+            Self::deposit_event(RawEvent::PublicKeyStored(who, vote_id, pk));
             Ok(())
         }
 
@@ -291,18 +294,16 @@ decl_module! {
             // only the voting_authority should be able to combine the public key shares
             let who: T::AccountId = ensure_signed(origin)?;
             ensure_voting_authority::<T>(&who)?;
+            ensure_vote_exists::<T>(&vote_id)?;
 
-            // get the public parameters
-            let params: PublicParameters = get_public_params::<T>(&vote_id)?;
-            let shares: Vec<PublicKeyShare> = PublicKeyShares::get(&vote_id);
+            // create the system's public key
+            let pk: SubstratePK = combine_shares::<T>(&vote_id)?;
+            PublicKey::insert(vote_id.clone(), pk.clone());
 
-            // let public_key = combine_shares(shares, &params);
-
-            // PublicKey::insert(&vote_id, public_key.h.to_bytes_be().1);
-
+            // advance the voting phase to the next stage
             set_phase::<T>(&who, &vote_id, VotePhase::Voting)?;
 
-            // Self::deposit_event(RawEvent::PublicKeyCreated(vote_id, public_key.h.to_bytes_be().1));
+            Self::deposit_event(RawEvent::PublicKeyCreated(vote_id, pk));
             Ok(())
         }
 
