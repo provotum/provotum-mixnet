@@ -23,7 +23,7 @@ impl ElGamalParams {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PublicKey {
     // system parameters (p, g)
     pub params: ElGamalParams,
@@ -32,6 +32,30 @@ pub struct PublicKey {
     // - g: generator
     // - x: private key
     pub h: BigUint,
+}
+
+impl PublicKey {
+    pub fn combine_public_keys_bigunits(self, others: &[BigUint]) -> Self {
+        assert!(!others.is_empty(), "there must be at least another key!");
+        let mut h: BigUint = self.h.clone();
+        others.iter().for_each(|pk| h *= pk);
+        h %= self.params.p.clone();
+        PublicKey {
+            h,
+            params: self.params.clone(),
+        }
+    }
+
+    pub fn combine_public_keys(self, others: &[PublicKey]) -> Self {
+        assert!(!others.is_empty(), "there must be at least another key!");
+        let mut h: BigUint = self.h.clone();
+        others.iter().for_each(|pk| h *= pk.h.clone());
+        h %= self.params.p.clone();
+        PublicKey {
+            h,
+            params: self.params.clone(),
+        }
+    }
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
@@ -178,7 +202,11 @@ fn extended_gcd(a: &BigInt, b: &BigInt) -> (BigInt, BigInt, BigInt) {
 
 #[cfg(test)]
 mod tests {
-    use crate::types::{ElGamalParams, ModuloOperations, PrivateKey, PublicKey};
+    use crate::{
+        helper::Helper,
+        types::{ElGamalParams, ModuloOperations, PrivateKey, PublicKey},
+    };
+    use alloc::vec::Vec;
     use num_bigint::BigUint;
     use num_traits::Zero;
 
@@ -242,6 +270,52 @@ mod tests {
         assert_eq!(sk.x, BigUint::from(2u32));
         assert_eq!(sk.params.g, BigUint::from(2u32));
         assert_eq!(sk.params.p, BigUint::from(7u32));
+    }
+
+    #[test]
+    #[should_panic(expected = "there must be at least another key!")]
+    fn it_should_combine_public_keys_bigunits_not_same_params() {
+        let (_, _, pk) = Helper::setup_tiny_system();
+        let others = Vec::new();
+        pk.combine_public_keys_bigunits(&others);
+    }
+
+    #[test]
+    fn it_combine_public_keys_bigunits() {
+        let (_, _, pk1) = Helper::setup_tiny_system();
+        let (_, _, pk2) = Helper::setup_tiny_system();
+        let (_, _, pk3) = Helper::setup_tiny_system();
+
+        let others = vec![pk2.h.clone()];
+        let new_pk = pk1.clone().combine_public_keys_bigunits(&others);
+        assert_eq!(new_pk.h, BigUint::from(24u32));
+
+        let others = vec![pk2.h, pk3.h];
+        let new_pk = pk1.combine_public_keys_bigunits(&others);
+        assert_eq!(new_pk.h, BigUint::from(37u32));
+    }
+
+    #[test]
+    #[should_panic(expected = "there must be at least another key!")]
+    fn it_should_combine_public_keys_no_keys() {
+        let (_, _, pk) = Helper::setup_tiny_system();
+        let others = Vec::new();
+        pk.combine_public_keys(&others);
+    }
+
+    #[test]
+    fn it_should_combine_public_keys() {
+        let (_, _, pk1) = Helper::setup_tiny_system();
+        let (_, _, pk2) = Helper::setup_tiny_system();
+        let (_, _, pk3) = Helper::setup_tiny_system();
+
+        let others = vec![pk2.clone()];
+        let new_pk = pk1.clone().combine_public_keys(&others);
+        assert_eq!(new_pk.h, BigUint::from(24u32));
+
+        let others = vec![pk2, pk3];
+        let new_pk = pk1.combine_public_keys(&others);
+        assert_eq!(new_pk.h, BigUint::from(37u32));
     }
 
     #[test]

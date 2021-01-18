@@ -43,7 +43,7 @@ impl KeyGenerationProof {
         let mut c = Helper::hash_key_gen_proof_inputs(id, "keygen", h, b);
         c %= q;
 
-        // compute the response
+        // compute the response: d = a + c*sk mod q
         let d = a.modadd(&c.modmul(x, q), q);
 
         KeyGenerationProof {
