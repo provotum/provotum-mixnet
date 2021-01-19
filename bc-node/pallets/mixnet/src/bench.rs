@@ -23,6 +23,22 @@ fn get_voting_authority<T: Trait>() -> RawOrigin<T::AccountId> {
     RawOrigin::Signed(account.into())
 }
 
+fn get_sealer_bob<T: Trait>() -> (RawOrigin<T::AccountId>, [u8; 32]) {
+    let account_id: [u8; 32] =
+        hex!("8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48").into();
+
+    let account = T::AccountId::decode(&mut &account_id[..]).unwrap();
+    (RawOrigin::Signed(account.into()), account_id)
+}
+
+fn get_sealer_charlie<T: Trait>() -> (RawOrigin<T::AccountId>, [u8; 32]) {
+    let account_id: [u8; 32] =
+        hex!("90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22").into();
+
+    let account = T::AccountId::decode(&mut &account_id[..]).unwrap();
+    (RawOrigin::Signed(account.into()), account_id)
+}
+
 fn setup_public_key<T: Trait>(vote_id: VoteId, pk: SubstratePK) -> Result<(), &'static str> {
     // use Alice as VotingAuthority
     let who = get_voting_authority::<T>();
@@ -121,6 +137,57 @@ benchmarks! {
         // fetch the public key from the chain
         let pk_from_chain: ElGamalPK = PalletMixnet::<T>::public_key(vote_id).unwrap().into();
         ensure!(pk_from_chain == pk, "fail pk_from_chain != pk");
+    }
+
+    store_public_key_share {
+        let (params, sk, pk) = Helper::setup_lg_system();
+        let (bob, bob_id) = get_sealer_bob::<T>();
+        let (vote_id, _) = setup_vote::<T>(params.clone().into())?;
+
+        // create public key share + proof
+        let q = &params.clone().q();
+        let random = PalletMixnet::<T>::get_random_biguint_less_than(q)?;
+        let proof = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &random, &bob_id);
+        let pk_share = PublicKeyShare {
+            proof: proof.clone().into(),
+            pk: pk.h.to_bytes_be(),
+        };
+    }: {
+        // store created public key and public parameters
+        let _result = PalletMixnet::<T>::store_public_key_share(bob.into(), vote_id.clone(), pk_share.clone().into());
+    }
+
+    combine_public_key_shares {
+        let (params, sk, pk) = Helper::setup_lg_system();
+        let voting_authority = get_voting_authority::<T>();
+        let (vote_id, _) = setup_vote::<T>(params.clone().into())?;
+
+        // create public key share + proof for bob
+        let (bob, bob_id) = get_sealer_bob::<T>();
+        let q = &params.clone().q();
+        let random = PalletMixnet::<T>::get_random_biguint_less_than(q)?;
+        let proof = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &random, &bob_id);
+        let pk_share = PublicKeyShare {
+            proof: proof.clone().into(),
+            pk: pk.h.to_bytes_be(),
+        };
+        // store created public key and public parameters
+        let result_ = PalletMixnet::<T>::store_public_key_share(bob.into(), vote_id.clone(), pk_share.clone().into());
+
+        // create public key share + proof for charlie
+        let (charlie, charlie_id) = get_sealer_charlie::<T>();
+        let q = &params.q();
+        let random = PalletMixnet::<T>::get_random_biguint_less_than(q)?;
+        let proof = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &random, &charlie_id);
+        let pk_share = PublicKeyShare {
+            proof: proof.clone().into(),
+            pk: pk.h.to_bytes_be(),
+        };
+        // store created public key and public parameters
+        let result_ = PalletMixnet::<T>::store_public_key_share(charlie.into(), vote_id.clone(), pk_share.clone().into());
+    }: {
+        // combine the public key shares
+        let _result = PalletMixnet::<T>::combine_public_key_shares(voting_authority.into(), vote_id.clone());
     }
 
     create_vote {
@@ -329,6 +396,8 @@ mod tests {
         let (mut t, _, _) = ExternalityBuilder::build();
         t.execute_with(|| {
             assert_ok!(test_benchmark_store_public_key::<TestRuntime>());
+            assert_ok!(test_benchmark_store_public_key_share::<TestRuntime>());
+            assert_ok!(test_benchmark_combine_public_key_shares::<TestRuntime>());
             assert_ok!(test_benchmark_store_question::<TestRuntime>());
             assert_ok!(test_benchmark_create_vote::<TestRuntime>());
             assert_ok!(test_benchmark_cast_ballot::<TestRuntime>());

@@ -42,7 +42,7 @@ impl PublicKey {
         h %= self.params.p.clone();
         PublicKey {
             h,
-            params: self.params.clone(),
+            params: self.params,
         }
     }
 
@@ -53,7 +53,7 @@ impl PublicKey {
         h %= self.params.p.clone();
         PublicKey {
             h,
-            params: self.params.clone(),
+            params: self.params,
         }
     }
 }

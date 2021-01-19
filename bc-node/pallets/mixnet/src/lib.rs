@@ -307,6 +307,50 @@ decl_module! {
             Ok(())
         }
 
+        /// Create a vote and store public crypto parameters.
+        /// Can only be called from a voting authority.
+        #[weight = (10000, Pays::No)]
+        fn create_vote(origin, vote_id: VoteId, title: Title, params: PublicParameters, topics: Vec<Topic>) -> DispatchResult {
+            let who: T::AccountId = ensure_signed(origin)?;
+            ensure_voting_authority::<T>(&who)?;
+
+            let vote = Vote::<T::AccountId> {
+                voting_authority: who.clone(),
+                title,
+                phase: VotePhase::default(),
+                params: params.clone()
+            };
+
+            // store the vote_id, vote + topic information
+            let mut vote_ids: Vec<VoteId> = VoteIds::get();
+            vote_ids.push(vote_id.clone());
+            VoteIds::put(vote_ids);
+
+            Votes::<T>::insert(&vote_id, vote);
+            Topics::insert(&vote_id, topics);
+
+            Self::deposit_event(RawEvent::VoteCreatedWithPublicParameters(vote_id, who, params));
+            Ok(())
+        }
+
+        /// Add a question to the vote.
+        /// Can only be called from a voting authority.
+        #[weight = (10000, Pays::No)]
+        fn store_question(origin, vote_id: VoteId, topic: Topic) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            ensure_voting_authority::<T>(&who)?;
+            ensure_vote_exists::<T>(&vote_id)?;
+
+            let mut topics: Vec<Topic> = Topics::get(&vote_id);
+            topics.push(topic.clone());
+            Topics::insert(&vote_id, topics);
+
+            Self::deposit_event(RawEvent::VoteTopicQuestionStored(vote_id, topic));
+
+            // Return a successful DispatchResult
+            Ok(())
+        }
+
         /// Register a voter.
         #[weight = (10_000, Pays::No)]
         fn register_voter(origin, signature: Vec<u8>) -> DispatchResult {
@@ -328,6 +372,23 @@ decl_module! {
 
             // Self::deposit_event(RawEvent::VoterRegistered(who, signature));
             Ok(())
+        }
+
+        #[weight = (10000, Pays::No)]
+        pub fn cast_ballot(origin, vote_id: VoteId, ballot: Ballot) -> DispatchResult {
+          let who = ensure_signed(origin)?;
+          ensure_vote_exists::<T>(&vote_id)?;
+
+          // TODO: ensure that it is a legit voter
+
+          // store the ballot
+          store_ballot::<T>(&who, &vote_id, ballot.clone());
+
+          // notify that the ballot has been submitted and successfully stored
+          Self::deposit_event(RawEvent::BallotSubmitted(who, vote_id, ballot));
+
+          // Return a successful DispatchResult
+          Ok(())
         }
 
         /// Store a decrypted share.
@@ -357,68 +418,6 @@ decl_module! {
             // TODO: compute tally
             // Self::combine_decrypted_shares(&vote_id);
             Ok(())
-        }
-
-        /// Create a vote and store public crypto parameters.
-        /// Can only be called from a voting authority.
-        #[weight = (10000, Pays::No)]
-        fn create_vote(origin, vote_id: VoteId, title: Title, params: PublicParameters, topics: Vec<Topic>) -> DispatchResult {
-            let who: T::AccountId = ensure_signed(origin)?;
-            ensure_voting_authority::<T>(&who)?;
-
-            let vote = Vote::<T::AccountId> {
-                voting_authority: who.clone(),
-                title,
-                phase: VotePhase::default(),
-                params: params.clone()
-            };
-
-            let mut vote_ids: Vec<VoteId> = VoteIds::get();
-            vote_ids.push(vote_id.clone());
-            VoteIds::put(vote_ids);
-
-            Votes::<T>::insert(&vote_id, vote);
-            Topics::insert(&vote_id, topics);
-
-            Self::deposit_event(RawEvent::VoteCreatedWithPublicParameters(vote_id, who, params));
-
-            // Return a successful DispatchResult
-            Ok(())
-        }
-
-        /// Add a question to the vote.
-        /// Can only be called from a voting authority.
-        #[weight = (10000, Pays::No)]
-        fn store_question(origin, vote_id: VoteId, topic: Topic) -> DispatchResult {
-            let who = ensure_signed(origin)?;
-            ensure_voting_authority::<T>(&who)?;
-            ensure_vote_exists::<T>(&vote_id)?;
-
-            let mut topics: Vec<Topic> = Topics::get(&vote_id);
-            topics.push(topic.clone());
-            Topics::insert(&vote_id, topics);
-
-            Self::deposit_event(RawEvent::VoteTopicQuestionStored(vote_id, topic));
-
-            // Return a successful DispatchResult
-            Ok(())
-        }
-
-        #[weight = (10000, Pays::No)]
-        pub fn cast_ballot(origin, vote_id: VoteId, ballot: Ballot) -> DispatchResult {
-          let who = ensure_signed(origin)?;
-          ensure_vote_exists::<T>(&vote_id)?;
-
-          // TODO: ensure that it is a legit voter
-
-          // store the ballot
-          store_ballot::<T>(&who, &vote_id, ballot.clone());
-
-          // notify that the ballot has been submitted and successfully stored
-          Self::deposit_event(RawEvent::BallotSubmitted(who, vote_id, ballot));
-
-          // Return a successful DispatchResult
-          Ok(())
         }
 
         fn offchain_worker(block_number: T::BlockNumber) {
