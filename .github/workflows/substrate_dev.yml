@@ -39,16 +39,16 @@ jobs:
       - name: Setup Rust toolchain
         run: |
           rustup default stable
-          rustup toolchain install nightly-2020-10-06
-          rustup target add wasm32-unknown-unknown --toolchain nightly-2020-10-06
+          rustup toolchain install nightly
+          rustup target add wasm32-unknown-unknown --toolchain nightly
           rustup update
 
       - name: Build Dev Binary
-        run: cargo +nightly-2020-10-06 build --features runtime-benchmarks --verbose
+        run: cargo +nightly build --features runtime-benchmarks --verbose
         working-directory: ${{ github.workspace }}/bc-node/node
 
       - name: Test Dev Binary
-        run: cargo +nightly-2020-10-06 test --verbose -- --nocapture
+        run: cargo +nightly test --verbose -- --nocapture
 
       # this step uploads the built dev binary as an artifact (output)
       - name: Upload Dev Binary

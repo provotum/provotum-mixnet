@@ -3,13 +3,12 @@ version: "3.2"
 services:
   dev:
     container_name: provotum
-    image: paritytech/ci-linux:production
+    image: paritytech/ci-linux:974ba3ac-20201006
     working_dir: /var/www/provotum
     ports:
       - "9944:9944"
     environment:
       - CARGO_HOME=/var/www/provotum/.cargo
-      - WASM_BUILD_TOOLCHAIN=nightly-2020-10-06
     volumes:
       - .:/var/www/provotum
       - type: bind

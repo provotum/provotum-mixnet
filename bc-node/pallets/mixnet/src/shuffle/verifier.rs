@@ -281,7 +281,8 @@ impl<T: Trait> Module<T> {
         }
         assert!(
             vec_t_hat.len() == size,
-            "vec_t_hat should have length: {size}",
+            "vec_t_hat should have length: {}",
+            size
         );
         vec_t_hat
     }

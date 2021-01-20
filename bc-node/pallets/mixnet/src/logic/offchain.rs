@@ -23,7 +23,7 @@ impl<T: Trait> Module<T> {
         let signer = Signer::<T, T::AuthorityId>::any_account();
 
         // translating the current block number to number and submit it on-chain
-        let number: u64 = block_number.try_into().unwrap_or(0) as u64;
+        let number: u64 = block_number.try_into().unwrap_or(0u64) as u64;
 
         // transform u64 to BigUint
         let number_as_biguint: BigUint = BigUint::from(number);

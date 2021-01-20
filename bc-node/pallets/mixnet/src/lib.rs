@@ -1,5 +1,4 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![feature(unsized_locals)]
 extern crate alloc;
 
 #[allow(clippy::many_single_char_names)]

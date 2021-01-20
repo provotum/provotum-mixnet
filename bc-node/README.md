@@ -23,8 +23,8 @@ If the command above doesn't work, the dependencies can also be installed manual
 sudo apt install -y cmake pkg-config libssl-dev git gcc build-essential git clang libclang-dev
 curl https://sh.rustup.rs -sSf | sh
 rustup default stable
-rustup toolchain install nightly-2020-10-06
-rustup target add wasm32-unknown-unknown --toolchain nightly-2020-10-06
+rustup toolchain install nightly
+rustup target add wasm32-unknown-unknown --toolchain nightly
 rustup update 
 ```
 
@@ -40,7 +40,7 @@ Once the development environment is set up, build the node template. This comman
 [native](https://substrate.dev/docs/en/knowledgebase/advanced/executor#native-execution) code:
 
 ```bash
-WASM_BUILD_TOOLCHAIN=nightly-2020-10-06 cargo build --release
+WASM_BUILD_TOOLCHAIN=nightly cargo build --release
 ```
 
 ### Tests
@@ -48,13 +48,13 @@ WASM_BUILD_TOOLCHAIN=nightly-2020-10-06 cargo build --release
 Run the following command to execute all tests.
 
 ```bash
-cargo +nightly-2020-10-06 test
+cargo +nightly test
 ```
 
 Run the following command to execute the test of the `pallet-mixnet` crate:
 
 ```bash
-cargo +nightly-2020-10-06 test -p pallet-mixnet --features runtime-benchmarks
+cargo +nightly test -p pallet-mixnet --features runtime-benchmarks
 ```
 
 ### Benchmarks
@@ -62,13 +62,13 @@ cargo +nightly-2020-10-06 test -p pallet-mixnet --features runtime-benchmarks
 Navigate into the folder: `bc-node/node` and run the following command to check that all benchmarks are working correctly. _Note: This executes the tests._
 
 ```bash
-cargo +nightly-2020-10-06 test -p pallet-mixnet --features runtime-benchmarks
+cargo +nightly test -p pallet-mixnet --features runtime-benchmarks
 ```
 
 Build the provotum node including the benchmark feature by running the following command: 
 
 ```bash
-cargo +nightly-2020-10-06 build --features runtime-benchmarks
+cargo +nightly build --features runtime-benchmarks
 ```
 
 **Note:** To produce results that closely resemble the production environment, make sure to use the flag `--release`. Please, be aware that this will increase the compilation time. Also, the binary will end up inside `./target/release` and not `./target/debug`.
