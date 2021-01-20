@@ -67,6 +67,30 @@ pub fn new_partial(
         )
         .expect("Creating key with account Alice should succeed.");
 
+    // keystore
+    //     .write()
+    //     .insert_ephemeral_from_seed_by_type::<pallet_mixnet::keys::Pair>(
+    //         "//Bob",
+    //         pallet_mixnet::keys::KEY_TYPE,
+    //     )
+    //     .expect("Creating key with account Bob should succeed.");
+
+    // keystore
+    //     .write()
+    //     .insert_ephemeral_from_seed_by_type::<pallet_mixnet::keys::Pair>(
+    //         "//Charlie",
+    //         pallet_mixnet::keys::KEY_TYPE,
+    //     )
+    //     .expect("Creating key with account Charlie should succeed.");
+
+    // keystore
+    //     .write()
+    //     .insert_ephemeral_from_seed_by_type::<pallet_mixnet::keys::Pair>(
+    //         "//Dave",
+    //         pallet_mixnet::keys::KEY_TYPE,
+    //     )
+    //     .expect("Creating key with account Dave should succeed.");
+
     let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
     let transaction_pool = sc_transaction_pool::BasicPool::new_full(
@@ -263,11 +287,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
             sc_finality_grandpa::run_grandpa_voter(grandpa_config)?,
         );
     } else {
-        sc_finality_grandpa::setup_disabled_grandpa(
-            client,
-            &inherent_data_providers,
-            network,
-        )?;
+        sc_finality_grandpa::setup_disabled_grandpa(client, &inherent_data_providers, network)?;
     }
 
     network_starter.start_network();

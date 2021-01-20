@@ -190,6 +190,9 @@ decl_error! {
         // Error returned when the public key share proof doesn't verify
         PublicKeyShareProofError,
 
+        // Error returned when there are less than two public key shares
+        NotEnoughPublicKeyShares,
+
         // Error returned when inverse modulo operation fails
         InvModError,
 
@@ -282,6 +285,7 @@ decl_module! {
             shares.push(pk_share.clone());
             PublicKeyShares::insert(&vote_id, shares);
             PublicKeyShareBySealer::<T>::insert((&vote_id, &who), pk_share.clone());
+            debug::info!("public_key_share successfully submitted and proof verified!");
 
             Self::deposit_event(RawEvent::PublicKeyShareSubmitted(pk_share));
             Ok(())
@@ -298,6 +302,7 @@ decl_module! {
             // create the system's public key
             let pk: SubstratePK = combine_shares::<T>(&vote_id)?;
             PublicKey::insert(vote_id.clone(), pk.clone());
+            debug::info!("public_key successfully generated!");
 
             // advance the voting phase to the next stage
             set_phase::<T>(&who, &vote_id, VotePhase::Voting)?;
@@ -395,8 +400,8 @@ decl_module! {
         fn submit_decrypted_share(origin, vote_id: VoteId, topic_id: TopicId, share: Vec<u8>, proof: DecryptedShareProof) -> DispatchResult {
             // only the sealers should be able to store their decrypted shares
             let who: T::AccountId = ensure_signed(origin)?;
-            ensure_sealer::<T>(&who)?;
             ensure_vote_exists::<T>(&vote_id)?;
+            ensure_sealer::<T>(&who)?;
 
             // TODO: implement
 

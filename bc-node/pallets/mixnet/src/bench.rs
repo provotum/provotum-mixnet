@@ -19,6 +19,7 @@ fn get_voting_authority<T: Trait>() -> RawOrigin<T::AccountId> {
     // use Alice as VotingAuthority
     let account_id: [u8; 32] =
         hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
+
     let account = T::AccountId::decode(&mut &account_id[..]).unwrap();
     RawOrigin::Signed(account.into())
 }
@@ -161,30 +162,29 @@ benchmarks! {
         let (params, sk, pk) = Helper::setup_lg_system();
         let voting_authority = get_voting_authority::<T>();
         let (vote_id, _) = setup_vote::<T>(params.clone().into())?;
+        let q = &params.clone().q();
 
         // create public key share + proof for bob
         let (bob, bob_id) = get_sealer_bob::<T>();
-        let q = &params.clone().q();
         let random = PalletMixnet::<T>::get_random_biguint_less_than(q)?;
-        let proof = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &random, &bob_id);
-        let pk_share = PublicKeyShare {
-            proof: proof.clone().into(),
+        let proof_bob = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &random, &bob_id);
+        let pk_share_bob = PublicKeyShare {
+            proof: proof_bob.clone().into(),
             pk: pk.h.to_bytes_be(),
         };
         // store created public key and public parameters
-        let result_ = PalletMixnet::<T>::store_public_key_share(bob.into(), vote_id.clone(), pk_share.clone().into());
+        let result_ = PalletMixnet::<T>::store_public_key_share(bob.into(), vote_id.clone(), pk_share_bob.clone().into());
 
         // create public key share + proof for charlie
         let (charlie, charlie_id) = get_sealer_charlie::<T>();
-        let q = &params.q();
         let random = PalletMixnet::<T>::get_random_biguint_less_than(q)?;
-        let proof = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &random, &charlie_id);
-        let pk_share = PublicKeyShare {
-            proof: proof.clone().into(),
+        let proof_charlie = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &random, &charlie_id);
+        let pk_share_charlie = PublicKeyShare {
+            proof: proof_charlie.clone().into(),
             pk: pk.h.to_bytes_be(),
         };
         // store created public key and public parameters
-        let result_ = PalletMixnet::<T>::store_public_key_share(charlie.into(), vote_id.clone(), pk_share.clone().into());
+        let result_ = PalletMixnet::<T>::store_public_key_share(charlie.into(), vote_id.clone(), pk_share_charlie.clone().into());
     }: {
         // combine the public key shares
         let _result = PalletMixnet::<T>::combine_public_key_shares(voting_authority.into(), vote_id.clone());

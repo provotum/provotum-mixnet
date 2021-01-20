@@ -4,10 +4,10 @@ use frame_support::{debug, ensure};
 
 pub fn ensure_voting_authority<T: Trait>(account_id: &T::AccountId) -> Result<(), Error<T>> {
     let voting_authorities = Module::<T>::voting_authorities();
-    match voting_authorities.binary_search(&account_id) {
-        Ok(_) => Ok(()),
-        Err(_) => {
-            debug::info!("Requester is not a voting authority!");
+    match voting_authorities.contains(account_id) {
+        true => Ok(()),
+        false => {
+            debug::info!("Requester {:?} is not a voting authority!", account_id);
             return Err(Error::<T>::NotAVotingAuthority);
         }
     }
@@ -15,21 +15,21 @@ pub fn ensure_voting_authority<T: Trait>(account_id: &T::AccountId) -> Result<()
 
 pub fn ensure_not_a_voting_authority<T: Trait>(account_id: &T::AccountId) -> Result<(), Error<T>> {
     let voting_authorities = Module::<T>::voting_authorities();
-    match voting_authorities.binary_search(&account_id) {
-        Ok(_) => {
+    match voting_authorities.contains(account_id) {
+        true => {
             debug::info!("Requester is a voting authority!");
             return Err(Error::<T>::IsVotingAuthority);
         }
-        Err(_) => Ok(()),
+        false => Ok(()),
     }
 }
 
 pub fn ensure_sealer<T: Trait>(account_id: &T::AccountId) -> Result<(), Error<T>> {
     let sealers = Module::<T>::sealers();
-    match sealers.binary_search(&account_id) {
-        Ok(_) => Ok(()),
-        Err(_) => {
-            debug::info!("Requester is not a sealer!");
+    match sealers.contains(account_id) {
+        true => Ok(()),
+        false => {
+            debug::info!("Requester: {:?} is not a sealer!", account_id);
             return Err(Error::<T>::NotASealer);
         }
     }
