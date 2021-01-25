@@ -376,6 +376,59 @@ mod tests {
     }
 
     #[test]
+    fn it_should_get_challenges_encoded() {
+        // SETUP
+        let (_, _, pk) = Helper::setup_md_system();
+
+        let vote_id = "2020-12-12_01".as_bytes();
+        let size = 3usize;
+        let q = &pk.params.q();
+        let p = &pk.params.p;
+        let params = &pk.params;
+
+        // generates a shuffle of three random encryptions of values: zero, one, two
+        let encryptions = Random::generate_random_encryptions_encoded(&pk, &pk.params.q()).to_vec();
+        let shuffle = Random::generate_shuffle(&pk, &pk.params.q(), encryptions.clone());
+
+        // get the shuffled_encryptions & permutation from the shuffle
+        let shuffled_encryptions = shuffle
+            .iter()
+            .map(|item| item.0.clone())
+            .collect::<Vec<Cipher>>();
+        assert!(shuffled_encryptions.len() == size);
+        let permutation = shuffle.iter().map(|item| item.2).collect::<Vec<usize>>();
+        assert!(permutation.len() == size);
+
+        // generate {size} random values
+        let mut randoms: Vec<BigUint> = Vec::new();
+        for _ in 0..size {
+            randoms.push(Random::get_random_less_than(q));
+        }
+
+        // get {size} independent generators
+        let generators = Helper::get_generators(&vote_id, p, size);
+
+        // get the permutation commitents
+        let permutation_commitment = ShuffleProof::generate_permutation_commitment(
+            params,
+            &permutation,
+            randoms,
+            generators,
+        );
+        let commitments = permutation_commitment.commitments;
+
+        // TEST: challenge value generation
+        let challenges =
+            ShuffleProof::get_challenges(size, encryptions, shuffled_encryptions, commitments, &pk);
+
+        // check that:
+        // 1. three challenges are generated
+        // 2. all challenge values are < q
+        assert_eq!(challenges.len(), 3);
+        assert!(challenges.iter().all(|value| value < &pk.params.q()));
+    }
+
+    #[test]
     fn it_should_get_challenges() {
         // SETUP
         let (_, _, pk) = Helper::setup_md_system();

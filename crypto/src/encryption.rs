@@ -7,7 +7,7 @@ use num_traits::Zero;
 pub struct ElGamal;
 
 impl ElGamal {
-    /// Returns an ElGamal Encryption of a message
+    /// Returns an ElGamal Encryption of a message. The message encoded such that additive homomorphic operations are possible i.e. g^m_1 * g^m_2 = g^(m_1 + m_2)
     /// - (a, b) = (g^r, h^r * g^m)
     ///
     /// ## Arguments
@@ -33,7 +33,33 @@ impl ElGamal {
         Cipher { a, b }
     }
 
-    /// Returns the plaintext contained in an ElGamal Encryption
+    /// Returns an ElGamal Encryption of a message.
+    /// NOTE! No message encoding done! If message encoding is required use: `encrypt_encode`
+    /// - (a, b) = (g^r, h^r * m)
+    ///
+    /// ## Arguments
+    ///
+    /// * `m`  - The message (BigUint)
+    /// * `r`  - The random number used to encrypt_encode the vote
+    /// * `pk` - The public key used to encrypt_encode the vote
+    pub fn encrypt(m: &BigUint, r: &BigUint, pk: &PublicKey) -> Cipher {
+        let g = &pk.params.g;
+        let p = &pk.params.p;
+        let h = &pk.h;
+
+        // a = g^r
+        let a = g.modpow(r, p);
+
+        // b = h^r * m
+        let h_pow_r = h.modpow(r, p);
+        let b = h_pow_r.modmul(&m, p);
+
+        Cipher { a, b }
+    }
+
+    /// Returns the plaintext contained in an ElGamal Encryption.
+    /// Decrypts the ciphertext and decodes the result.
+    /// Important! Requires that the encryption was done using `encrypt_encode`.
     /// - mh = b * (a^x)^-1
     /// - m = log mh = log g^m
     ///
@@ -60,6 +86,32 @@ impl ElGamal {
 
         // brute force discrete logarithm
         ElGamal::decode_message(&mh, g, p)
+    }
+
+    /// Returns the plaintext contained in an ElGamal Encryption.
+    /// NOTE! This function does not decode the message. Either it is not required or you must do it manually using `decode`.
+    /// - mh = b * (a^x)^-1
+    /// - m = log mh = log g^m
+    ///
+    /// ## Arguments
+    ///
+    /// * `cipher` - The ElGamal Encryption (a: BigUint, b: BigUint)
+    /// * `sk`     - The private key used to decrypt the vote
+    pub fn decrypt(cipher: &Cipher, sk: &PrivateKey) -> BigUint {
+        let a = &cipher.a;
+        let b = &cipher.b;
+
+        let p = &sk.params.p;
+        let x = &sk.x;
+
+        // a = g^r -> a^x = g^r^x
+        let s = a.modpow(x, p);
+
+        // compute multiplicative inverse of s
+        let s_1 = s.invmod(p).expect("cannot compute mod_inverse!");
+
+        // b = m * h^r -> m = b * s^-1
+        b.modmul(&s_1, p)
     }
 
     /// Encodes a plain-text message to be used in an explonential ElGamal scheme
@@ -243,7 +295,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_encrypt() {
+    fn it_should_encrypt_encode() {
         let params = ElGamalParams {
             p: BigUint::from(7u32),
             g: BigUint::from(4u32),
@@ -274,7 +326,38 @@ mod tests {
     }
 
     #[test]
-    fn it_should_encrypt_decrypt_two() {
+    fn it_should_encrypt() {
+        let params = ElGamalParams {
+            p: BigUint::from(7u32),
+            g: BigUint::from(4u32),
+            h: BigUint::from(3u32),
+        };
+        let pk = PublicKey {
+            h: BigUint::from(2u32),
+            params,
+        };
+
+        // the value of the message: 1
+        let message = BigUint::from(1u32);
+
+        // a new random value for the encryption
+        let r_ = BigUint::from(1u32);
+
+        // encrypt the message
+        let encrypted_message = ElGamal::encrypt(&message, &r_, &pk);
+
+        // check that a = g^r_ -> g = 4 -> 4^1 mod 7 = 4
+        assert_eq!(encrypted_message.a, BigUint::from(4u32));
+
+        // check that b = h^r_ * m = (g^r)^r_ * m
+        // b = ((4^2)^1 mod 7 * 1 mod 7) mod 7
+        // b = (16 mod 7 * 1 mod 7) mod 7
+        // b = (2 * 1) mod 7 = 2
+        assert_eq!(encrypted_message.b, BigUint::from(2u32));
+    }
+
+    #[test]
+    fn it_should_encrypt_decrypt_decode_two() {
         let (_, sk, pk) = Helper::setup_sm_system();
 
         // the value of the message: 2
@@ -286,13 +369,31 @@ mod tests {
         // encrypt_encode the message
         let encrypted_message = ElGamal::encrypt_encode(&message, &r_, &pk);
 
-        // decrypt the encrypted_message & check that the messages are equal
+        // decrypt_decode the encrypted_message & check that the messages are equal
         let decrypted_message = ElGamal::decrypt_decode(&encrypted_message, &sk);
         assert_eq!(decrypted_message, message);
     }
 
     #[test]
-    fn it_should_add_two_zeros() {
+    fn it_should_encrypt_decrypt_two() {
+        let (_, sk, pk) = Helper::setup_sm_system();
+
+        // the value of the message: 2
+        let message = BigUint::from(2u32);
+
+        // a new random value for the encryption
+        let r_ = BigUint::from(5u32);
+
+        // encrypt the message
+        let encrypted_message = ElGamal::encrypt(&message, &r_, &pk);
+
+        // decrypt the encrypted_message & check that the messages are equal
+        let decrypted_message = ElGamal::decrypt(&encrypted_message, &sk);
+        assert_eq!(decrypted_message, message);
+    }
+
+    #[test]
+    fn it_should_add_two_zeros_encoded() {
         let (params, sk, pk) = Helper::setup_sm_system();
         let zero = BigUint::zero();
 
@@ -305,6 +406,7 @@ mod tests {
         let other = ElGamal::encrypt_encode(&zero, &r_two, &pk);
 
         // add both encryptions: 0 + 0
+        // only works if messages are encoded i.e. g^m
         let addition = ElGamal::add(&this, &other, &params.p);
 
         // decrypt result: 0
@@ -313,7 +415,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_add_one_and_zero() {
+    fn it_should_add_one_and_zero_encoded() {
         let (params, sk, pk) = Helper::setup_sm_system();
         let zero = BigUint::zero();
         let one = BigUint::one();
@@ -327,6 +429,7 @@ mod tests {
         let other = ElGamal::encrypt_encode(&one, &r_two, &pk);
 
         // add both encryptions: 0 + 1
+        // only works if messages are encoded i.e. g^m
         let addition = ElGamal::add(&this, &other, &params.p);
 
         // decrypt result: 1
@@ -335,7 +438,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_add_two_ones() {
+    fn it_should_add_two_ones_encoded() {
         let (params, sk, pk) = Helper::setup_sm_system();
         let one = BigUint::one();
         let expected_result = BigUint::from(2u32);
@@ -349,6 +452,7 @@ mod tests {
         let other = ElGamal::encrypt_encode(&one, &r_two, &pk);
 
         // add both encryptions: 1 + 1
+        // only works if messages are encoded i.e. g^m
         let addition = ElGamal::add(&this, &other, &params.p);
 
         // decrypt result: 2
@@ -390,7 +494,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_re_encrypt_five() {
+    fn it_should_re_encrypt_five_encoded() {
         let (params, sk, pk) = Helper::setup_md_system();
 
         let q = params.q();
@@ -411,6 +515,27 @@ mod tests {
     }
 
     #[test]
+    fn it_should_re_encrypt_five() {
+        let (params, sk, pk) = Helper::setup_md_system();
+
+        let q = params.q();
+        let five = BigUint::from(5u32);
+
+        // use a random number < q
+        let r = Random::get_random_less_than(&q);
+        let encrypted_five = ElGamal::encrypt(&five, &r, &pk);
+
+        // re-encryption + check that encryption != re-encryption
+        let r_ = Random::get_random_less_than(&q);
+        let re_encrypted_five = ElGamal::re_encrypt(&encrypted_five, &r_, &pk);
+        assert!(encrypted_five != re_encrypted_five);
+
+        // check that decryption is still the same as the initial value
+        let decrypted_re_encryption = ElGamal::decrypt(&re_encrypted_five, &sk);
+        assert_eq!(decrypted_re_encryption, five);
+    }
+
+    #[test]
     fn it_should_re_encrypt_five_by_addition() {
         let (params, sk, pk) = Helper::setup_md_system();
 
@@ -423,6 +548,7 @@ mod tests {
         let r_ = Random::get_random_less_than(&q);
 
         // homomorphic addition with zero: 5 + 0 = 5 + check that encryption != re-encryption
+        // only works if messages are encoded i.e. g^m
         let re_encrypted_addition = ElGamal::re_encrypt_via_addition(&encrypted_five, &r_, &pk);
         assert!(encrypted_five != re_encrypted_addition);
 
@@ -432,7 +558,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_show_that_both_re_encryptions_are_equal() {
+    fn it_should_show_that_both_re_encryptions_are_equal_encoded() {
         let (params, sk, pk) = Helper::setup_md_system();
 
         let q = params.q();
@@ -444,6 +570,8 @@ mod tests {
 
         // option one: homomorphic addition with zero: 5 + 0 = 5
         let r_ = Random::get_random_less_than(&q);
+
+        // only works if messages are encoded i.e. g^m
         let re_encrypted_addition = ElGamal::re_encrypt_via_addition(&encrypted_five, &r_, &pk);
         let decrypted_addition = ElGamal::decrypt_decode(&re_encrypted_addition, &sk);
         assert_eq!(decrypted_addition, five);
@@ -493,6 +621,63 @@ mod tests {
     }
 
     #[test]
+    fn it_should_shuffle_a_list_of_encrypted_votes_encoded() {
+        let (params, sk, pk) = Helper::setup_md_system();
+        let q = params.q();
+        let zero = BigUint::zero();
+        let one = BigUint::one();
+        let two = BigUint::from(2u32);
+
+        // get three encrypted values: 0, 1, 2
+        let encryptions = Random::generate_random_encryptions_encoded(&pk, &q);
+
+        // create three random values < q
+        let randoms = [
+            Random::get_random_less_than(&q),
+            Random::get_random_less_than(&q),
+            Random::get_random_less_than(&q),
+        ];
+
+        // create a permutation of size 3
+        let size = encryptions.len();
+        let permutation = Random::generate_permutation(&size);
+
+        // shuffle (permute + re-encrypt_encode) the encryptions
+        let shuffle = ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk);
+
+        // destructure the array of tuples
+        let shuffled_encryptions = shuffle
+            .iter()
+            .map(|item| item.0.clone())
+            .collect::<Vec<Cipher>>();
+        let randoms = shuffle
+            .iter()
+            .map(|item| item.1.clone())
+            .collect::<Vec<BigUint>>();
+        let permutation = shuffle.iter().map(|item| item.2).collect::<Vec<usize>>();
+        assert!(shuffled_encryptions.len() == 3usize);
+        assert!(randoms.len() == 3usize);
+        assert!(permutation.len() == 3usize);
+
+        // decrypt the shuffled encryptions
+        let mut decryptions = Vec::new();
+
+        for entry in shuffled_encryptions {
+            // check that entry (permuted & re-encrypted) is not the same as an existing encryption
+            assert!(encryptions.iter().all(|value| value.clone() != entry));
+
+            // decrypt the entry
+            let decryption = ElGamal::decrypt_decode(&entry, &sk);
+            decryptions.push(decryption);
+        }
+
+        // check that at least one value is 0, 1, 2
+        assert!(decryptions.iter().any(|value| value.clone() == zero));
+        assert!(decryptions.iter().any(|value| value.clone() == one));
+        assert!(decryptions.iter().any(|value| value.clone() == two));
+    }
+
+    #[test]
     fn it_should_shuffle_a_list_of_encrypted_votes() {
         let (params, sk, pk) = Helper::setup_md_system();
         let q = params.q();
@@ -539,7 +724,7 @@ mod tests {
             assert!(encryptions.iter().all(|value| value.clone() != entry));
 
             // decrypt the entry
-            let decryption = ElGamal::decrypt_decode(&entry, &sk);
+            let decryption = ElGamal::decrypt(&entry, &sk);
             decryptions.push(decryption);
         }
 
