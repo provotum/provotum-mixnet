@@ -8,19 +8,28 @@ use crypto::{
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 
-fn setup_shuffling(nr_of_votes: usize) -> (Vec<Cipher>, Vec<usize>, Vec<BigUint>, PublicKey) {
+fn setup_shuffling(
+    nr_of_votes: usize,
+    encoded: bool,
+) -> (Vec<Cipher>, Vec<usize>, Vec<BigUint>, PublicKey) {
     let (_, _, pk) = Helper::setup_lg_system();
     let q = pk.params.q();
 
-    // encryption of zero
+    // encryption of zero and one
     let zero = BigUint::zero();
     let r = BigUint::parse_bytes(b"1234", 10).unwrap();
-    let enc_zero = ElGamal::encrypt_encode(&zero, &r, &pk);
-
-    // encryption of one
     let one = BigUint::one();
     let r_ = BigUint::parse_bytes(b"4321", 10).unwrap();
-    let enc_one = ElGamal::encrypt_encode(&one, &r_, &pk);
+    let enc_zero: Cipher;
+    let enc_one: Cipher;
+
+    if encoded {
+        enc_zero = ElGamal::encrypt_encode(&zero, &r, &pk);
+        enc_one = ElGamal::encrypt_encode(&one, &r_, &pk);
+    } else {
+        enc_zero = ElGamal::encrypt(&zero, &r, &pk);
+        enc_one = ElGamal::encrypt(&one, &r_, &pk);
+    }
 
     let mut encryptions: Vec<Cipher> = Vec::new();
     let mut randoms: Vec<BigUint> = Vec::new();
@@ -55,7 +64,7 @@ fn bench_elgamal(c: &mut Criterion) {
     // benchmark config
     let mut group = c.benchmark_group("elgamal");
 
-    group.bench_function("encryption", |b| {
+    group.bench_function("encryption_encoded", |b| {
         b.iter_with_setup(
             || {
                 let (_, _, pk) = Helper::setup_lg_system();
@@ -68,7 +77,7 @@ fn bench_elgamal(c: &mut Criterion) {
         )
     });
 
-    group.bench_function("decryption", |b| {
+    group.bench_function("decryption_encoded", |b| {
         b.iter_with_setup(
             || {
                 let (_, sk, pk) = Helper::setup_lg_system();
@@ -81,6 +90,35 @@ fn bench_elgamal(c: &mut Criterion) {
                 (encrypted_message, sk)
             },
             |(encrypted_message, sk)| ElGamal::decrypt_decode(&encrypted_message, &sk),
+        )
+    });
+
+    group.bench_function("encryption", |b| {
+        b.iter_with_setup(
+            || {
+                let (_, _, pk) = Helper::setup_lg_system();
+                let message = BigUint::from(1u32);
+                let random =
+                    BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+                (message, random, pk)
+            },
+            |(m, r, pk)| ElGamal::encrypt(&m, &r, &pk),
+        )
+    });
+
+    group.bench_function("decryption", |b| {
+        b.iter_with_setup(
+            || {
+                let (_, sk, pk) = Helper::setup_lg_system();
+                let message = BigUint::from(1u32);
+                let random =
+                    BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+
+                // encrypt the message
+                let encrypted_message = ElGamal::encrypt(&message, &random, &pk);
+                (encrypted_message, sk)
+            },
+            |(encrypted_message, sk)| ElGamal::decrypt(&encrypted_message, &sk),
         )
     });
 
@@ -104,7 +142,7 @@ fn bench_elgamal(c: &mut Criterion) {
         )
     });
 
-    group.bench_function("re_encryption", |b| {
+    group.bench_function("re_encryption_encoded", |b| {
         b.iter_with_setup(
             || {
                 let (_, _, pk) = Helper::setup_lg_system();
@@ -113,6 +151,25 @@ fn bench_elgamal(c: &mut Criterion) {
                 // encrypt the message
                 let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
                 let encryption = ElGamal::encrypt_encode(&one, &r, &pk);
+
+                // use another random value for the re_encryption
+                let r_ = BigUint::parse_bytes(b"170141183460469231731687303712342", 10).unwrap();
+
+                (encryption, r_, pk)
+            },
+            |(encryption, r_, pk)| ElGamal::re_encrypt(&encryption, &r_, &pk),
+        )
+    });
+
+    group.bench_function("re_encryption", |b| {
+        b.iter_with_setup(
+            || {
+                let (_, _, pk) = Helper::setup_lg_system();
+                let one = BigUint::one();
+
+                // encrypt the message
+                let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+                let encryption = ElGamal::encrypt(&one, &r, &pk);
 
                 // use another random value for the re_encryption
                 let r_ = BigUint::parse_bytes(b"170141183460469231731687303712342", 10).unwrap();
@@ -184,7 +241,7 @@ fn bench_shuffling(c: &mut Criterion) {
 
     group.bench_function("3 votes", |b| {
         b.iter_with_setup(
-            || setup_shuffling(3),
+            || setup_shuffling(3, false),
             |(encryptions, permutation, randoms, pk)| {
                 ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
             },
@@ -193,7 +250,7 @@ fn bench_shuffling(c: &mut Criterion) {
 
     group.bench_function("10 votes", |b| {
         b.iter_with_setup(
-            || setup_shuffling(10),
+            || setup_shuffling(10, false),
             |(encryptions, permutation, randoms, pk)| {
                 ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
             },
@@ -202,7 +259,7 @@ fn bench_shuffling(c: &mut Criterion) {
 
     group.bench_function("30 votes", |b| {
         b.iter_with_setup(
-            || setup_shuffling(30),
+            || setup_shuffling(30, false),
             |(encryptions, permutation, randoms, pk)| {
                 ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
             },
@@ -211,7 +268,7 @@ fn bench_shuffling(c: &mut Criterion) {
 
     group.bench_function("100 votes", |b| {
         b.iter_with_setup(
-            || setup_shuffling(100),
+            || setup_shuffling(100, false),
             |(encryptions, permutation, randoms, pk)| {
                 ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
             },
@@ -220,7 +277,52 @@ fn bench_shuffling(c: &mut Criterion) {
 
     group.bench_function("1000 votes", |b| {
         b.iter_with_setup(
-            || setup_shuffling(1000),
+            || setup_shuffling(1000, false),
+            |(encryptions, permutation, randoms, pk)| {
+                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+            },
+        )
+    });
+
+    group.bench_function("3 votes (encoded)", |b| {
+        b.iter_with_setup(
+            || setup_shuffling(3, true),
+            |(encryptions, permutation, randoms, pk)| {
+                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+            },
+        )
+    });
+
+    group.bench_function("10 votes (encoded)", |b| {
+        b.iter_with_setup(
+            || setup_shuffling(10, true),
+            |(encryptions, permutation, randoms, pk)| {
+                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+            },
+        )
+    });
+
+    group.bench_function("30 votes (encoded)", |b| {
+        b.iter_with_setup(
+            || setup_shuffling(30, true),
+            |(encryptions, permutation, randoms, pk)| {
+                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+            },
+        )
+    });
+
+    group.bench_function("100 votes (encoded)", |b| {
+        b.iter_with_setup(
+            || setup_shuffling(100, true),
+            |(encryptions, permutation, randoms, pk)| {
+                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+            },
+        )
+    });
+
+    group.bench_function("1000 votes (encoded)", |b| {
+        b.iter_with_setup(
+            || setup_shuffling(1000, true),
             |(encryptions, permutation, randoms, pk)| {
                 ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
             },

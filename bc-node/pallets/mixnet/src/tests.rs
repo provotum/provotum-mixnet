@@ -98,7 +98,7 @@ fn setup_vote(params: PublicParameters) -> (Vec<u8>, Vec<u8>) {
     (vote_id, topic_id)
 }
 
-fn shuffle_proof_test(vote_id: Vec<u8>, topic_id: Vec<u8>, pk: ElGamalPK) -> bool {
+fn shuffle_proof_test(vote_id: Vec<u8>, topic_id: Vec<u8>, pk: ElGamalPK, encoded: bool) -> bool {
     // store created public key and public parameters
     setup_public_key(vote_id.clone(), pk.clone().into());
 
@@ -125,7 +125,12 @@ fn shuffle_proof_test(vote_id: Vec<u8>, topic_id: Vec<u8>, pk: ElGamalPK) -> boo
 
         // transform the ballot into a from that the blockchain can handle
         // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
-        let cipher: Cipher = ElGamal::encrypt_encode(&messages[index], &random, &pk).into();
+        let cipher: Cipher;
+        if encoded {
+            cipher = ElGamal::encrypt_encode(&messages[index], &random, &pk).into();
+        } else {
+            cipher = ElGamal::encrypt(&messages[index], &random, &pk).into();
+        }
         let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
         let ballot: Ballot = Ballot { answers };
 
@@ -407,7 +412,7 @@ fn test_cast_ballot_no_vote_exists() {
 }
 
 #[test]
-fn test_cast_ballot_works() {
+fn test_cast_ballot_works_encoded() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         // Setup Public Key
@@ -425,6 +430,8 @@ fn test_cast_ballot_works() {
         let num: u64 = 32;
         let big: BigUint = BigUint::from(num);
         let r = OffchainModule::get_random_biguint_less_than(q).unwrap();
+
+        // use additive homomorphic encoding for message i.e. g^m
         let cipher: Cipher = ElGamal::encrypt_encode(&big, &r, &pk).into();
         let answers = vec![(topic_id.clone(), cipher.clone())];
         let ballot: Ballot = Ballot { answers };
@@ -473,7 +480,73 @@ fn test_cast_ballot_works() {
 }
 
 #[test]
-fn test_offchain_signed_tx() {
+fn test_cast_ballot_works() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // Setup Public Key
+        let (params, _, pk) = Helper::setup_sm_system();
+        let q = &params.q();
+
+        // Setup Vote
+        let (vote_id, topic_id) = setup_vote(params.into());
+        setup_public_key(vote_id.clone(), pk.clone().into());
+
+        // Create the voter
+        let acct: <TestRuntime as system::Trait>::AccountId = Default::default();
+
+        // submit the value 32
+        let num: u64 = 32;
+        let big: BigUint = BigUint::from(num);
+        let r = OffchainModule::get_random_biguint_less_than(q).unwrap();
+        let cipher: Cipher = ElGamal::encrypt(&big, &r, &pk).into();
+        let answers = vec![(topic_id.clone(), cipher.clone())];
+        let ballot: Ballot = Ballot { answers };
+
+        // Test
+        // call cast_ballot
+        assert_ok!(OffchainModule::cast_ballot(
+            Origin::signed(acct),
+            vote_id.clone(),
+            ballot.clone()
+        ));
+        let ballot_from_chain = OffchainModule::ballots(vote_id.clone(), acct);
+        // A encrypted ballot is inserted to Ballots vec
+        assert_eq!(ballot_from_chain, ballot.clone());
+
+        // Cipher is inserted into Ciphers
+        assert_eq!(
+            OffchainModule::ciphers(topic_id.clone()),
+            vec![cipher.clone()]
+        );
+
+        // An event is emitted
+        assert!(System::events().iter().any(|er| er.event
+            == TestEvent::pallet_mixnet(RawEvent::BallotSubmitted(
+                acct,
+                vote_id.clone(),
+                ballot.clone()
+            ))));
+
+        // Insert another ballot
+        let ballot2 = ballot.clone();
+        assert_ok!(OffchainModule::cast_ballot(
+            Origin::signed(acct),
+            vote_id.clone(),
+            ballot.clone()
+        ));
+        // A encrypted ballot is inserted to Ballots vec
+        assert_eq!(OffchainModule::ballots(vote_id, acct), ballot2.clone());
+
+        // Cipher is inserted into Ciphers
+        assert_eq!(
+            OffchainModule::ciphers(topic_id.clone()),
+            vec![cipher.clone(), cipher]
+        );
+    });
+}
+
+#[test]
+fn test_offchain_signed_tx_encoded() {
     let (mut t, pool_state, _) = ExternalityBuilder::build();
 
     t.execute_with(|| {
@@ -488,6 +561,8 @@ fn test_offchain_signed_tx() {
         let num: u64 = 32;
         let big: BigUint = BigUint::from(num);
         let r = OffchainModule::get_random_biguint_less_than(q).unwrap();
+
+        // use additive homomorphic encoding for message i.e. g^m
         let cipher: Cipher = ElGamal::encrypt_encode(&big, &r, &pk).into();
         let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
         let ballot: Ballot = Ballot { answers };
@@ -672,7 +747,7 @@ fn test_fetch_ballots_size_zero() {
 }
 
 #[test]
-fn store_small_dummy_vote_works() {
+fn store_small_dummy_vote_works_encoded() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         // Setup Vote
@@ -716,7 +791,51 @@ fn store_small_dummy_vote_works() {
 }
 
 #[test]
-fn store_real_size_vote_works() {
+fn store_small_dummy_vote_works() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // Setup Vote
+        let (params, sk, pk) = Helper::setup_sm_system();
+        let (vote_id, topic_id) = setup_vote(params.into());
+
+        let message = BigUint::from(1u32);
+        let random = BigUint::from(7u32);
+
+        // encrypt the message -> encrypted message
+        // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
+        let big_cipher: BigCipher = ElGamal::encrypt(&message, &random, &pk);
+
+        // transform the ballot into a from that the blockchain can handle
+        // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
+        let cipher: Cipher = big_cipher.clone().into();
+        let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher.clone())];
+        let ballot: Ballot = Ballot { answers };
+
+        // create the voter (i.e. the transaction signer)
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let voter = Origin::signed(account);
+
+        let vote_submission_result = OffchainModule::cast_ballot(voter, vote_id, ballot);
+        assert_ok!(vote_submission_result);
+
+        // fetch the submitted ballot
+        let ciphers_from_chain: Vec<Cipher> = OffchainModule::ciphers(topic_id);
+        assert!(ciphers_from_chain.len() > 0);
+
+        let cipher_from_chain: Cipher = ciphers_from_chain[0].clone();
+        assert_eq!(cipher, cipher_from_chain);
+
+        // transform the Ballot -> BigCipher
+        let big_cipher_from_chain: BigCipher = cipher_from_chain.into();
+        assert_eq!(big_cipher, big_cipher_from_chain);
+
+        let decrypted_vote = ElGamal::decrypt(&big_cipher_from_chain, &sk);
+        assert_eq!(message, decrypted_vote);
+    });
+}
+
+#[test]
+fn store_real_size_vote_works_encoded() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         // Setup
@@ -759,7 +878,50 @@ fn store_real_size_vote_works() {
 }
 
 #[test]
-fn test_shuffle_ciphers() {
+fn store_real_size_vote_works() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // Setup
+        let (params, sk, pk) = Helper::setup_md_system();
+        let (vote_id, topic_id) = setup_vote(params.into());
+
+        // encrypt the message -> encrypted message
+        // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
+        let message = BigUint::from(1u32);
+        let random = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+        let big_cipher: BigCipher = ElGamal::encrypt(&message, &random, &pk);
+
+        // transform the ballot into a from that the blockchain can handle
+        // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
+        let cipher: Cipher = big_cipher.clone().into();
+        let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher.clone())];
+        let ballot: Ballot = Ballot { answers };
+
+        // create the voter (i.e. the transaction signer)
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let voter = Origin::signed(account);
+
+        let vote_submission_result = OffchainModule::cast_ballot(voter, vote_id, ballot);
+        assert_ok!(vote_submission_result);
+
+        // fetch the submitted ballot
+        let ciphers_from_chain: Vec<Cipher> = OffchainModule::ciphers(topic_id);
+        assert!(ciphers_from_chain.len() > 0);
+
+        let cipher_from_chain: Cipher = ciphers_from_chain[0].clone();
+        assert_eq!(cipher, cipher_from_chain);
+
+        // transform the Ballot -> BigCipher
+        let big_cipher_from_chain: BigCipher = cipher_from_chain.into();
+        assert_eq!(big_cipher, big_cipher_from_chain);
+
+        let decrypted_vote = ElGamal::decrypt(&big_cipher_from_chain, &sk);
+        assert_eq!(message, decrypted_vote);
+    });
+}
+
+#[test]
+fn test_shuffle_ciphers_encoded() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         // Setup
@@ -828,6 +990,75 @@ fn test_shuffle_ciphers() {
 }
 
 #[test]
+fn test_shuffle_ciphers() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // Setup
+        let (params, sk, pk) = Helper::setup_md_system();
+        let (vote_id, topic_id) = setup_vote(params.into());
+        setup_public_key(vote_id.clone(), pk.clone().into());
+
+        // create the public key
+        let messages = [
+            BigUint::from(5u32),
+            BigUint::from(10u32),
+            BigUint::from(15u32),
+        ];
+
+        // encrypt the message -> encrypted message
+        // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
+        let randoms = [
+            b"170141183460469231731687303715884",
+            b"170141183460469231731687303700084",
+            b"170141183400069231731687303700084",
+        ];
+
+        // create the voter (i.e. the transaction signer)
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let voter = Origin::signed(account);
+
+        for index in 0..3 {
+            let random = BigUint::parse_bytes(randoms[index], 10).unwrap();
+
+            // transform the ballot into a from that the blockchain can handle
+            // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
+            let cipher: Cipher = ElGamal::encrypt(&messages[index], &random, &pk).into();
+            let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
+            let ballot: Ballot = Ballot { answers };
+
+            let vote_submission_result =
+                OffchainModule::cast_ballot(voter.clone(), vote_id.clone(), ballot);
+            assert_ok!(vote_submission_result);
+        }
+
+        // shuffle the votes
+        let shuffle_result = OffchainModule::shuffle_ciphers(&vote_id, &topic_id);
+        let shuffled_big_ciphers: Vec<BigCipher> = shuffle_result.unwrap().0;
+        assert!(shuffled_big_ciphers.len() == 3);
+
+        // type conversion: BigCipher (BigUint) to Ballot (Vec<u8>)
+        let shuffled_ciphers: Vec<Cipher> = Wrapper(shuffled_big_ciphers).into();
+
+        // transform each ballot into a cipher, decrypt_decode it and finally collect the list of biguints
+        let decrypted_votes = shuffled_ciphers
+            .iter()
+            .map(|b| ElGamal::decrypt(&(b.clone().into()), &sk))
+            .collect::<Vec<BigUint>>();
+
+        // check that at least one value is 5, 10, 15
+        assert!(decrypted_votes
+            .iter()
+            .any(|decrypted_vote| *decrypted_vote == messages[0]));
+        assert!(decrypted_votes
+            .iter()
+            .any(|decrypted_vote| *decrypted_vote == messages[1]));
+        assert!(decrypted_votes
+            .iter()
+            .any(|decrypted_vote| *decrypted_vote == messages[2]));
+    });
+}
+
+#[test]
 fn test_shuffle_ciphers_pk_does_not_exist() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
@@ -873,6 +1104,27 @@ fn test_permute_vector() {
 }
 
 #[test]
+fn test_shuffle_proof_small_system_encoded() {
+    // good primes to use for testing
+    // p: 202178360940839 -> q: 101089180470419
+    // p: 4283 -> q: 2141
+    // p: 59 -> q: 29
+    // p: 47 -> q: 23
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let (params, _, pk) = Helper::setup_sm_system();
+        let (vote_id, topic_id) = setup_vote(params.into());
+        let is_p_prime = OffchainModule::is_prime(&pk.params.p, 10).unwrap();
+        assert!(is_p_prime);
+        let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 10).unwrap();
+        assert!(is_q_prime);
+
+        let is_proof_valid = shuffle_proof_test(vote_id, topic_id, pk, true);
+        assert!(is_proof_valid);
+    });
+}
+
+#[test]
 fn test_shuffle_proof_small_system() {
     // good primes to use for testing
     // p: 202178360940839 -> q: 101089180470419
@@ -888,7 +1140,23 @@ fn test_shuffle_proof_small_system() {
         let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 10).unwrap();
         assert!(is_q_prime);
 
-        let is_proof_valid = shuffle_proof_test(vote_id, topic_id, pk);
+        let is_proof_valid = shuffle_proof_test(vote_id, topic_id, pk, false);
+        assert!(is_proof_valid);
+    });
+}
+
+#[test]
+fn test_shuffle_proof_tiny_system_encoded() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let (params, _, pk) = Helper::setup_tiny_system();
+        let (vote_id, topic_id) = setup_vote(params.into());
+        let is_p_prime = OffchainModule::is_prime(&pk.params.p, 10).unwrap();
+        assert!(is_p_prime);
+        let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 10).unwrap();
+        assert!(is_q_prime);
+
+        let is_proof_valid = shuffle_proof_test(vote_id, topic_id, pk, true);
         assert!(is_proof_valid);
     });
 }
@@ -904,12 +1172,13 @@ fn test_shuffle_proof_tiny_system() {
         let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 10).unwrap();
         assert!(is_q_prime);
 
-        let is_proof_valid = shuffle_proof_test(vote_id, topic_id, pk);
+        let is_proof_valid = shuffle_proof_test(vote_id, topic_id, pk, false);
         assert!(is_proof_valid);
     });
 }
 
 #[test]
+#[ignore = "will take over 30s to complete, run only when necessary"]
 fn test_shuffle_proof_medium_system() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
@@ -920,7 +1189,7 @@ fn test_shuffle_proof_medium_system() {
         let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 10).unwrap();
         assert!(is_q_prime);
 
-        let is_proof_valid = shuffle_proof_test(vote_id, topic_id, pk);
+        let is_proof_valid = shuffle_proof_test(vote_id, topic_id, pk, false);
         assert!(is_proof_valid);
     });
 }
@@ -937,7 +1206,7 @@ fn test_shuffle_proof_large_system() {
         let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 10).unwrap();
         assert!(is_q_prime);
 
-        let is_proof_valid = shuffle_proof_test(vote_id, topic_id, pk);
+        let is_proof_valid = shuffle_proof_test(vote_id, topic_id, pk, false);
         assert!(is_proof_valid);
     });
 }
@@ -954,7 +1223,7 @@ fn test_shuffle_proof_xl_system() {
         let is_q_prime = OffchainModule::is_prime(&pk.params.q(), 10).unwrap();
         assert!(is_q_prime);
 
-        let is_proof_valid = shuffle_proof_test(vote_id, topic_id, pk);
+        let is_proof_valid = shuffle_proof_test(vote_id, topic_id, pk, false);
         assert!(is_proof_valid);
     });
 }

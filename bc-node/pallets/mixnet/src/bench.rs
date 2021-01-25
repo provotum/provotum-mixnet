@@ -66,7 +66,10 @@ fn setup_vote<T: Trait>(params: PublicParameters) -> Result<(Vec<u8>, Vec<u8>), 
     Ok((vote_id, topic_id))
 }
 
-fn setup_shuffle<T: Trait>(size: usize) -> Result<(Vec<u8>, Vec<u8>, ElGamalPK), &'static str> {
+fn setup_shuffle<T: Trait>(
+    size: usize,
+    encoded: bool,
+) -> Result<(Vec<u8>, Vec<u8>, ElGamalPK), &'static str> {
     // setup
     let (params, _, pk) = Helper::setup_lg_system();
     let (vote_id, topic_id) = setup_vote::<T>(params.into())?;
@@ -87,7 +90,12 @@ fn setup_shuffle<T: Trait>(size: usize) -> Result<(Vec<u8>, Vec<u8>, ElGamalPK),
 
         // transform the ballot into a from that the blockchain can handle
         // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
-        let cipher: Cipher = ElGamal::encrypt_encode(message, random, &pk).into();
+        let cipher: Cipher;
+        if encoded {
+            cipher = ElGamal::encrypt_encode(message, random, &pk).into();
+        } else {
+            cipher = ElGamal::encrypt(message, random, &pk).into();
+        }
         let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
         let ballot: Ballot = Ballot { answers };
         PalletMixnet::<T>::cast_ballot(voter.clone().into(), vote_id.clone(), ballot)?;
@@ -97,6 +105,7 @@ fn setup_shuffle<T: Trait>(size: usize) -> Result<(Vec<u8>, Vec<u8>, ElGamalPK),
 
 fn setup_shuffle_proof<T: Trait>(
     size: usize,
+    encoded: bool,
 ) -> Result<
     (
         Vec<u8>,
@@ -108,7 +117,7 @@ fn setup_shuffle_proof<T: Trait>(
     ),
     &'static str,
 > {
-    let (topic_id, vote_id, pk) = setup_shuffle::<T>(size)?;
+    let (topic_id, vote_id, pk) = setup_shuffle::<T>(size, encoded)?;
 
     // get the encrypted votes
     let e: Vec<BigCipher> = Wrapper(PalletMixnet::<T>::ciphers(&topic_id)).into();
@@ -285,67 +294,127 @@ benchmarks! {
     }
 
     shuffle_ciphers_3 {
-        let (topic_id, vote_id, _) = setup_shuffle::<T>(3)?;
+        let (topic_id, vote_id, _) = setup_shuffle::<T>(3, false)?;
     }: {
         let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
     }
 
     shuffle_ciphers_10 {
-        let (topic_id, vote_id, _) = setup_shuffle::<T>(10)?;
+        let (topic_id, vote_id, _) = setup_shuffle::<T>(10, false)?;
     }: {
         let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
     }
 
     shuffle_ciphers_30 {
-        let (topic_id, vote_id, _) = setup_shuffle::<T>(30)?;
+        let (topic_id, vote_id, _) = setup_shuffle::<T>(30, false)?;
     }: {
         let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
     }
 
     shuffle_ciphers_100 {
-        let (topic_id, vote_id, _) = setup_shuffle::<T>(100)?;
+        let (topic_id, vote_id, _) = setup_shuffle::<T>(100, false)?;
     }: {
         let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
     }
 
     shuffle_ciphers_1000 {
-        let (topic_id, vote_id, _) = setup_shuffle::<T>(1000)?;
+        let (topic_id, vote_id, _) = setup_shuffle::<T>(1000, false)?;
+    }: {
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+    }
+
+    shuffle_ciphers_3_encoded {
+        let (topic_id, vote_id, _) = setup_shuffle::<T>(3, true)?;
+    }: {
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+    }
+
+    shuffle_ciphers_10_encoded {
+        let (topic_id, vote_id, _) = setup_shuffle::<T>(10, true)?;
+    }: {
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+    }
+
+    shuffle_ciphers_30_encoded {
+        let (topic_id, vote_id, _) = setup_shuffle::<T>(30, true)?;
+    }: {
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+    }
+
+    shuffle_ciphers_100_encoded {
+        let (topic_id, vote_id, _) = setup_shuffle::<T>(100, true)?;
+    }: {
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+    }
+
+    shuffle_ciphers_1000_encoded {
+        let (topic_id, vote_id, _) = setup_shuffle::<T>(1000, true)?;
     }: {
         let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
     }
 
     shuffle_proof_3 {
-        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(3)?;
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(3, false)?;
     }: {
         let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
     }
 
     shuffle_proof_10 {
-        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(10)?;
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(10, false)?;
     }: {
         let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
     }
 
     shuffle_proof_30 {
-        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(30)?;
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(30, false)?;
     }: {
         let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
     }
 
     shuffle_proof_100 {
-        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(100)?;
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(100, false)?;
     }: {
         let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
     }
 
     shuffle_proof_1000 {
-        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(1000)?;
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(1000, false)?;
+    }: {
+        let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
+    }
+
+    shuffle_proof_3_encoded {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(3, true)?;
+    }: {
+        let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
+    }
+
+    shuffle_proof_10_encoded {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(10, true)?;
+    }: {
+        let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
+    }
+
+    shuffle_proof_30_encoded {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(30, true)?;
+    }: {
+        let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
+    }
+
+    shuffle_proof_100_encoded {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(100, true)?;
+    }: {
+        let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
+    }
+
+    shuffle_proof_1000_encoded {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(1000, true)?;
     }: {
         let _result = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e, e_hat, r, &permutation, &pk);
     }
 
     verify_shuffle_proof_3 {
-        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(3)?;
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(3, false)?;
         let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
     }: {
         let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
@@ -353,7 +422,7 @@ benchmarks! {
     }
 
     verify_shuffle_proof_10 {
-        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(10)?;
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(10, false)?;
         let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
     }: {
         let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
@@ -361,7 +430,7 @@ benchmarks! {
     }
 
     verify_shuffle_proof_30 {
-        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(30)?;
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(30, false)?;
         let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
     }: {
         let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
@@ -369,7 +438,7 @@ benchmarks! {
     }
 
     verify_shuffle_proof_100 {
-        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(100)?;
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(100, false)?;
         let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
     }: {
         let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
@@ -377,7 +446,47 @@ benchmarks! {
     }
 
     verify_shuffle_proof_1000 {
-        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(1000)?;
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(1000, false)?;
+        let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
+    }: {
+        let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
+        ensure!(success, "proof did not verify!");
+    }
+
+    verify_shuffle_proof_3_encoded {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(3, true)?;
+        let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
+    }: {
+        let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
+        ensure!(success, "proof did not verify!");
+    }
+
+    verify_shuffle_proof_10_encoded {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(10, true)?;
+        let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
+    }: {
+        let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
+        ensure!(success, "proof did not verify!");
+    }
+
+    verify_shuffle_proof_30_encoded {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(30, true)?;
+        let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
+    }: {
+        let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
+        ensure!(success, "proof did not verify!");
+    }
+
+    verify_shuffle_proof_100_encoded {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(100, true)?;
+        let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
+    }: {
+        let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
+        ensure!(success, "proof did not verify!");
+    }
+
+    verify_shuffle_proof_1000_encoded {
+        let (vote_id, e, e_hat, r, permutation, pk) = setup_shuffle_proof::<T>(1000, true)?;
         let proof: Proof = PalletMixnet::<T>::generate_shuffle_proof(&vote_id, e.clone(), e_hat.clone(), r, &permutation, &pk)?;
     }: {
         let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
@@ -402,8 +511,11 @@ mod tests {
             assert_ok!(test_benchmark_create_vote::<TestRuntime>());
             assert_ok!(test_benchmark_cast_ballot::<TestRuntime>());
             assert_ok!(test_benchmark_shuffle_ciphers_3::<TestRuntime>());
+            assert_ok!(test_benchmark_shuffle_ciphers_3_encoded::<TestRuntime>());
             assert_ok!(test_benchmark_shuffle_proof_3::<TestRuntime>());
+            assert_ok!(test_benchmark_shuffle_proof_3_encoded::<TestRuntime>());
             assert_ok!(test_benchmark_verify_shuffle_proof_3::<TestRuntime>());
+            assert_ok!(test_benchmark_verify_shuffle_proof_3_encoded::<TestRuntime>());
         });
     }
 }
