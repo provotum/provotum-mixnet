@@ -125,7 +125,7 @@ fn shuffle_proof_test(vote_id: Vec<u8>, topic_id: Vec<u8>, pk: ElGamalPK) -> boo
 
         // transform the ballot into a from that the blockchain can handle
         // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
-        let cipher: Cipher = ElGamal::encrypt(&messages[index], &random, &pk).into();
+        let cipher: Cipher = ElGamal::encrypt_encode(&messages[index], &random, &pk).into();
         let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
         let ballot: Ballot = Ballot { answers };
 
@@ -425,7 +425,7 @@ fn test_cast_ballot_works() {
         let num: u64 = 32;
         let big: BigUint = BigUint::from(num);
         let r = OffchainModule::get_random_biguint_less_than(q).unwrap();
-        let cipher: Cipher = ElGamal::encrypt(&big, &r, &pk).into();
+        let cipher: Cipher = ElGamal::encrypt_encode(&big, &r, &pk).into();
         let answers = vec![(topic_id.clone(), cipher.clone())];
         let ballot: Ballot = Ballot { answers };
 
@@ -488,7 +488,7 @@ fn test_offchain_signed_tx() {
         let num: u64 = 32;
         let big: BigUint = BigUint::from(num);
         let r = OffchainModule::get_random_biguint_less_than(q).unwrap();
-        let cipher: Cipher = ElGamal::encrypt(&big, &r, &pk).into();
+        let cipher: Cipher = ElGamal::encrypt_encode(&big, &r, &pk).into();
         let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
         let ballot: Ballot = Ballot { answers };
 
@@ -684,7 +684,7 @@ fn store_small_dummy_vote_works() {
 
         // encrypt the message -> encrypted message
         // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
-        let big_cipher: BigCipher = ElGamal::encrypt(&message, &random, &pk);
+        let big_cipher: BigCipher = ElGamal::encrypt_encode(&message, &random, &pk);
 
         // transform the ballot into a from that the blockchain can handle
         // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
@@ -727,7 +727,7 @@ fn store_real_size_vote_works() {
         // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
         let message = BigUint::from(1u32);
         let random = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
-        let big_cipher: BigCipher = ElGamal::encrypt(&message, &random, &pk);
+        let big_cipher: BigCipher = ElGamal::encrypt_encode(&message, &random, &pk);
 
         // transform the ballot into a from that the blockchain can handle
         // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
@@ -791,7 +791,7 @@ fn test_shuffle_ciphers() {
 
             // transform the ballot into a from that the blockchain can handle
             // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
-            let cipher: Cipher = ElGamal::encrypt(&messages[index], &random, &pk).into();
+            let cipher: Cipher = ElGamal::encrypt_encode(&messages[index], &random, &pk).into();
             let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
             let ballot: Ballot = Ballot { answers };
 

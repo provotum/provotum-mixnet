@@ -15,12 +15,12 @@ fn setup_shuffling(nr_of_votes: usize) -> (Vec<Cipher>, Vec<usize>, Vec<BigUint>
     // encryption of zero
     let zero = BigUint::zero();
     let r = BigUint::parse_bytes(b"1234", 10).unwrap();
-    let enc_zero = ElGamal::encrypt(&zero, &r, &pk);
+    let enc_zero = ElGamal::encrypt_encode(&zero, &r, &pk);
 
     // encryption of one
     let one = BigUint::one();
     let r_ = BigUint::parse_bytes(b"4321", 10).unwrap();
-    let enc_one = ElGamal::encrypt(&one, &r_, &pk);
+    let enc_one = ElGamal::encrypt_encode(&one, &r_, &pk);
 
     let mut encryptions: Vec<Cipher> = Vec::new();
     let mut randoms: Vec<BigUint> = Vec::new();
@@ -64,7 +64,7 @@ fn bench_elgamal(c: &mut Criterion) {
                     BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
                 (message, random, pk)
             },
-            |(m, r, pk)| ElGamal::encrypt(&m, &r, &pk),
+            |(m, r, pk)| ElGamal::encrypt_encode(&m, &r, &pk),
         )
     });
 
@@ -77,7 +77,7 @@ fn bench_elgamal(c: &mut Criterion) {
                     BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
 
                 // encrypt the message
-                let encrypted_message = ElGamal::encrypt(&message, &random, &pk);
+                let encrypted_message = ElGamal::encrypt_encode(&message, &random, &pk);
                 (encrypted_message, sk)
             },
             |(encrypted_message, sk)| ElGamal::decrypt(&encrypted_message, &sk),
@@ -92,11 +92,11 @@ fn bench_elgamal(c: &mut Criterion) {
 
                 // encrypt the message
                 let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
-                let enc_one = ElGamal::encrypt(&one, &r, &pk);
+                let enc_one = ElGamal::encrypt_encode(&one, &r, &pk);
 
                 // encrypt the message again
                 let r_ = BigUint::parse_bytes(b"170141183460469231731687303712342", 10).unwrap();
-                let enc_one_ = ElGamal::encrypt(&one, &r_, &pk);
+                let enc_one_ = ElGamal::encrypt_encode(&one, &r_, &pk);
 
                 (enc_one, enc_one_, params.p)
             },
@@ -112,7 +112,7 @@ fn bench_elgamal(c: &mut Criterion) {
 
                 // encrypt the message
                 let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
-                let encryption = ElGamal::encrypt(&one, &r, &pk);
+                let encryption = ElGamal::encrypt_encode(&one, &r, &pk);
 
                 // use another random value for the re_encryption
                 let r_ = BigUint::parse_bytes(b"170141183460469231731687303712342", 10).unwrap();
@@ -131,7 +131,7 @@ fn bench_elgamal(c: &mut Criterion) {
 
                 // encrypt the message
                 let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
-                let encryption = ElGamal::encrypt(&one, &r, &pk);
+                let encryption = ElGamal::encrypt_encode(&one, &r, &pk);
 
                 // use another random value for the re_encryption
                 let r_ = BigUint::parse_bytes(b"170141183460469231731687303712342", 10).unwrap();

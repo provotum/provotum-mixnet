@@ -38,7 +38,7 @@ impl<T: Trait> Module<T> {
         let r = Self::get_random_biguint_less_than(q)?;
 
         // encrypt the current block number
-        let cipher: Cipher = ElGamal::encrypt(&number_as_biguint, &r, &pk).into();
+        let cipher: Cipher = ElGamal::encrypt_encode(&number_as_biguint, &r, &pk).into();
         let answers: Vec<(TopicId, Cipher)> = vec![(topic_id, cipher)];
         let ballot: Ballot = Ballot { answers };
 

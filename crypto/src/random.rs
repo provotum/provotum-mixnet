@@ -16,17 +16,17 @@ impl Random {
         // encryption of zero
         let zero = BigUint::zero();
         let r = Random::get_random_less_than(q);
-        let enc_zero = ElGamal::encrypt(&zero, &r, pk);
+        let enc_zero = ElGamal::encrypt_encode(&zero, &r, pk);
 
         // encryption of one
         let one = BigUint::one();
         let r_ = Random::get_random_less_than(q);
-        let enc_one = ElGamal::encrypt(&one, &r_, pk);
+        let enc_one = ElGamal::encrypt_encode(&one, &r_, pk);
 
         // encryption of two
         let two = BigUint::from(2u32);
         let r__ = Random::get_random_less_than(q);
-        let enc_two = ElGamal::encrypt(&two, &r__, pk);
+        let enc_two = ElGamal::encrypt_encode(&two, &r__, pk);
         [enc_zero, enc_one, enc_two]
     }
 

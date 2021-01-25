@@ -87,7 +87,7 @@ fn setup_shuffle<T: Trait>(size: usize) -> Result<(Vec<u8>, Vec<u8>, ElGamalPK),
 
         // transform the ballot into a from that the blockchain can handle
         // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
-        let cipher: Cipher = ElGamal::encrypt(message, random, &pk).into();
+        let cipher: Cipher = ElGamal::encrypt_encode(message, random, &pk).into();
         let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
         let ballot: Ballot = Ballot { answers };
         PalletMixnet::<T>::cast_ballot(voter.clone().into(), vote_id.clone(), ballot)?;
@@ -250,7 +250,7 @@ benchmarks! {
 
         // transform the ballot into a from that the blockchain can handle
         // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
-        let cipher: Cipher = ElGamal::encrypt(&message, &random, &pk).into();
+        let cipher: Cipher = ElGamal::encrypt_encode(&message, &random, &pk).into();
         let answers: Vec<(TopicId, Cipher)> = vec![(topic_id, cipher)];
         let ballot: Ballot = Ballot { answers };
     }: {

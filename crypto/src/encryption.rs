@@ -13,9 +13,9 @@ impl ElGamal {
     /// ## Arguments
     ///
     /// * `m`  - The message (BigUint)
-    /// * `r`  - The random number used to encrypt the vote
-    /// * `pk` - The public key used to encrypt the vote
-    pub fn encrypt(m: &BigUint, r: &BigUint, pk: &PublicKey) -> Cipher {
+    /// * `r`  - The random number used to encrypt_encode the vote
+    /// * `pk` - The public key used to encrypt_encode the vote
+    pub fn encrypt_encode(m: &BigUint, r: &BigUint, pk: &PublicKey) -> Cipher {
         let g = &pk.params.g;
         let p = &pk.params.p;
         let h = &pk.h;
@@ -118,8 +118,8 @@ impl ElGamal {
     /// ## Arguments
     ///
     /// * `cipher` - An ElGamal Encryption { a: BigUint, b: BigUint }
-    /// * `r`      - The random number used to re-encrypt the vote    
-    /// * `pk`     - The public key used to re-encrypt the vote
+    /// * `r`      - The random number used to re-encrypt_encode the vote    
+    /// * `pk`     - The public key used to re-encrypt_encode the vote
     pub fn re_encrypt(cipher: &Cipher, r: &BigUint, pk: &PublicKey) -> Cipher {
         let p = &pk.params.p;
         let a_ = pk.params.g.modpow(r, p);
@@ -140,10 +140,10 @@ impl ElGamal {
     /// ## Arguments
     ///
     /// * `cipher` - An ElGamal Encryption { a: BigUint, b: BigUint }
-    /// * `r`      - The random number used to re-encrypt the vote    
-    /// * `pk`     - The public key used to re-encrypt the vote
+    /// * `r`      - The random number used to re-encrypt_encode the vote    
+    /// * `pk`     - The public key used to re-encrypt_encode the vote
     pub fn re_encrypt_via_addition(cipher: &Cipher, r: &BigUint, pk: &PublicKey) -> Cipher {
-        let zero = Self::encrypt(&BigUint::zero(), &r, &pk);
+        let zero = Self::encrypt_encode(&BigUint::zero(), &r, &pk);
         Self::add(cipher, &zero, &pk.params.p)
     }
 
@@ -152,8 +152,8 @@ impl ElGamal {
     /// ## Arguments
     ///
     /// * `cipher` - An ElGamal Encryption { a: BigUint, b: BigUint }
-    /// * `r`      - The random number used to re-encrypt the vote    
-    /// * `pk`     - The public key used to re-encrypt the vote
+    /// * `r`      - The random number used to re-encrypt_encode the vote    
+    /// * `pk`     - The public key used to re-encrypt_encode the vote
     pub fn shuffle(
         encryptions: &[Cipher],
         permutation: &[usize],
@@ -178,7 +178,7 @@ impl ElGamal {
             let encryption = &encryptions[*entry];
             let random = &randoms[*entry];
 
-            // re-encrypt
+            // re-encrypt_encode
             let re_encryption = ElGamal::re_encrypt(&encryption, &random, pk);
             re_encryptions.push((re_encryption, random.clone(), *entry));
         }
@@ -260,8 +260,8 @@ mod tests {
         // a new random value for the encryption
         let r_ = BigUint::from(1u32);
 
-        // encrypt the message
-        let encrypted_message = ElGamal::encrypt(&message, &r_, &pk);
+        // encrypt_encode the message
+        let encrypted_message = ElGamal::encrypt_encode(&message, &r_, &pk);
 
         // check that a = g^r_ -> g = 4 -> 4^1 mod 7 = 4
         assert_eq!(encrypted_message.a, BigUint::from(4u32));
@@ -283,8 +283,8 @@ mod tests {
         // a new random value for the encryption
         let r_ = BigUint::from(5u32);
 
-        // encrypt the message
-        let encrypted_message = ElGamal::encrypt(&message, &r_, &pk);
+        // encrypt_encode the message
+        let encrypted_message = ElGamal::encrypt_encode(&message, &r_, &pk);
 
         // decrypt the encrypted_message & check that the messages are equal
         let decrypted_message = ElGamal::decrypt(&encrypted_message, &sk);
@@ -298,11 +298,11 @@ mod tests {
 
         // encryption of zero
         let r_one = BigUint::from(7u32);
-        let this = ElGamal::encrypt(&zero, &r_one, &pk);
+        let this = ElGamal::encrypt_encode(&zero, &r_one, &pk);
 
         // encryption of zero
         let r_two = BigUint::from(5u32);
-        let other = ElGamal::encrypt(&zero, &r_two, &pk);
+        let other = ElGamal::encrypt_encode(&zero, &r_two, &pk);
 
         // add both encryptions: 0 + 0
         let addition = ElGamal::add(&this, &other, &params.p);
@@ -320,11 +320,11 @@ mod tests {
 
         // encryption of zero
         let r_one = BigUint::from(7u32);
-        let this = ElGamal::encrypt(&zero, &r_one, &pk);
+        let this = ElGamal::encrypt_encode(&zero, &r_one, &pk);
 
         // encryption of one
         let r_two = BigUint::from(5u32);
-        let other = ElGamal::encrypt(&one, &r_two, &pk);
+        let other = ElGamal::encrypt_encode(&one, &r_two, &pk);
 
         // add both encryptions: 0 + 1
         let addition = ElGamal::add(&this, &other, &params.p);
@@ -342,11 +342,11 @@ mod tests {
 
         // encryption of one
         let r_one = BigUint::from(7u32);
-        let this = ElGamal::encrypt(&one, &r_one, &pk);
+        let this = ElGamal::encrypt_encode(&one, &r_one, &pk);
 
         // encryption of one
         let r_two = BigUint::from(5u32);
-        let other = ElGamal::encrypt(&one, &r_two, &pk);
+        let other = ElGamal::encrypt_encode(&one, &r_two, &pk);
 
         // add both encryptions: 1 + 1
         let addition = ElGamal::add(&this, &other, &params.p);
@@ -368,19 +368,19 @@ mod tests {
         // start with an encryption of zero
         // use a random number < q
         let r = Random::get_random_less_than(&q);
-        let mut base = ElGamal::encrypt(&zero, &r, &pk);
+        let mut base = ElGamal::encrypt_encode(&zero, &r, &pk);
 
         // add five encryptions of one
         for _ in 0..5 {
             let r = Random::get_random_less_than(&q);
-            let encryption_of_one = ElGamal::encrypt(&one, &r, &pk);
+            let encryption_of_one = ElGamal::encrypt_encode(&one, &r, &pk);
             base = ElGamal::add(&base, &encryption_of_one, &params.p);
         }
 
         // add five encryptions of zero
         for _ in 0..5 {
             let r = Random::get_random_less_than(&q);
-            let encryption_of_zero = ElGamal::encrypt(&zero, &r, &pk);
+            let encryption_of_zero = ElGamal::encrypt_encode(&zero, &r, &pk);
             base = ElGamal::add(&base, &encryption_of_zero, &params.p);
         }
 
@@ -398,7 +398,7 @@ mod tests {
 
         // use a random number < q
         let r = Random::get_random_less_than(&q);
-        let encrypted_five = ElGamal::encrypt(&five, &r, &pk);
+        let encrypted_five = ElGamal::encrypt_encode(&five, &r, &pk);
 
         // re-encryption + check that encryption != re-encryption
         let r_ = Random::get_random_less_than(&q);
@@ -419,7 +419,7 @@ mod tests {
 
         // use a random number < q
         let r = Random::get_random_less_than(&q);
-        let encrypted_five = ElGamal::encrypt(&five, &r, &pk);
+        let encrypted_five = ElGamal::encrypt_encode(&five, &r, &pk);
         let r_ = Random::get_random_less_than(&q);
 
         // homomorphic addition with zero: 5 + 0 = 5 + check that encryption != re-encryption
@@ -440,7 +440,7 @@ mod tests {
 
         // use a random number < q
         let r = Random::get_random_less_than(&q);
-        let encrypted_five = ElGamal::encrypt(&five, &r, &pk);
+        let encrypted_five = ElGamal::encrypt_encode(&five, &r, &pk);
 
         // option one: homomorphic addition with zero: 5 + 0 = 5
         let r_ = Random::get_random_less_than(&q);
@@ -514,7 +514,7 @@ mod tests {
         let size = encryptions.len();
         let permutation = Random::generate_permutation(&size);
 
-        // shuffle (permute + re-encrypt) the encryptions
+        // shuffle (permute + re-encrypt_encode) the encryptions
         let shuffle = ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk);
 
         // destructure the array of tuples
