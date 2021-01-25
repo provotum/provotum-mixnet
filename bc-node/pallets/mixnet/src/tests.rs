@@ -710,7 +710,7 @@ fn store_small_dummy_vote_works() {
         let big_cipher_from_chain: BigCipher = cipher_from_chain.into();
         assert_eq!(big_cipher, big_cipher_from_chain);
 
-        let decrypted_vote = ElGamal::decrypt(&big_cipher_from_chain, &sk);
+        let decrypted_vote = ElGamal::decrypt_decode(&big_cipher_from_chain, &sk);
         assert_eq!(message, decrypted_vote);
     });
 }
@@ -753,7 +753,7 @@ fn store_real_size_vote_works() {
         let big_cipher_from_chain: BigCipher = cipher_from_chain.into();
         assert_eq!(big_cipher, big_cipher_from_chain);
 
-        let decrypted_vote = ElGamal::decrypt(&big_cipher_from_chain, &sk);
+        let decrypted_vote = ElGamal::decrypt_decode(&big_cipher_from_chain, &sk);
         assert_eq!(message, decrypted_vote);
     });
 }
@@ -808,10 +808,10 @@ fn test_shuffle_ciphers() {
         // type conversion: BigCipher (BigUint) to Ballot (Vec<u8>)
         let shuffled_ciphers: Vec<Cipher> = Wrapper(shuffled_big_ciphers).into();
 
-        // transform each ballot into a cipher, decrypt it and finally collect the list of biguints
+        // transform each ballot into a cipher, decrypt_decode it and finally collect the list of biguints
         let decrypted_votes = shuffled_ciphers
             .iter()
-            .map(|b| ElGamal::decrypt(&(b.clone().into()), &sk))
+            .map(|b| ElGamal::decrypt_decode(&(b.clone().into()), &sk))
             .collect::<Vec<BigUint>>();
 
         // check that at least one value is 5, 10, 15

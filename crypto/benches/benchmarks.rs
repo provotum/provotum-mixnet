@@ -80,7 +80,7 @@ fn bench_elgamal(c: &mut Criterion) {
                 let encrypted_message = ElGamal::encrypt_encode(&message, &random, &pk);
                 (encrypted_message, sk)
             },
-            |(encrypted_message, sk)| ElGamal::decrypt(&encrypted_message, &sk),
+            |(encrypted_message, sk)| ElGamal::decrypt_decode(&encrypted_message, &sk),
         )
     });
 

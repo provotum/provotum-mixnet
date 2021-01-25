@@ -41,7 +41,7 @@ impl ElGamal {
     ///
     /// * `cipher` - The ElGamal Encryption (a: BigUint, b: BigUint)
     /// * `sk`     - The private key used to decrypt the vote
-    pub fn decrypt(cipher: &Cipher, sk: &PrivateKey) -> BigUint {
+    pub fn decrypt_decode(cipher: &Cipher, sk: &PrivateKey) -> BigUint {
         let a = &cipher.a;
         let b = &cipher.b;
 
@@ -287,7 +287,7 @@ mod tests {
         let encrypted_message = ElGamal::encrypt_encode(&message, &r_, &pk);
 
         // decrypt the encrypted_message & check that the messages are equal
-        let decrypted_message = ElGamal::decrypt(&encrypted_message, &sk);
+        let decrypted_message = ElGamal::decrypt_decode(&encrypted_message, &sk);
         assert_eq!(decrypted_message, message);
     }
 
@@ -308,7 +308,7 @@ mod tests {
         let addition = ElGamal::add(&this, &other, &params.p);
 
         // decrypt result: 0
-        let decrypted_addition = ElGamal::decrypt(&addition, &sk);
+        let decrypted_addition = ElGamal::decrypt_decode(&addition, &sk);
         assert_eq!(decrypted_addition, zero);
     }
 
@@ -330,7 +330,7 @@ mod tests {
         let addition = ElGamal::add(&this, &other, &params.p);
 
         // decrypt result: 1
-        let decrypted_addition = ElGamal::decrypt(&addition, &sk);
+        let decrypted_addition = ElGamal::decrypt_decode(&addition, &sk);
         assert_eq!(decrypted_addition, one);
     }
 
@@ -352,7 +352,7 @@ mod tests {
         let addition = ElGamal::add(&this, &other, &params.p);
 
         // decrypt result: 2
-        let decrypted_addition = ElGamal::decrypt(&addition, &sk);
+        let decrypted_addition = ElGamal::decrypt_decode(&addition, &sk);
         assert_eq!(decrypted_addition, expected_result);
     }
 
@@ -385,7 +385,7 @@ mod tests {
         }
 
         // decrypt result: 5
-        let decrypted_addition = ElGamal::decrypt(&base, &sk);
+        let decrypted_addition = ElGamal::decrypt_decode(&base, &sk);
         assert_eq!(decrypted_addition, expected_result);
     }
 
@@ -406,7 +406,7 @@ mod tests {
         assert!(encrypted_five != re_encrypted_five);
 
         // check that decryption is still the same as the initial value
-        let decrypted_re_encryption = ElGamal::decrypt(&re_encrypted_five, &sk);
+        let decrypted_re_encryption = ElGamal::decrypt_decode(&re_encrypted_five, &sk);
         assert_eq!(decrypted_re_encryption, five);
     }
 
@@ -427,7 +427,7 @@ mod tests {
         assert!(encrypted_five != re_encrypted_addition);
 
         // check that decryption is still the same as the initial value
-        let decrypted_addition = ElGamal::decrypt(&re_encrypted_addition, &sk);
+        let decrypted_addition = ElGamal::decrypt_decode(&re_encrypted_addition, &sk);
         assert_eq!(decrypted_addition, five);
     }
 
@@ -445,7 +445,7 @@ mod tests {
         // option one: homomorphic addition with zero: 5 + 0 = 5
         let r_ = Random::get_random_less_than(&q);
         let re_encrypted_addition = ElGamal::re_encrypt_via_addition(&encrypted_five, &r_, &pk);
-        let decrypted_addition = ElGamal::decrypt(&re_encrypted_addition, &sk);
+        let decrypted_addition = ElGamal::decrypt_decode(&re_encrypted_addition, &sk);
         assert_eq!(decrypted_addition, five);
 
         // option two: re-encryption
@@ -453,7 +453,7 @@ mod tests {
         assert_eq!(re_encrypted_addition, re_encrypted_five);
 
         // check that both variants produce the same re-encryptions, when using the same random!
-        let decrypted_re_encryption = ElGamal::decrypt(&re_encrypted_five, &sk);
+        let decrypted_re_encryption = ElGamal::decrypt_decode(&re_encrypted_five, &sk);
         assert_eq!(decrypted_re_encryption, five);
 
         // check that both re-encryptions produce the same decrypted value
@@ -539,7 +539,7 @@ mod tests {
             assert!(encryptions.iter().all(|value| value.clone() != entry));
 
             // decrypt the entry
-            let decryption = ElGamal::decrypt(&entry, &sk);
+            let decryption = ElGamal::decrypt_decode(&entry, &sk);
             decryptions.push(decryption);
         }
 
