@@ -201,6 +201,34 @@ impl Helper {
         BigUint::from_bytes_be(&hash)
     }
 
+    pub fn hash_decryption_proof_inputs(
+        id: &[u8],
+        constant: &str,
+        h: &BigUint,
+        vec_e: Vec<Cipher>,
+        vec_c: Vec<BigUint>,
+        vec_t: Vec<BigUint>,
+    ) -> BigUint {
+        let hasher = Blake2b::new();
+        let mut hash = hasher
+            .chain(id)
+            .chain(constant.as_bytes())
+            .chain(h.to_bytes_be());
+
+        let hash_e = Helper::hash_vec_ciphers(vec_e);
+        hash = hash.chain(hash_e);
+
+        let hash_c = Helper::hash_vec_biguints(vec_c);
+        hash = hash.chain(hash_c);
+
+        let hash_vec_t = Helper::hash_vec_biguints(vec_t);
+        hash = hash.chain(hash_vec_t);
+
+        // final byte array of all chained hashes + transform back to BigUint
+        let digest = hash.finalize();
+        BigUint::from_bytes_be(&digest)
+    }
+
     /// Computes the hash of all inputs.
     ///
     /// Inputs:

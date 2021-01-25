@@ -11,6 +11,8 @@ pub struct KeyGenerationProof {
 }
 
 impl KeyGenerationProof {
+    /// GenKeyPairProof Algorithm 8.7 (CHVoteSpec 3.2)
+    ///
     /// Generates a proof of knowledge of a secret key (sk) that belongs to a public key (pk = g^sk) using the Schnorr protocol. It is a proof of knowledge of a discrete logarithm of x = log_g(g^x).
     ///
     /// Step by Step:
@@ -52,6 +54,8 @@ impl KeyGenerationProof {
         }
     }
 
+    /// CheckKeyPairProof Algorithm 8.8 (CHVoteSpec 3.2)
+    ///
     /// Verifies a proof of knowledge of a secret key (sk) that belongs to a public key (pk = g^sk) using the Schnorr protocol. It is a proof of knowledge of a discrete logarithm of x = log_g(g^x).
     ///
     /// Step by Step:
@@ -123,7 +127,7 @@ mod tests {
         let proof = KeyGenerationProof::generate(&params, &sk.x, &pk.h, &r, sealer_id);
 
         // verify the proof
-        let is_verified = KeyGenerationProof::verify(&params, &pk.h, &proof, sealer_id);
-        assert!(is_verified);
+        let is_correct = KeyGenerationProof::verify(&params, &pk.h, &proof, sealer_id);
+        assert!(is_correct);
     }
 }
