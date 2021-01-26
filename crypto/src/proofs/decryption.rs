@@ -4,7 +4,6 @@ use crate::{
 };
 use alloc::vec::Vec;
 use num_bigint::BigUint;
-use std::println;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub struct DecryptionProof {
@@ -20,7 +19,7 @@ impl DecryptionProof {
     /// Step by Step:
     /// 1. generate a "second" key pair (a,b) = (random value from Z_q, g^a mod p)
     /// 2. compute challenge
-    /// 3. compute d = a + c*sk
+    /// 3. compute d = a + c * sk
     pub fn generate(
         params: &ElGamalParams,
         sk: &BigUint,
@@ -41,36 +40,25 @@ impl DecryptionProof {
         let q = &params.q();
         let p = &params.p;
 
-        // number of items
-        let n = vec_e.len();
-
         // the commitment
         let t_0 = g.modpow(r, p);
-        println!("generate - t_0: {:?}", t_0);
 
         // get commitments for all encryptions
-        let mut vec_t: Vec<BigUint> = Vec::with_capacity(n + 1);
+        let mut vec_t: Vec<BigUint> = Vec::with_capacity(vec_e.len() + 1);
         vec_t.push(t_0);
 
         for e_i in vec_e.iter() {
             let t_i = e_i.a.modpow(r, p);
-            println!("generate - e_i.a: {:?}, t_i: {:?}", e_i.a, t_i);
             vec_t.push(t_i);
         }
 
         // compute challenge
         // hash public values (hash(unique_id, constant, pk, e, c, vec_t) mod q)
         let mut c = Helper::hash_decryption_proof_inputs(id, "decryption", pk, vec_e, vec_c, vec_t);
-
-        println!("c: {:?}, q: {:?}", c, q);
-
         c %= q;
 
         // compute the response: d = r - c * sk mod q
-        let c_sk = c.modmul(sk, q);
-        let d = r.modsub(&c_sk, q);
-        println!("generate - r: {:?}, c: {:?}, d: {:?}", r, c, d);
-        println!("");
+        let d = r.modsub(&c.modmul(sk, q), q);
 
         DecryptionProof {
             challenge: c,
@@ -106,9 +94,6 @@ impl DecryptionProof {
         let q = &params.q();
         let p = &params.p;
 
-        // number of items
-        let n = vec_e.len();
-
         // the proof
         let c = &proof.challenge;
         let d = &proof.response;
@@ -118,13 +103,12 @@ impl DecryptionProof {
         let pk_c = pk.modpow(&c, p);
         let g_d = g.modpow(d, p);
         let t_0 = pk_c.modmul(&g_d, p);
-        println!("verify - t_0: {:?}", t_0);
 
         // recompute all commitments for all encryptions
-        let mut recompute_vec_t: Vec<BigUint> = Vec::with_capacity(n + 1);
+        let mut recompute_vec_t: Vec<BigUint> = Vec::with_capacity(vec_e.len() + 1);
         recompute_vec_t.push(t_0);
 
-        for index in 0..n {
+        for index in 0..vec_e.len() {
             let a_i = &vec_e[index].a;
             let c_i = &vec_c[index];
 
@@ -132,16 +116,6 @@ impl DecryptionProof {
             let c_i_c = c_i.modpow(&c, p);
             let a_i_d = a_i.modpow(&d, p);
             let t_i = c_i_c.modmul(&a_i_d, p);
-            println!(
-                "verify - e_i.a: {:?}, c_i: {:?}, c: {:?}, c_i_c: {:?}, a_i_d: {:?}, t_{:?}: {:?}",
-                a_i,
-                c_i,
-                c,
-                c_i_c,
-                a_i_d,
-                index + 1,
-                t_i
-            );
             recompute_vec_t.push(t_i);
         }
 
@@ -156,7 +130,6 @@ impl DecryptionProof {
             recompute_vec_t,
         );
         recomputed_c %= q;
-        println!("verify - c: {:?}", recomputed_c);
 
         // verify that the challenges are the same
         &recomputed_c == c
@@ -166,53 +139,33 @@ impl DecryptionProof {
 #[cfg(test)]
 mod tests {
     use crate::{
-        encryption::ElGamal, helper::Helper, proofs::decryption::DecryptionProof, random::Random,
+        encryption::ElGamal,
+        helper::Helper,
+        proofs::decryption::DecryptionProof,
+        random::Random,
+        types::{ElGamalParams, ModuloOperations, PublicKey},
     };
     use alloc::vec::Vec;
     use num_bigint::BigUint;
-
-    #[test]
-    fn it_should_create_decryption_proof_tiny() {
-        let sealer_id = "Bob".as_bytes();
-        let (params, sk, pk) = Helper::setup_tiny_system();
-        let q = &params.q();
-        let r = BigUint::parse_bytes(b"B", 16).unwrap();
-
-        // get three encrypted values: 0, 1, 2
-        let encryptions = Random::generate_random_encryptions(&pk, q).to_vec();
-        let decryptions = encryptions
-            .iter()
-            .map(|cipher| ElGamal::decrypt(cipher, &sk))
-            .collect::<Vec<BigUint>>();
-
-        let proof = DecryptionProof::generate(
-            &params,
-            &sk.x,
-            &pk.h,
-            &r,
-            encryptions,
-            decryptions,
-            sealer_id,
-        );
-        assert!(proof);
-    }
+    use num_traits::{One, Zero};
 
     #[test]
     fn it_should_verify_decryption_proof() {
         let sealer_id = "Charlie".as_bytes();
-        let (params, sk, pk) = Helper::setup_tiny_system();
+        let (params, sk, pk) = Helper::setup_sm_system();
         let q = &params.q();
-        println!("setup - q: {}", q);
-        // let r = Random::get_random_less_than(q);
-        let r = BigUint::from(8u32);
+        let r = Random::get_random_less_than(q);
 
         // get three encrypted values: 0, 1, 2
         let encryptions = Random::generate_random_encryptions(&pk, q).to_vec();
+
+        // get partial decryptions -> only decrypt component a: g^r -> g^r^sk
         let decryptions = encryptions
             .iter()
-            .map(|cipher| ElGamal::decrypt(cipher, &sk))
+            .map(|cipher| ElGamal::partial_decrypt_a(cipher, &sk))
             .collect::<Vec<BigUint>>();
 
+        // create a proof for the partial decryptions
         let proof = DecryptionProof::generate(
             &params,
             &sk.x,
@@ -223,9 +176,119 @@ mod tests {
             sealer_id,
         );
 
-        // verify the proof
+        // verify that the proof is correct
         let is_correct =
             DecryptionProof::verify(&params, &pk.h, &proof, encryptions, decryptions, sealer_id);
         assert!(is_correct);
+    }
+
+    #[test]
+    fn it_should_verify_decryption_proof_multiple_partial_decryptions() {
+        // create system parameters
+        let params = ElGamalParams {
+            // 48bit key -> sm_system
+            p: BigUint::parse_bytes(b"B7E151629927", 16).unwrap(),
+            g: BigUint::parse_bytes(b"4", 10).unwrap(),
+            h: BigUint::parse_bytes(b"9", 10).unwrap(),
+        };
+        let q = &params.q();
+
+        // create bob's public and private key
+        let bob_id = "Bob".as_bytes();
+        let bob_sk_x = Random::get_random_less_than(q);
+        let (bob_pk, bob_sk) = Helper::generate_key_pair(&params, &bob_sk_x);
+
+        // create charlie's public and private key
+        let charlie_id = "Charlie".as_bytes();
+        let charlie_sk_x = Random::get_random_less_than(q);
+        let (charlie_pk, charlie_sk) = Helper::generate_key_pair(&params, &charlie_sk_x);
+
+        // create common public key
+        let combined_pk = PublicKey {
+            h: bob_pk.h.modmul(&charlie_pk.h, &bob_pk.params.p),
+            params: params.clone(),
+        };
+
+        // get three encrypted values: 0, 1, 2 using the generated common key
+        let encryptions = Random::generate_random_encryptions(&combined_pk, q).to_vec();
+
+        // get bob's partial decryptions
+        let bob_partial_decrytpions = encryptions
+            .iter()
+            .map(|cipher| ElGamal::partial_decrypt_a(cipher, &bob_sk))
+            .collect::<Vec<BigUint>>();
+
+        // create bob's proof
+        let r = Random::get_random_less_than(q);
+        let bob_proof = DecryptionProof::generate(
+            &params,
+            &bob_sk.x,
+            &bob_pk.h,
+            &r,
+            encryptions.clone(),
+            bob_partial_decrytpions.clone(),
+            bob_id,
+        );
+
+        // verify that bob's proof is correct
+        let bob_proof_is_correct = DecryptionProof::verify(
+            &params,
+            &bob_pk.h,
+            &bob_proof,
+            encryptions.clone(),
+            bob_partial_decrytpions.clone(),
+            bob_id,
+        );
+        assert!(bob_proof_is_correct);
+
+        // get charlie's partial decryptions
+        let charlie_partial_decrytpions = encryptions
+            .iter()
+            .map(|cipher| ElGamal::partial_decrypt_a(cipher, &charlie_sk))
+            .collect::<Vec<BigUint>>();
+
+        // create charlie's proof
+        let r = Random::get_random_less_than(q);
+        let charlie_proof = DecryptionProof::generate(
+            &params,
+            &charlie_sk.x,
+            &charlie_pk.h,
+            &r,
+            encryptions.clone(),
+            charlie_partial_decrytpions.clone(),
+            charlie_id,
+        );
+
+        // verify that charlie's proof is correct
+        let charlie_proof_is_correct = DecryptionProof::verify(
+            &params,
+            &charlie_pk.h,
+            &charlie_proof,
+            encryptions.clone(),
+            charlie_partial_decrytpions.clone(),
+            charlie_id,
+        );
+        assert!(charlie_proof_is_correct);
+
+        // combine partial decrypted components a
+        let combined_decryptions = ElGamal::combine_partial_decrypted_as(
+            vec![bob_partial_decrytpions, charlie_partial_decrytpions],
+            &params.p,
+        );
+
+        // retrieve the plaintext votes
+        // by combining the decrypted components a with their decrypted components b
+        let iterator = encryptions.iter().zip(combined_decryptions.iter());
+        let plaintexts = iterator
+            .map(|(cipher, decrypted_a)| {
+                ElGamal::partial_decrypt_b(&cipher.b, decrypted_a, &params.p)
+            })
+            .collect::<Vec<BigUint>>();
+
+        // check that at least one value is 0, 1, 2
+        assert!(plaintexts.len() == 3, "there should be three plaintexts");
+        assert!(plaintexts.iter().any(|val| val == &BigUint::zero()));
+        assert!(plaintexts.iter().any(|val| val == &BigUint::one()));
+        assert!(plaintexts.iter().any(|val| val == &BigUint::from(2u32)));
     }
 }

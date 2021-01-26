@@ -48,6 +48,12 @@ impl Random {
         [enc_zero, enc_one, enc_two]
     }
 
+    /// Shuffles a vector of encryptions (permuatation + re-encryption)
+    ///
+    /// Arguments
+    /// * `pk` - public key
+    /// * `q` - the group modulus
+    /// * `encryptions` - a vector of encrypted votes
     pub fn generate_shuffle(
         pk: &PublicKey,
         q: &BigUint,
@@ -68,6 +74,10 @@ impl Random {
         ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
     }
 
+    /// Generates a permutation of size: `size`
+    ///
+    /// Arguments
+    /// * `size` - size of the permuatation
     pub fn generate_permutation(size: &usize) -> Vec<usize> {
         assert!(*size > 0, "size must be greater than zero!");
 
@@ -101,7 +111,10 @@ impl Random {
         permutation
     }
 
-    // generate a random value: 0 < x < number
+    /// Generates a random value: 0 < x < number
+    ///
+    /// Arguments
+    /// * `number` - upper limit
     pub fn get_random_less_than(number: &BigUint) -> BigUint {
         assert!(*number > BigUint::zero(), "q must be greater than zero!");
         let one = BigUint::one();
@@ -112,6 +125,10 @@ impl Random {
         rng.gen_biguint(bit_size) % number
     }
 
+    /// Generates a random prime
+    ///
+    /// Arguments
+    /// * `bit_size` - size of prime
     pub fn generate_random_prime(bit_size: u64) -> BigUint {
         let mut rng = rand::thread_rng();
         let mut candidate = rng.gen_biguint(bit_size);
@@ -127,8 +144,9 @@ impl Random {
         candidate
     }
 
-    // Miller-Rabin Primality Test
-    // https://en.wikipedia.org/wiki/Miller-Rabin_primality_test
+    /// Miller-Rabin Primality Test
+    ///
+    /// https://en.wikipedia.org/wiki/Miller-Rabin_primality_test
     pub fn is_prime(num: &BigUint, certainty: u32) -> bool {
         let zero: BigUint = BigUint::zero();
         let one: BigUint = BigUint::one();

@@ -8,6 +8,14 @@ pub struct Helper;
 
 impl Helper {
     pub fn generate_key_pair(params: &ElGamalParams, r: &BigUint) -> (PublicKey, PrivateKey) {
+        assert!(
+            Self::is_generator(&params.p, &params.q(), &params.h),
+            "h is not a generator!"
+        );
+        assert!(
+            Self::is_generator(&params.p, &params.q(), &params.g),
+            "g is not a generator!"
+        );
         let sk = PrivateKey {
             params: params.clone(),
             x: r.clone(),
@@ -388,24 +396,26 @@ mod tests {
     #[test]
     fn it_should_create_a_key_pair() {
         let params = ElGamalParams {
-            p: BigUint::from(7u32),
-            // and, therefore, q -> 3
-            g: BigUint::from(2u32),
-            h: BigUint::from(3u32),
+            p: BigUint::from(23u32),
+            // and, therefore, q -> 11
+            g: BigUint::from(4u32),
+            h: BigUint::from(9u32),
         };
 
-        // random value must be: r ∈ Zq = r ∈ {0,1,2}
+        // random value must be: r ∈ Zq = r ∈ {0,1,2,3,4,5,6,7,8,9,10}
         let r = BigUint::from(2u32);
 
         // create public/private key pair
         let (pk, sk) = Helper::generate_key_pair(&params, &r);
 
-        assert_eq!(pk.params.p, BigUint::from(7u32));
-        assert_eq!(pk.params.g, BigUint::from(2u32));
-        assert_eq!(pk.params.q(), BigUint::from(3u32));
+        assert_eq!(pk.params.p, BigUint::from(23u32));
+        assert_eq!(pk.params.g, BigUint::from(4u32));
+        assert_eq!(pk.params.h, BigUint::from(9u32));
+        assert_eq!(pk.params.q(), BigUint::from(11u32));
 
-        assert_eq!(sk.params.p, BigUint::from(7u32));
-        assert_eq!(sk.params.g, BigUint::from(2u32));
+        assert_eq!(sk.params.p, BigUint::from(23u32));
+        assert_eq!(sk.params.g, BigUint::from(4u32));
+        assert_eq!(sk.params.h, BigUint::from(9u32));
         assert_eq!(sk.x, BigUint::from(2u32));
 
         // verify that h == g^x mod p
