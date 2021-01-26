@@ -26,21 +26,23 @@ pub mod keys;
 
 use crate::helpers::{
     assertions::{
-        ensure_not_a_voting_authority, ensure_sealer, ensure_vote_exists, ensure_voting_authority,
+        ensure_not_a_voting_authority, ensure_sealer, ensure_vote_exists,
+        ensure_voting_authority,
     },
     ballot::store_ballot,
     keys::{combine_shares, get_public_params},
     phase::set_phase,
 };
 use crate::types::{
-    Ballot, Cipher, DecryptedShareProof, IdpPublicKey, PublicKey as SubstratePK, PublicKeyShare,
-    PublicKeyShareProof, PublicParameters, Tally, Title, Topic, TopicId, Vote, VoteId, VotePhase,
+    Ballot, Cipher, DecryptedShareProof, IdpPublicKey, PublicKey as SubstratePK,
+    PublicKeyShare, PublicKeyShareProof, PublicParameters, Tally, Title, Topic, TopicId,
+    Vote, VoteId, VotePhase,
 };
 use codec::{Decode, Encode};
 use crypto::proofs::keygen::KeyGenerationProof;
 use frame_support::{
-    debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult, ensure,
-    weights::Pays,
+    debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
+    ensure, weights::Pays,
 };
 use frame_system::{
     self as system, ensure_signed,
@@ -358,7 +360,7 @@ decl_module! {
         /// Register a voter.
         #[weight = (10_000, Pays::No)]
         fn register_voter(origin, signature: Vec<u8>) -> DispatchResult {
-            let who: T::AccountId = ensure_signed(origin)?;
+            // let who: T::AccountId = ensure_signed(origin)?;
 
             // TODO: implement
 

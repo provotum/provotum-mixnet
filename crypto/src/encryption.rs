@@ -173,10 +173,10 @@ impl ElGamal {
     /// * `p` - The group modulus p (BigUint)
     pub fn combine_partial_decrypted_as(vec_vec_a: Vec<Vec<BigUint>>, p: &BigUint) -> Vec<BigUint> {
         assert!(
-            vec_vec_a.len() > 0,
+            !vec_vec_a.is_empty(),
             "there must be at least one participant."
         );
-        assert!(vec_vec_a[0].len() > 0, "there must be at least one vote.");
+        assert!(!vec_vec_a[0].is_empty(), "there must be at least one vote.");
         let mut combined_decrypted_as = Vec::with_capacity(vec_vec_a[0].len());
 
         // outer loop: all partial decrypted a for all submitted votes -> size = # of votes
@@ -200,7 +200,7 @@ impl ElGamal {
     /// * `m` - The message  (BigUint)
     /// * `g` - The generator of the cyclic group Z_p (BigUint)
     /// * `p` - The group modulus p (BigUint)
-    fn encode_message(m: &BigUint, g: &BigUint, p: &BigUint) -> BigUint {
+    pub fn encode_message(m: &BigUint, g: &BigUint, p: &BigUint) -> BigUint {
         g.modpow(m, p)
     }
 
@@ -212,7 +212,7 @@ impl ElGamal {
     /// * `encoded_message` - The encoded message: g^m (BigUint)
     /// * `g` - The generator of the cyclic group Z_p (BigUint)
     /// * `p` - The group modulus p (BigUint)
-    fn decode_message(encoded_message: &BigUint, g: &BigUint, p: &BigUint) -> BigUint {
+    pub fn decode_message(encoded_message: &BigUint, g: &BigUint, p: &BigUint) -> BigUint {
         let one = 1u32;
         let mut message = BigUint::zero();
 

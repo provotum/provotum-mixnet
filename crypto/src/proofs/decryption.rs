@@ -291,4 +291,121 @@ mod tests {
         assert!(plaintexts.iter().any(|val| val == &BigUint::one()));
         assert!(plaintexts.iter().any(|val| val == &BigUint::from(2u32)));
     }
+
+    #[test]
+    fn it_should_verify_decryption_proof_multiple_partial_decryptions_encoded() {
+        // create system parameters
+        let params = ElGamalParams {
+            // 48bit key -> sm_system
+            p: BigUint::parse_bytes(b"B7E151629927", 16).unwrap(),
+            g: BigUint::parse_bytes(b"4", 10).unwrap(),
+            h: BigUint::parse_bytes(b"9", 10).unwrap(),
+        };
+        let q = &params.q();
+
+        // create bob's public and private key
+        let bob_id = "Bob".as_bytes();
+        let bob_sk_x = Random::get_random_less_than(q);
+        let (bob_pk, bob_sk) = Helper::generate_key_pair(&params, &bob_sk_x);
+
+        // create charlie's public and private key
+        let charlie_id = "Charlie".as_bytes();
+        let charlie_sk_x = Random::get_random_less_than(q);
+        let (charlie_pk, charlie_sk) = Helper::generate_key_pair(&params, &charlie_sk_x);
+
+        // create common public key
+        let combined_pk = PublicKey {
+            h: bob_pk.h.modmul(&charlie_pk.h, &bob_pk.params.p),
+            params: params.clone(),
+        };
+
+        // get three encrypted values: 0, 1, 2 using the generated common key
+        let encryptions = Random::generate_random_encryptions_encoded(&combined_pk, q).to_vec();
+
+        // get bob's partial decryptions
+        let bob_partial_decrytpions = encryptions
+            .iter()
+            .map(|cipher| ElGamal::partial_decrypt_a(cipher, &bob_sk))
+            .collect::<Vec<BigUint>>();
+
+        // create bob's proof
+        let r = Random::get_random_less_than(q);
+        let bob_proof = DecryptionProof::generate(
+            &params,
+            &bob_sk.x,
+            &bob_pk.h,
+            &r,
+            encryptions.clone(),
+            bob_partial_decrytpions.clone(),
+            bob_id,
+        );
+
+        // verify that bob's proof is correct
+        let bob_proof_is_correct = DecryptionProof::verify(
+            &params,
+            &bob_pk.h,
+            &bob_proof,
+            encryptions.clone(),
+            bob_partial_decrytpions.clone(),
+            bob_id,
+        );
+        assert!(bob_proof_is_correct);
+
+        // get charlie's partial decryptions
+        let charlie_partial_decrytpions = encryptions
+            .iter()
+            .map(|cipher| ElGamal::partial_decrypt_a(cipher, &charlie_sk))
+            .collect::<Vec<BigUint>>();
+
+        // create charlie's proof
+        let r = Random::get_random_less_than(q);
+        let charlie_proof = DecryptionProof::generate(
+            &params,
+            &charlie_sk.x,
+            &charlie_pk.h,
+            &r,
+            encryptions.clone(),
+            charlie_partial_decrytpions.clone(),
+            charlie_id,
+        );
+
+        // verify that charlie's proof is correct
+        let charlie_proof_is_correct = DecryptionProof::verify(
+            &params,
+            &charlie_pk.h,
+            &charlie_proof,
+            encryptions.clone(),
+            charlie_partial_decrytpions.clone(),
+            charlie_id,
+        );
+        assert!(charlie_proof_is_correct);
+
+        // combine partial decrypted components a
+        let combined_decryptions = ElGamal::combine_partial_decrypted_as(
+            vec![bob_partial_decrytpions, charlie_partial_decrytpions],
+            &params.p,
+        );
+
+        // retrieve the plaintext votes
+        // by combining the decrypted components a with their decrypted components b
+        let iterator = encryptions.iter().zip(combined_decryptions.iter());
+        let plaintexts = iterator
+            .map(|(cipher, decrypted_a)| {
+                ElGamal::partial_decrypt_b(&cipher.b, decrypted_a, &params.p)
+            })
+            .collect::<Vec<BigUint>>();
+
+        // the votes are still encoded g^m at this point
+        // decode the decrypted votes in the following step
+        let plaintexts = plaintexts
+            .iter()
+            .map(|encoded| ElGamal::decode_message(encoded, &params.g, &params.p))
+            .collect::<Vec<BigUint>>();
+
+        // check that at least one value is 0, 1, 2
+        assert!(plaintexts.len() == 3, "there should be three plaintexts");
+        assert!(plaintexts.iter().any(|val| val == &BigUint::zero()));
+        assert!(plaintexts.iter().any(|val| val == &BigUint::one()));
+        assert!(plaintexts.iter().any(|val| val == &BigUint::from(2u32)));
+    }
 }

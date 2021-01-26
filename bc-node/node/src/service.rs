@@ -205,7 +205,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
         task_manager: &mut task_manager,
         transaction_pool: transaction_pool.clone(),
         telemetry_connection_sinks: telemetry_connection_sinks.clone(),
-        rpc_extensions_builder: rpc_extensions_builder,
+        rpc_extensions_builder,
         on_demand: None,
         remote_blockchain: None,
         backend,
@@ -287,7 +287,11 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
             sc_finality_grandpa::run_grandpa_voter(grandpa_config)?,
         );
     } else {
-        sc_finality_grandpa::setup_disabled_grandpa(client, &inherent_data_providers, network)?;
+        sc_finality_grandpa::setup_disabled_grandpa(
+            client,
+            &inherent_data_providers,
+            network,
+        )?;
     }
 
     network_starter.start_network();
