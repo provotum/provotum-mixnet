@@ -1,7 +1,7 @@
 use crate::mock::*;
 use crate::types::{
-    Ballot, Cipher, PublicKey as SubstratePK, PublicParameters, ShuffleProof as Proof, VotePhase,
-    Wrapper,
+    Ballot, Cipher, PublicKey as SubstratePK, PublicParameters, ShuffleProof as Proof,
+    VotePhase, Wrapper,
 };
 use crate::*;
 use codec::Decode;
@@ -9,7 +9,8 @@ use crypto::{
     encryption::ElGamal,
     helper::Helper,
     types::{
-        Cipher as BigCipher, ElGamalParams, ModuloOperations, PrivateKey, PublicKey as ElGamalPK,
+        Cipher as BigCipher, ElGamalParams, ModuloOperations, PrivateKey,
+        PublicKey as ElGamalPK,
     },
 };
 use frame_support::{assert_err, assert_ok};
@@ -23,7 +24,8 @@ fn get_voting_authority() -> Origin {
     // use Alice as VotingAuthority
     let account_id: [u8; 32] =
         hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
-    let account = <TestRuntime as system::Trait>::AccountId::decode(&mut &account_id[..]).unwrap();
+    let account =
+        <TestRuntime as system::Trait>::AccountId::decode(&mut &account_id[..]).unwrap();
     Origin::signed(account)
 }
 
@@ -98,17 +100,22 @@ fn setup_vote(params: PublicParameters) -> (Vec<u8>, Vec<u8>) {
     (vote_id, topic_id)
 }
 
-fn shuffle_proof_test(vote_id: Vec<u8>, topic_id: Vec<u8>, pk: ElGamalPK, encoded: bool) -> bool {
+fn shuffle_proof_test(
+    vote_id: Vec<u8>,
+    topic_id: Vec<u8>,
+    pk: ElGamalPK,
+    encoded: bool,
+) -> bool {
     // store created public key and public parameters
     setup_public_key(vote_id.clone(), pk.clone().into());
 
     let messages = vec![
-        BigUint::from(0u32),
         BigUint::from(1u32),
-        BigUint::from(2u32),
-        BigUint::from(0u32),
+        BigUint::from(3u32),
+        BigUint::from(4u32),
         BigUint::from(1u32),
-        BigUint::from(2u32),
+        BigUint::from(3u32),
+        BigUint::from(4u32),
     ];
 
     // encrypt the message -> encrypted message
@@ -140,7 +147,8 @@ fn shuffle_proof_test(vote_id: Vec<u8>, topic_id: Vec<u8>, pk: ElGamalPK, encode
     }
 
     // get the encrypted votes
-    let big_ciphers_from_chain: Vec<BigCipher> = Wrapper(OffchainModule::ciphers(&topic_id)).into();
+    let big_ciphers_from_chain: Vec<BigCipher> =
+        Wrapper(OffchainModule::ciphers(&topic_id)).into();
     assert!(big_ciphers_from_chain.len() > 0);
 
     // shuffle the votes
@@ -224,7 +232,8 @@ fn test_store_public_key() {
         assert_ok!(public_key_storage);
 
         // fetch the public key from the chain
-        let pk_from_chain: ElGamalPK = OffchainModule::public_key(vote_id).unwrap().into();
+        let pk_from_chain: ElGamalPK =
+            OffchainModule::public_key(vote_id).unwrap().into();
         assert_eq!(pk_from_chain, pk);
     });
 }
@@ -405,7 +414,11 @@ fn test_cast_ballot_no_vote_exists() {
         let answers = vec![(topic_id, cipher)];
         let ballot: Ballot = Ballot { answers };
         assert_err!(
-            OffchainModule::cast_ballot(Origin::signed(acct), vote_id.clone(), ballot.clone()),
+            OffchainModule::cast_ballot(
+                Origin::signed(acct),
+                vote_id.clone(),
+                ballot.clone()
+            ),
             Error::<TestRuntime>::VoteDoesNotExist
         );
     });
@@ -593,7 +606,8 @@ fn test_get_random_bytes() {
 fn test_get_random_number_less_than() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        let upper_bound: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
+        let upper_bound: BigUint =
+            BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
         let random = OffchainModule::get_random_biguint_less_than(&upper_bound).unwrap();
         assert!(random < upper_bound);
     });
@@ -614,7 +628,8 @@ fn test_get_random_number_less_than_should_panic_number_is_zero() {
 fn test_get_random_numbers_less_than() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        let upper_bound: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
+        let upper_bound: BigUint =
+            BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
         let randoms: Vec<BigUint> =
             OffchainModule::get_random_biguints_less_than(&upper_bound, 10).unwrap();
         assert_eq!(randoms.len(), 10);
@@ -630,7 +645,8 @@ fn test_get_random_numbers_less_than() {
 fn test_get_random_numbers_less_than_should_panic_number_is_zero() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        let upper_bound: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
+        let upper_bound: BigUint =
+            BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
         OffchainModule::get_random_biguints_less_than(&upper_bound, 0).expect_err(
             "The returned value should be: '<Error<T>>::RandomnessUpperBoundZeroError'",
         );
@@ -642,7 +658,8 @@ fn test_get_random_bigunint_range() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         let lower: BigUint = BigUint::parse_bytes(b"0", 10).unwrap();
-        let upper: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
+        let upper: BigUint =
+            BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
         let value = OffchainModule::get_random_bigunint_range(&lower, &upper).unwrap();
 
         assert!(value < upper);
@@ -712,8 +729,9 @@ fn test_generate_permutation_size_zero_error() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         let size = 0;
-        OffchainModule::generate_permutation(size)
-            .expect_err("The returned value should be: '<Error<T>>::PermutationSizeZeroError'");
+        OffchainModule::generate_permutation(size).expect_err(
+            "The returned value should be: '<Error<T>>::PermutationSizeZeroError'",
+        );
     });
 }
 
@@ -845,7 +863,8 @@ fn store_real_size_vote_works_encoded() {
         // encrypt the message -> encrypted message
         // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
         let message = BigUint::from(1u32);
-        let random = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+        let random =
+            BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
         let big_cipher: BigCipher = ElGamal::encrypt_encode(&message, &random, &pk);
 
         // transform the ballot into a from that the blockchain can handle
@@ -888,7 +907,8 @@ fn store_real_size_vote_works() {
         // encrypt the message -> encrypted message
         // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
         let message = BigUint::from(1u32);
-        let random = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+        let random =
+            BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
         let big_cipher: BigCipher = ElGamal::encrypt(&message, &random, &pk);
 
         // transform the ballot into a from that the blockchain can handle
@@ -953,7 +973,8 @@ fn test_shuffle_ciphers_encoded() {
 
             // transform the ballot into a from that the blockchain can handle
             // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
-            let cipher: Cipher = ElGamal::encrypt_encode(&messages[index], &random, &pk).into();
+            let cipher: Cipher =
+                ElGamal::encrypt_encode(&messages[index], &random, &pk).into();
             let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
             let ballot: Ballot = Ballot { answers };
 
@@ -1000,9 +1021,9 @@ fn test_shuffle_ciphers() {
 
         // create the public key
         let messages = [
+            BigUint::from(1u32),
+            BigUint::from(3u32),
             BigUint::from(5u32),
-            BigUint::from(10u32),
-            BigUint::from(15u32),
         ];
 
         // encrypt the message -> encrypted message
@@ -1065,8 +1086,9 @@ fn test_shuffle_ciphers_pk_does_not_exist() {
         let topic_id = "Moritz for President?".as_bytes().to_vec();
         let vote_id = "20201212".as_bytes().to_vec();
         // try to shuffle the ballots -> public key doesn't exist yet
-        OffchainModule::shuffle_ciphers(&vote_id, &topic_id)
-            .expect_err("The returned value should be: 'Error::<T>::PublicKeyNotExistsError'");
+        OffchainModule::shuffle_ciphers(&vote_id, &topic_id).expect_err(
+            "The returned value should be: 'Error::<T>::PublicKeyNotExistsError'",
+        );
     });
 }
 
@@ -1080,8 +1102,9 @@ fn test_shuffle_ciphers_no_ballots() {
         setup_public_key(vote_id.clone(), pk.clone().into());
 
         // try -> to shuffle the ballots (which don't exist)
-        OffchainModule::shuffle_ciphers(&vote_id, &topic_id)
-            .expect_err("The returned value should be: 'Error::<T>::ShuffleCiphersSizeZeroError'");
+        OffchainModule::shuffle_ciphers(&vote_id, &topic_id).expect_err(
+            "The returned value should be: 'Error::<T>::ShuffleCiphersSizeZeroError'",
+        );
     });
 }
 
@@ -1465,7 +1488,8 @@ fn test_combine_public_key_shares() {
                 .modmul(&BigUint::from_bytes_be(&charlie_key.pk), &params.p),
             params: params.clone(),
         };
-        let pk_from_chain: ElGamalPK = OffchainModule::public_key(vote_id).unwrap().into();
+        let pk_from_chain: ElGamalPK =
+            OffchainModule::public_key(vote_id).unwrap().into();
         assert_eq!(pk_from_chain, pk);
     });
 }

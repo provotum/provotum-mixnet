@@ -156,7 +156,7 @@ mod tests {
         let q = &params.q();
         let r = Random::get_random_less_than(q);
 
-        // get three encrypted values: 0, 1, 2
+        // get three encrypted values: 1, 3, 5
         let encryptions = Random::generate_random_encryptions(&pk, q).to_vec();
 
         // get partial decryptions -> only decrypt component a: g^r -> g^r^sk
@@ -209,7 +209,7 @@ mod tests {
             params: params.clone(),
         };
 
-        // get three encrypted values: 0, 1, 2 using the generated common key
+        // get three encrypted values: 1, 3, 5 using the generated common public key
         let encryptions = Random::generate_random_encryptions(&combined_pk, q).to_vec();
 
         // get bob's partial decryptions
@@ -285,11 +285,11 @@ mod tests {
             })
             .collect::<Vec<BigUint>>();
 
-        // check that at least one value is 0, 1, 2
+        // check that at least one value is 1, 3, 5
         assert!(plaintexts.len() == 3, "there should be three plaintexts");
-        assert!(plaintexts.iter().any(|val| val == &BigUint::zero()));
         assert!(plaintexts.iter().any(|val| val == &BigUint::one()));
-        assert!(plaintexts.iter().any(|val| val == &BigUint::from(2u32)));
+        assert!(plaintexts.iter().any(|val| val == &BigUint::from(3u32)));
+        assert!(plaintexts.iter().any(|val| val == &BigUint::from(5u32)));
     }
 
     #[test]
@@ -319,7 +319,7 @@ mod tests {
             params: params.clone(),
         };
 
-        // get three encrypted values: 0, 1, 2 using the generated common key
+        // get three encrypted values: 0, 1, 2 using the generated common public key
         let encryptions = Random::generate_random_encryptions_encoded(&combined_pk, q).to_vec();
 
         // get bob's partial decryptions

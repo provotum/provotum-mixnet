@@ -6,7 +6,7 @@ use crypto::{
     types::{Cipher, PublicKey},
 };
 use num_bigint::BigUint;
-use num_traits::{One, Zero};
+use num_traits::One;
 
 fn setup_shuffling(
     nr_of_votes: usize,
@@ -15,19 +15,19 @@ fn setup_shuffling(
     let (_, _, pk) = Helper::setup_lg_system();
     let q = pk.params.q();
 
-    // encryption of zero and one
-    let zero = BigUint::zero();
+    // encryption of three and one
+    let three = BigUint::from(3u32);
     let r = BigUint::parse_bytes(b"1234", 10).unwrap();
     let one = BigUint::one();
     let r_ = BigUint::parse_bytes(b"4321", 10).unwrap();
-    let enc_zero: Cipher;
+    let enc_three: Cipher;
     let enc_one: Cipher;
 
     if encoded {
-        enc_zero = ElGamal::encrypt_encode(&zero, &r, &pk);
+        enc_three = ElGamal::encrypt_encode(&three, &r, &pk);
         enc_one = ElGamal::encrypt_encode(&one, &r_, &pk);
     } else {
-        enc_zero = ElGamal::encrypt(&zero, &r, &pk);
+        enc_three = ElGamal::encrypt(&three, &r, &pk);
         enc_one = ElGamal::encrypt(&one, &r_, &pk);
     }
 
@@ -45,7 +45,7 @@ fn setup_shuffling(
         randoms.push(random);
 
         if i % 2 == 0 {
-            encryptions.push(enc_zero.clone());
+            encryptions.push(enc_three.clone());
         } else {
             encryptions.push(enc_one.clone());
         }

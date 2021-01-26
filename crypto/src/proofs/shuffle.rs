@@ -439,7 +439,7 @@ mod tests {
         let p = &pk.params.p;
         let params = &pk.params;
 
-        // generates a shuffle of three random encryptions of values: zero, one, two
+        // generates a shuffle of three random encryptions of values: 1, 3, 5
         let encryptions = Random::generate_random_encryptions(&pk, &pk.params.q()).to_vec();
         let shuffle = Random::generate_shuffle(&pk, &pk.params.q(), encryptions.clone());
 

@@ -45,7 +45,12 @@ impl ElGamal {
     pub fn encrypt(m: &BigUint, r: &BigUint, pk: &PublicKey) -> Cipher {
         let g = &pk.params.g;
         let p = &pk.params.p;
+        let q = &pk.params.q();
         let h = &pk.h;
+
+        // perform quadratic residue check: m^q mod p == 1
+        // to ensure DDH is given
+        assert!(m.modpow(q, p) == BigUint::one());
 
         // a = g^r
         let a = g.modpow(r, p);
@@ -763,11 +768,11 @@ mod tests {
     fn it_should_shuffle_a_list_of_encrypted_votes() {
         let (params, sk, pk) = Helper::setup_md_system();
         let q = params.q();
-        let zero = BigUint::zero();
         let one = BigUint::one();
-        let two = BigUint::from(2u32);
+        let three = BigUint::from(3u32);
+        let five = BigUint::from(5u32);
 
-        // get three encrypted values: 0, 1, 2
+        // get three encrypted values: 1, 3, 5
         let encryptions = Random::generate_random_encryptions(&pk, &q);
 
         // create three random values < q
@@ -810,10 +815,10 @@ mod tests {
             decryptions.push(decryption);
         }
 
-        // check that at least one value is 0, 1, 2
-        assert!(decryptions.iter().any(|value| value.clone() == zero));
+        // check that at least one value is 1, 3, 5
         assert!(decryptions.iter().any(|value| value.clone() == one));
-        assert!(decryptions.iter().any(|value| value.clone() == two));
+        assert!(decryptions.iter().any(|value| value.clone() == three));
+        assert!(decryptions.iter().any(|value| value.clone() == five));
     }
 
     #[test]
