@@ -1,14 +1,14 @@
 use crate::types::{Cipher, ModuloOperations, PrivateKey, PublicKey};
 use alloc::vec::Vec;
 use num_bigint::BigUint;
-use num_traits::Zero;
+use num_traits::{One, Zero};
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub struct ElGamal;
 
 impl ElGamal {
     /// Returns an ElGamal Encryption of a message. The message encoded such that additive homomorphic operations are possible i.e. g^m_1 * g^m_2 = g^(m_1 + m_2)
-    /// - (a, b) = (g^r, h^r * g^m)
+    /// - (a, b) = (g^r, pk.h^r * g^m)
     ///
     /// ## Arguments
     ///
@@ -35,13 +35,13 @@ impl ElGamal {
 
     /// Returns an ElGamal Encryption of a message.
     /// NOTE! No message encoding done! If message encoding is required use: `encrypt_encode`
-    /// - (a, b) = (g^r, h^r * m)
+    /// - (a, b) = (g^r, pk.h^r * m)
     ///
     /// ## Arguments
     ///
     /// * `m`  - The message (BigUint)
-    /// * `r`  - The random number used to encrypt_encode the vote
-    /// * `pk` - The public key used to encrypt_encode the vote
+    /// * `r`  - The random number used to encrypt the vote
+    /// * `pk` - The public key used to encrypt the vote
     pub fn encrypt(m: &BigUint, r: &BigUint, pk: &PublicKey) -> Cipher {
         let g = &pk.params.g;
         let p = &pk.params.p;
@@ -52,7 +52,7 @@ impl ElGamal {
 
         // b = h^r * m
         let h_pow_r = h.modpow(r, p);
-        let b = h_pow_r.modmul(&m, p);
+        let b = h_pow_r.modmul(m, p);
 
         Cipher { a, b }
     }
@@ -60,7 +60,7 @@ impl ElGamal {
     /// Returns the plaintext contained in an ElGamal Encryption.
     /// Decrypts the ciphertext and decodes the result.
     /// Important! Requires that the encryption was done using `encrypt_encode`.
-    /// - mh = b * (a^x)^-1
+    /// - mh = b * (a^sk.x)^-1
     /// - m = log mh = log g^m
     ///
     /// ## Arguments
@@ -90,8 +90,7 @@ impl ElGamal {
 
     /// Returns the plaintext contained in an ElGamal Encryption.
     /// NOTE! This function does not decode the message. Either it is not required or you must do it manually using `decode`.
-    /// - mh = b * (a^x)^-1
-    /// - m = log mh = log g^m
+    /// - m = b * (a^sk.x)^-1
     ///
     /// ## Arguments
     ///
@@ -112,6 +111,85 @@ impl ElGamal {
 
         // b = m * h^r -> m = b * s^-1
         b.modmul(&s_1, p)
+    }
+
+    /// Similar to GetDecryptions Algorithm 8.49 (CHVoteSpec 3.2)
+    /// Computes the partial decryption of a given encryption e using a share sk of the private decryption key.
+    ///
+    /// Partially decrypts an ElGamal Encryption.
+    /// Returns the decrypted part: a (g^r) -> a^sk
+    ///
+    /// ## Arguments
+    ///
+    /// * `cipher` - The ElGamal Encryption (a: BigUint, b: BigUint)
+    /// * `sk`     - The private key used to decrypt the vote
+    pub fn partial_decrypt_a(cipher: &Cipher, sk: &PrivateKey) -> BigUint {
+        let a = &cipher.a;
+        let p = &sk.params.p;
+        let x = &sk.x;
+
+        a.modpow(x, p)
+    }
+
+    /// Similar to GetVotes Algorithm 8.53 (CHVoteSpec 3.2)
+    /// Computes the decrypted plaintext vote m by deducting the combined partial decryptions vec_a (== decrypted_a) from the left-hand side b_i of the ElGamal Encryption e = (a_i, b_i)
+    ///
+    /// Partially decrypts an ElGamal Encryption.
+    /// Returns the decrypted part: a (g^r) -> a^sk
+    ///
+    /// ## Arguments
+    ///
+    /// * `b` - The component b of an ElGamal Encryption (a: BigUint, b: BigUint)
+    /// * `decrypted_a` - The decrypted component a of an ElGamal Encryption
+    /// * `p` - The group modulus p (BigUint)
+    pub fn partial_decrypt_b(b: &BigUint, decrypted_a: &BigUint, p: &BigUint) -> BigUint {
+        let s_1 = decrypted_a.invmod(p).expect("cannot compute mod_inverse!");
+
+        // b = m * h^r -> m = b * s^-1
+        b.modmul(&s_1, p)
+    }
+
+    /// Similar to GetCombinedDecryptions Algorithm 8.52 (CHVoteSpec 3.2)
+    ///
+    /// Combines a vector of paritially decrypted a compoents of Cipher { a, b }
+    /// Returns the decrypted part a i.e. a multiplication of all partially decrypted parts
+    ///
+    /// ## Arguments
+    ///
+    /// * `vec_a` - A vector of partial decryptions of component a: Cipher { a, b }
+    /// * `p` - The group modulus p (BigUint)
+    pub fn combine_partial_decrypted_a(vec_a: Vec<BigUint>, p: &BigUint) -> BigUint {
+        vec_a
+            .iter()
+            .fold(BigUint::one(), |sum, value| sum.modmul(value, p))
+    }
+
+    /// Similar to GetCombinedDecryptions Algorithm 8.52 (CHVoteSpec 3.2)
+    /// Similar to `combine_partial_decrypted_a` but on a vector level (all encryptions at once).
+    ///
+    /// ## Arguments
+    ///
+    /// * `vec_vec_a` - A vector of all participants of a vecor of all partial decryptions of component a: Cipher { a, b }
+    /// * `p` - The group modulus p (BigUint)
+    pub fn combine_partial_decrypted_as(vec_vec_a: Vec<Vec<BigUint>>, p: &BigUint) -> Vec<BigUint> {
+        assert!(
+            vec_vec_a.len() > 0,
+            "there must be at least one participant."
+        );
+        assert!(vec_vec_a[0].len() > 0, "there must be at least one vote.");
+        let mut combined_decrypted_as = Vec::with_capacity(vec_vec_a[0].len());
+
+        // outer loop: all partial decrypted a for all submitted votes -> size = # of votes
+        for i in 0..vec_vec_a[0].len() {
+            // inner loop: all partial decryptions by all participants -> size = # of participants
+            let combined_decrypted_a = vec_vec_a
+                .iter()
+                .fold(BigUint::one(), |product, partial_decryptions| {
+                    product.modmul(&partial_decryptions[i], p)
+                });
+            combined_decrypted_as.push(combined_decrypted_a);
+        }
+        combined_decrypted_as
     }
 
     /// Encodes a plain-text message to be used in an explonential ElGamal scheme
@@ -241,8 +319,12 @@ impl ElGamal {
 #[cfg(test)]
 mod tests {
     use crate::{
-        encryption::ElGamal, helper::Helper, random::Random, types::Cipher, types::ElGamalParams,
-        types::PublicKey,
+        encryption::ElGamal,
+        helper::Helper,
+        random::Random,
+        types::Cipher,
+        types::ElGamalParams,
+        types::{ModuloOperations, PublicKey},
     };
     use alloc::vec::Vec;
     use num_bigint::BigUint;
@@ -732,5 +814,73 @@ mod tests {
         assert!(decryptions.iter().any(|value| value.clone() == zero));
         assert!(decryptions.iter().any(|value| value.clone() == one));
         assert!(decryptions.iter().any(|value| value.clone() == two));
+    }
+
+    #[test]
+    fn it_should_show_that_partial_decryption_works() {
+        let (params, sk, pk) = Helper::setup_md_system();
+        let q = params.q();
+
+        // create an encrypted vote
+        let five = BigUint::from(5u32);
+        let r = Random::get_random_less_than(&q);
+        let encrypted_five = ElGamal::encrypt(&five, &r, &pk);
+
+        // parital decrypte vote - part 1 (component a)
+        let decrypted_a = ElGamal::partial_decrypt_a(&encrypted_five, &sk);
+
+        // parital decrypt vote - part 2 (component b)
+        let decrypted_five = ElGamal::partial_decrypt_b(&encrypted_five.b, &decrypted_a, &params.p);
+        assert_eq!(decrypted_five, five, "five does not equal five!");
+    }
+
+    #[test]
+    fn it_should_show_that_combined_partial_decryptions_work() {
+        // create system parameters
+        let params = ElGamalParams {
+            // 48bit key -> sm_system
+            p: BigUint::parse_bytes(b"B7E151629927", 16).unwrap(),
+            g: BigUint::parse_bytes(b"4", 10).unwrap(),
+            h: BigUint::parse_bytes(b"9", 10).unwrap(),
+        };
+        let q = &params.q();
+        let p = &params.p;
+
+        // create bob's public and private key
+        let bob_sk_x = Random::get_random_less_than(q);
+        let (bob_pk, bob_sk) = Helper::generate_key_pair(&params, &bob_sk_x);
+
+        // create charlie's public and private key
+        let charlie_sk_x = Random::get_random_less_than(q);
+        let (charlie_pk, charlie_sk) = Helper::generate_key_pair(&params, &charlie_sk_x);
+
+        // create common public key
+        let combined_pk = PublicKey {
+            h: bob_pk.h.modmul(&charlie_pk.h, p),
+            params: params.clone(),
+        };
+
+        // create an encrypted vote using the combined public key
+        let five = BigUint::from(5u32);
+        let r = Random::get_random_less_than(q);
+        let encrypted_five = ElGamal::encrypt(&five, &r, &combined_pk);
+
+        // get bob's partial decryption
+        let bob_partial_decrytpion_of_a = ElGamal::partial_decrypt_a(&encrypted_five, &bob_sk);
+
+        // get charlie's partial decryption
+        let charlie_partial_decrytpion_of_a =
+            ElGamal::partial_decrypt_a(&encrypted_five, &charlie_sk);
+
+        // combine partial decrypted components a
+        let combined_decrypted_a = ElGamal::combine_partial_decrypted_a(
+            vec![bob_partial_decrytpion_of_a, charlie_partial_decrytpion_of_a],
+            p,
+        );
+
+        // retrieve the plaintext vote (5)
+        // by combining the decrypted component a with its decrypted component b
+        let plaintext = ElGamal::partial_decrypt_b(&encrypted_five.b, &combined_decrypted_a, p);
+        assert!(plaintext == five);
     }
 }
