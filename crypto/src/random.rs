@@ -7,45 +7,44 @@ use core::ops::{AddAssign, Sub};
 use num_bigint::{BigUint, RandBigInt};
 use num_traits::{One, Zero};
 use rand::Rng;
+use std::panic;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Random;
 
 impl Random {
-    pub fn generate_random_encryptions_encoded(pk: &PublicKey, q: &BigUint) -> [Cipher; 3] {
-        // encryption of zero
-        let zero = BigUint::zero();
-        let r = Random::get_random_less_than(q);
-        let enc_zero = ElGamal::encrypt_encode(&zero, &r, pk);
+    pub fn generate_random_encryptions_encoded(
+        pk: &PublicKey,
+        q: &BigUint,
+        number: usize,
+    ) -> Vec<Cipher> {
+        let mut encryptions: Vec<Cipher> = Vec::new();
 
-        // encryption of one
-        let one = BigUint::one();
-        let r_ = Random::get_random_less_than(q);
-        let enc_one = ElGamal::encrypt_encode(&one, &r_, pk);
-
-        // encryption of two
-        let two = BigUint::from(2u32);
-        let r__ = Random::get_random_less_than(q);
-        let enc_two = ElGamal::encrypt_encode(&two, &r__, pk);
-        [enc_zero, enc_one, enc_two]
+        for i in 0..number {
+            let nr = BigUint::from(i);
+            let r = Random::get_random_less_than(q);
+            let enc = ElGamal::encrypt_encode(&nr, &r, pk);
+            encryptions.push(enc);
+        }
+        encryptions
     }
 
-    pub fn generate_random_encryptions(pk: &PublicKey, q: &BigUint) -> [Cipher; 3] {
-        // encryption of one
-        let one = BigUint::one();
-        let r = Random::get_random_less_than(q);
-        let enc_one = ElGamal::encrypt(&one, &r, pk);
+    pub fn generate_random_encryptions(pk: &PublicKey, q: &BigUint, number: usize) -> Vec<Cipher> {
+        let mut encryptions: Vec<Cipher> = Vec::new();
+        let mut i: u32 = 0;
 
-        // encryption of two
-        let two = BigUint::from(3u32);
-        let r_ = Random::get_random_less_than(q);
-        let enc_two = ElGamal::encrypt(&two, &r_, pk);
+        while encryptions.len() != number {
+            let nr = BigUint::from(i);
 
-        // encryption of three
-        let three = BigUint::from(5u32);
-        let r__ = Random::get_random_less_than(q);
-        let enc_three = ElGamal::encrypt(&three, &r__, pk);
-        [enc_one, enc_two, enc_three]
+            let r = Random::get_random_less_than(q);
+            let result = panic::catch_unwind(|| ElGamal::encrypt(&nr, &r, pk));
+            if result.is_ok() {
+                let enc = result.unwrap();
+                encryptions.push(enc.clone());
+            }
+            i += 1u32;
+        }
+        encryptions
     }
 
     /// Shuffles a vector of encryptions (permuatation + re-encryption)

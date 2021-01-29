@@ -148,6 +148,7 @@ mod tests {
     use alloc::vec::Vec;
     use num_bigint::BigUint;
     use num_traits::{One, Zero};
+    use std::time::Instant;
 
     #[test]
     fn it_should_verify_decryption_proof() {
@@ -157,7 +158,7 @@ mod tests {
         let r = Random::get_random_less_than(q);
 
         // get three encrypted values: 1, 3, 5
-        let encryptions = Random::generate_random_encryptions(&pk, q).to_vec();
+        let encryptions = Random::generate_random_encryptions(&pk, q, 3);
 
         // get partial decryptions -> only decrypt component a: g^r -> g^r^sk
         let decryptions = encryptions
@@ -209,14 +210,23 @@ mod tests {
             params: params.clone(),
         };
 
+        let start = Instant::now();
+        println!("start generation random encryptions");
+
         // get three encrypted values: 1, 3, 5 using the generated common public key
-        let encryptions = Random::generate_random_encryptions(&combined_pk, q).to_vec();
+        let encryptions = Random::generate_random_encryptions(&combined_pk, q, 3);
+
+        let duration = start.elapsed();
+        println!("duration generate_random_encryptions: {:?}", duration);
 
         // get bob's partial decryptions
         let bob_partial_decrytpions = encryptions
             .iter()
             .map(|cipher| ElGamal::partial_decrypt_a(cipher, &bob_sk))
             .collect::<Vec<BigUint>>();
+
+        let duration = start.elapsed();
+        println!("duration bob_partial_decrytpions: {:?}", duration);
 
         // create bob's proof
         let r = Random::get_random_less_than(q);
@@ -230,6 +240,9 @@ mod tests {
             bob_id,
         );
 
+        let duration = start.elapsed();
+        println!("duration DecryptionProof::generate: {:?}", duration);
+
         // verify that bob's proof is correct
         let bob_proof_is_correct = DecryptionProof::verify(
             &params,
@@ -240,12 +253,17 @@ mod tests {
             bob_id,
         );
         assert!(bob_proof_is_correct);
+        let duration = start.elapsed();
+        println!("duration DecryptionProof::verify: {:?}", duration);
 
         // get charlie's partial decryptions
         let charlie_partial_decrytpions = encryptions
             .iter()
             .map(|cipher| ElGamal::partial_decrypt_a(cipher, &charlie_sk))
             .collect::<Vec<BigUint>>();
+
+        let duration = start.elapsed();
+        println!("duration charlie_partial_decrytpions: {:?}", duration);
 
         // create charlie's proof
         let r = Random::get_random_less_than(q);
@@ -259,6 +277,9 @@ mod tests {
             charlie_id,
         );
 
+        let duration = start.elapsed();
+        println!("duration DecryptionProof::generate: {:?}", duration);
+
         // verify that charlie's proof is correct
         let charlie_proof_is_correct = DecryptionProof::verify(
             &params,
@@ -270,11 +291,16 @@ mod tests {
         );
         assert!(charlie_proof_is_correct);
 
+        let duration = start.elapsed();
+        println!("duration DecryptionProof::verify: {:?}", duration);
+
         // combine partial decrypted components a
         let combined_decryptions = ElGamal::combine_partial_decrypted_as(
             vec![bob_partial_decrytpions, charlie_partial_decrytpions],
             &params.p,
         );
+        let duration = start.elapsed();
+        println!("duration combine_partial_decrypted_as: {:?}", duration);
 
         // retrieve the plaintext votes
         // by combining the decrypted components a with their decrypted components b
@@ -284,12 +310,14 @@ mod tests {
                 ElGamal::partial_decrypt_b(&cipher.b, decrypted_a, &params.p)
             })
             .collect::<Vec<BigUint>>();
+        let duration = start.elapsed();
+        println!("duration partial_decrypt_b: {:?}", duration);
 
-        // check that at least one value is 1, 3, 5
+        // check that at least one value is 1, 2, 4
         assert!(plaintexts.len() == 3, "there should be three plaintexts");
         assert!(plaintexts.iter().any(|val| val == &BigUint::one()));
+        assert!(plaintexts.iter().any(|val| val == &BigUint::from(2u32)));
         assert!(plaintexts.iter().any(|val| val == &BigUint::from(3u32)));
-        assert!(plaintexts.iter().any(|val| val == &BigUint::from(5u32)));
     }
 
     #[test]
@@ -319,14 +347,25 @@ mod tests {
             params: params.clone(),
         };
 
+        let start = Instant::now();
+
         // get three encrypted values: 0, 1, 2 using the generated common public key
-        let encryptions = Random::generate_random_encryptions_encoded(&combined_pk, q).to_vec();
+        let encryptions = Random::generate_random_encryptions_encoded(&combined_pk, q, 3);
+
+        let duration = start.elapsed();
+        println!(
+            "duration generate_random_encryptions ENCODED: {:?}",
+            duration
+        );
 
         // get bob's partial decryptions
         let bob_partial_decrytpions = encryptions
             .iter()
             .map(|cipher| ElGamal::partial_decrypt_a(cipher, &bob_sk))
             .collect::<Vec<BigUint>>();
+
+        let duration = start.elapsed();
+        println!("duration bob_partial_decrytpions ENCODED: {:?}", duration);
 
         // create bob's proof
         let r = Random::get_random_less_than(q);
@@ -340,6 +379,9 @@ mod tests {
             bob_id,
         );
 
+        let duration = start.elapsed();
+        println!("duration DecryptionProof::generate ENCODED: {:?}", duration);
+
         // verify that bob's proof is correct
         let bob_proof_is_correct = DecryptionProof::verify(
             &params,
@@ -350,12 +392,19 @@ mod tests {
             bob_id,
         );
         assert!(bob_proof_is_correct);
+        let duration = start.elapsed();
+        println!("duration DecryptionProof::verify ENCODED: {:?}", duration);
 
         // get charlie's partial decryptions
         let charlie_partial_decrytpions = encryptions
             .iter()
             .map(|cipher| ElGamal::partial_decrypt_a(cipher, &charlie_sk))
             .collect::<Vec<BigUint>>();
+        let duration = start.elapsed();
+        println!(
+            "duration charlie_partial_decrytpions ENCODED: {:?}",
+            duration
+        );
 
         // create charlie's proof
         let r = Random::get_random_less_than(q);
@@ -368,6 +417,8 @@ mod tests {
             charlie_partial_decrytpions.clone(),
             charlie_id,
         );
+        let duration = start.elapsed();
+        println!("duration DecryptionProof::generate ENCODED: {:?}", duration);
 
         // verify that charlie's proof is correct
         let charlie_proof_is_correct = DecryptionProof::verify(
@@ -379,11 +430,18 @@ mod tests {
             charlie_id,
         );
         assert!(charlie_proof_is_correct);
+        let duration = start.elapsed();
+        println!("duration DecryptionProof::verify ENCODED: {:?}", duration);
 
         // combine partial decrypted components a
         let combined_decryptions = ElGamal::combine_partial_decrypted_as(
             vec![bob_partial_decrytpions, charlie_partial_decrytpions],
             &params.p,
+        );
+        let duration = start.elapsed();
+        println!(
+            "duration combine_partial_decrypted_as ENCODED: {:?}",
+            duration
         );
 
         // retrieve the plaintext votes
@@ -394,6 +452,8 @@ mod tests {
                 ElGamal::partial_decrypt_b(&cipher.b, decrypted_a, &params.p)
             })
             .collect::<Vec<BigUint>>();
+        let duration = start.elapsed();
+        println!("duration partial_decrypt_b ENCODED: {:?}", duration);
 
         // the votes are still encoded g^m at this point
         // decode the decrypted votes in the following step
@@ -401,6 +461,8 @@ mod tests {
             .iter()
             .map(|encoded| ElGamal::decode_message(encoded, &params.g, &params.p))
             .collect::<Vec<BigUint>>();
+        let duration = start.elapsed();
+        println!("duration decode_message ENCODED: {:?}", duration);
 
         // check that at least one value is 0, 1, 2
         assert!(plaintexts.len() == 3, "there should be three plaintexts");

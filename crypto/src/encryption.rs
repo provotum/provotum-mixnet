@@ -716,7 +716,7 @@ mod tests {
         let two = BigUint::from(2u32);
 
         // get three encrypted values: 0, 1, 2
-        let encryptions = Random::generate_random_encryptions_encoded(&pk, &q);
+        let encryptions = Random::generate_random_encryptions_encoded(&pk, &q, 3);
 
         // create three random values < q
         let randoms = [
@@ -770,10 +770,10 @@ mod tests {
         let q = params.q();
         let one = BigUint::one();
         let three = BigUint::from(3u32);
-        let five = BigUint::from(5u32);
+        let four = BigUint::from(4u32);
 
         // get three encrypted values: 1, 3, 5
-        let encryptions = Random::generate_random_encryptions(&pk, &q);
+        let encryptions = Random::generate_random_encryptions(&pk, &q, 3);
 
         // create three random values < q
         let randoms = [
@@ -815,10 +815,11 @@ mod tests {
             decryptions.push(decryption);
         }
 
-        // check that at least one value is 1, 3, 5
+        // check that at least one value is 1, 3, 4
+        println!("{:?}", decryptions);
         assert!(decryptions.iter().any(|value| value.clone() == one));
         assert!(decryptions.iter().any(|value| value.clone() == three));
-        assert!(decryptions.iter().any(|value| value.clone() == five));
+        assert!(decryptions.iter().any(|value| value.clone() == four));
     }
 
     #[test]
