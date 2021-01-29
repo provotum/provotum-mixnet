@@ -196,9 +196,6 @@ pub struct Vote<AccountId> {
     pub params: PublicParameters,
 }
 
-// TODO: replace with real types
-pub type IdpPublicKey = Vec<u8>;
-
 // the public key generation proof submitted by the sealer -> this prooves knowledge of a secret key that belongs to the submitted public key
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
 pub struct PublicKeyShareProof {

@@ -34,9 +34,9 @@ use crate::helpers::{
     phase::set_phase,
 };
 use crate::types::{
-    Ballot, Cipher, DecryptedShareProof, IdpPublicKey, PublicKey as SubstratePK,
-    PublicKeyShare, PublicKeyShareProof, PublicParameters, Tally, Title, Topic, TopicId,
-    Vote, VoteId, VotePhase,
+    Ballot, Cipher, DecryptedShareProof, PublicKey as SubstratePK, PublicKeyShare,
+    PublicKeyShareProof, PublicParameters, Tally, Title, Topic, TopicId, Vote, VoteId,
+    VotePhase,
 };
 use codec::{Decode, Encode};
 use crypto::proofs::keygen::KeyGenerationProof;
@@ -104,9 +104,6 @@ decl_storage! {
         /// The decrypted shares -> TODO: check types
         DecryptedShares get(fn decrypted_shares): map hasher(blake2_128_concat) TopicId => Vec<Vec<u8>>;
 
-        /// Stores the Identity provider's public key for blind signatures
-        pub IdentityProviderPublicKey get(fn idp_public_key): Option<IdpPublicKey>;
-
         /// Stores the public key of a sealer together with its Schnorr proof.
         PublicKeyShares get(fn key_shares): map hasher(blake2_128_concat) VoteId => Vec<PublicKeyShare>;
 
@@ -138,9 +135,6 @@ decl_event!(
 
         /// A voting authority changed the vote phase [vote_id, newPhase]
         VotePhaseChanged(VoteId, VotePhase),
-
-        /// The Identity Provider public key was set.
-        IdentityProviderPublicKeySet(Vec<u8>, Vec<u8>),
 
         /// A public key share was submitted. [public key with its proof]
         PublicKeyShareSubmitted(PublicKeyShare),
@@ -249,20 +243,6 @@ decl_module! {
             Ok(())
         }
 
-        /// Allow the identity provider to store its public key.
-        #[weight = (10_000, Pays::No)]
-        fn store_idp_public_key(origin) -> DispatchResult {
-            // only the voting_authority should be able to store the key
-            let who: T::AccountId = ensure_signed(origin)?;
-            ensure_voting_authority::<T>(&who)?;
-
-            // TODO: implement logic
-            // IdentityProviderPublicKey::put(public_key);
-            // Self::deposit_event(RawEvent::IdentityProviderPublicKeySet());
-
-            Ok(())
-        }
-
         /// Store a public key and its proof.
         /// Can only be called from a sealer.
         #[weight = (10_000, Pays::No)]
@@ -354,29 +334,6 @@ decl_module! {
             Self::deposit_event(RawEvent::VoteTopicQuestionStored(vote_id, topic));
 
             // Return a successful DispatchResult
-            Ok(())
-        }
-
-        /// Register a voter.
-        #[weight = (10_000, Pays::No)]
-        fn register_voter(origin, signature: Vec<u8>) -> DispatchResult {
-            // let who: T::AccountId = ensure_signed(origin)?;
-
-            // TODO: implement
-
-            // ensure!(IdentityProviderPublicKey::exists(), Error::<T>::NoneValue);
-
-            // debug::info!("IdP public key is set, verifying signature");
-
-            // let idp_public_key: RSAPublicComponent = IdentityProviderPublicKey::get().unwrap().into();
-
-            // let verified = verify_signature(address_bytes.to_vec(), signature.clone(), idp_public_key);
-
-            // ensure!(verified, Error::<T>::VoterAddressNotVerified);
-
-            // Voters::<T>::insert(&who, &signature);
-
-            // Self::deposit_event(RawEvent::VoterRegistered(who, signature));
             Ok(())
         }
 
