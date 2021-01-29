@@ -27,43 +27,31 @@ pub mod keys;
 use crate::helpers::{
     assertions::{
         ensure_not_a_voting_authority, ensure_sealer, ensure_vote_exists,
-        ensure_voting_authority,
+        ensure_vote_phase, ensure_voting_authority,
     },
     ballot::store_ballot,
-    keys::{combine_shares, get_public_params},
+    keys::{combine_shares, get_public_key, get_public_keyshare, get_public_params},
     phase::set_phase,
 };
 use crate::types::{
-    Ballot, Cipher, DecryptedShareProof, PublicKey as SubstratePK, PublicKeyShare,
-    PublicKeyShareProof, PublicParameters, Tally, Title, Topic, TopicId, Vote, VoteId,
-    VotePhase,
+    Ballot, Cipher, DecryptedShare, DecryptedShareProof, PublicKey as SubstratePK,
+    PublicKeyShare, PublicKeyShareProof, PublicParameters, Tally, Title, Topic, TopicId,
+    Vote, VoteId, VotePhase, Wrapper,
 };
-use codec::{Decode, Encode};
-use crypto::proofs::keygen::KeyGenerationProof;
+use codec::Encode;
+use crypto::proofs::{decryption::DecryptionProof, keygen::KeyGenerationProof};
+use crypto::types::Cipher as BigCipher;
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
     ensure, weights::Pays,
 };
 use frame_system::{
     self as system, ensure_signed,
-    offchain::{AppCrypto, CreateSignedTransaction, SignedPayload, SigningTypes},
+    offchain::{AppCrypto, CreateSignedTransaction},
 };
 use num_bigint::BigUint;
-use sp_runtime::{offchain as rt_offchain, RuntimeDebug};
+use sp_runtime::offchain as rt_offchain;
 use sp_std::{prelude::*, str, vec::Vec};
-
-/// the type to sign and send transactions.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
-pub struct Payload<Public> {
-    ballot: Ballot,
-    public: Public,
-}
-
-impl<T: SigningTypes> SignedPayload<T> for Payload<T::Public> {
-    fn public(&self) -> T::Public {
-        self.public.clone()
-    }
-}
 
 /// This is the pallet's configuration trait
 pub trait Trait: system::Trait + CreateSignedTransaction<Call<Self>> {
@@ -101,14 +89,14 @@ decl_storage! {
         /// Maps a vote to a list of results. [topic, yes, no, total]
         Tallies get(fn tallies): map hasher(blake2_128_concat) VoteId => Vec<Tally>;
 
-        /// The decrypted shares -> TODO: check types
-        DecryptedShares get(fn decrypted_shares): map hasher(blake2_128_concat) TopicId => Vec<Vec<u8>>;
+        /// Maps a sealer and a topic to a vector of decrypted shares.
+        DecryptedShares get(fn decrypted_shares): double_map hasher(blake2_128_concat) TopicId, hasher(blake2_128_concat) T::AccountId  => Vec<Vec<u8>>;
 
         /// Stores the public key of a sealer together with its Schnorr proof.
         PublicKeyShares get(fn key_shares): map hasher(blake2_128_concat) VoteId => Vec<PublicKeyShare>;
 
         /// Stores the public key of a sealer, indexed by sealer account
-        PublicKeyShareBySealer get(fn key_share_by_sealer): map hasher(blake2_128_concat) (VoteId, T::AccountId) => PublicKeyShare;
+        PublicKeyShareBySealer get(fn key_share_by_sealer): map hasher(blake2_128_concat) (VoteId, T::AccountId) => Option<PublicKeyShare>;
 
         /// Maps a vote to a public key (the vote's/system's public key) used to encrypt ballots.
         PublicKey get(fn public_key): map hasher(blake2_128_concat) VoteId => Option<SubstratePK>;
@@ -141,6 +129,9 @@ decl_event!(
 
         /// A system public key has been created. [vote_id, public_key]
         PublicKeyCreated(VoteId, SubstratePK),
+
+        /// A decrypted share was submitted for a vote. [paritial decryptions with its proof]
+        DecryptedShareSubmitted(VoteId, AccountId),
     }
 );
 
@@ -183,6 +174,9 @@ decl_error! {
         // Error returned when public key doesn't exist
         PublicKeyNotExistsError,
 
+        // Error returned when public key share doesn't exist
+        PublicKeyShareNotExistsError,
+
         // Error returned when the public key share proof doesn't verify
         PublicKeyShareProofError,
 
@@ -197,6 +191,16 @@ decl_error! {
 
         // Error returned when vote_id does not exist yet
         VoteDoesNotExist,
+
+        // Error returned when vote is in wrong phase
+        WrongVotePhase,
+
+        // Error returned when the decrypted share proof doesn't verify
+        DecryptedShareProofError,
+
+        // Error returned when not all sealers have submitted their decrypted shares yet
+        NotEnoughDecryptedShares,
+
     }
 }
 
@@ -229,6 +233,7 @@ decl_module! {
             Ok(())
         }
 
+        // DEV ONLY
         #[weight = (10000, Pays::No)]
         pub fn store_public_key(origin, vote_id: VoteId, pk: SubstratePK) -> DispatchResult {
             // only the voting_authority should be able to store the key
@@ -354,19 +359,49 @@ decl_module! {
           Ok(())
         }
 
-        /// Store a decrypted share.
+        /// Store a decrypted shares.
         #[weight = (10_000, Pays::No)]
-        fn submit_decrypted_share(origin, vote_id: VoteId, topic_id: TopicId, share: Vec<u8>, proof: DecryptedShareProof) -> DispatchResult {
-            // only the sealers should be able to store their decrypted shares
+        fn submit_decrypted_shares(origin, vote_id: VoteId, topic_id: TopicId, shares: Vec<DecryptedShare>, proof: DecryptedShareProof) -> DispatchResult {
+            // only sealers should be able to store their decrypted shares
             let who: T::AccountId = ensure_signed(origin)?;
             ensure_vote_exists::<T>(&vote_id)?;
+            ensure_vote_phase::<T>(&vote_id, VotePhase::Tallying)?;
             ensure_sealer::<T>(&who)?;
 
-            // TODO: implement
+            // get the public parameters and the public key share of the sealer
+            let sealer_id = who.encode();
+            let params: PublicParameters = get_public_params::<T>(&vote_id)?;
+            let sealer_pk_share: PublicKeyShare = get_public_keyshare::<T>(&vote_id, &who)?;
+            let sealer_pk: BigUint = BigUint::from_bytes_be(&sealer_pk_share.pk);
 
-            // Self::verify_and_store_decrypted_share(who.clone(), vote_id, subject_id.clone(), share.clone(), proof)?;
+            // type conversion: Vec<Cipher> (Vec<Vec<u8>>) to Vec<BigCipher> (Vec<BigUint>)
+            let ciphers: Vec<Cipher> = Ciphers::get(&topic_id);
+            let big_ciphers: Vec<BigCipher> = Wrapper(ciphers).into();
 
-            // Self::deposit_event(RawEvent::DecryptedShareSubmitted(who, subject_id, share));
+            // type conversion: DecryptedShare (Vec<u8>) to BigUint
+            let decrypted_shares: Vec<BigUint> = shares.iter().map(|s| BigUint::from_bytes_be(s)).collect::<Vec<BigUint>>();
+
+            // verify the proof using the sealer's public key share
+            let proof: DecryptionProof = proof.into();
+            let is_valid: bool = DecryptionProof::verify(&params.into(), &sealer_pk, &proof.into(), big_ciphers, decrypted_shares, &sealer_id);
+            ensure!(is_valid, Error::<T>::DecryptedShareProofError);
+
+            // store the decrypted shares
+            let mut stored: Vec<DecryptedShare> = DecryptedShares::<T>::get::<&TopicId, &T::AccountId>(&topic_id, &who);
+
+            // check if the share has been already submitted. if not, store it.
+            for share in shares.iter() {
+                if !stored.contains(share) {
+                    stored.push(share.clone());
+                }
+            }
+
+            // store the decrypted shares per topic and sealer
+            DecryptedShares::<T>::insert(&topic_id, &who, stored);
+
+            // notify that the decrypted share has been:
+            // submitted, the proof verified and successfully stored
+            Self::deposit_event(RawEvent::DecryptedShareSubmitted(topic_id, who));
             Ok(())
         }
 
@@ -375,8 +410,28 @@ decl_module! {
         fn combine_decrypted_shares(origin, vote_id: VoteId) -> DispatchResult {
             // only the voting_authority should be able to create the final tally
             let who: T::AccountId = ensure_signed(origin)?;
-            ensure_voting_authority::<T>(&who)?;
             ensure_vote_exists::<T>(&vote_id)?;
+            ensure_vote_phase::<T>(&vote_id, VotePhase::Tallying)?;
+            ensure_voting_authority::<T>(&who)?;
+
+            // get the public parameters and the system public key
+            let sealer_id = who.encode();
+            let params: PublicParameters = get_public_params::<T>(&vote_id)?;
+            let pk: SubstratePK = get_public_key::<T>(&vote_id)?;
+            let vote: Vote<T::AccountId> = Votes::<T>::get(&vote_id);
+            let topics: Vec<Topic> = Topics::get(&vote_id);
+
+            // TODO: combine all decrypted shares for all topics in the vote
+
+            // type conversion: Vec<Cipher> (Vec<Vec<u8>>) to Vec<BigCipher> (Vec<BigUint>)
+            // let ciphers: Vec<Cipher> = Ciphers::get(&topic_id);
+            // let big_ciphers: Vec<BigCipher> = Wrapper(ciphers).into();
+
+            // type conversion: DecryptedShare (Vec<u8>) to BigUint
+            // let decrypted_shares: Vec<BigUint> = shares.iter().map(|s| BigUint::from_bytes_be(s)).collect::<Vec<BigUint>>();
+
+            // store the decrypted shares
+            // let mut stored: Vec<DecryptedShare> = DecryptedShares::<T>::get::<&TopicId, &T::AccountId>(&topic_id, &who);
 
             // TODO: compute tally
             // Self::combine_decrypted_shares(&vote_id);

@@ -1,4 +1,6 @@
-use crate::sp_api_hidden_includes_decl_storage::hidden_include::StorageMap;
+use crate::{
+    sp_api_hidden_includes_decl_storage::hidden_include::StorageMap, types::VotePhase,
+};
 use crate::{types::VoteId, Error, Module, Trait, Votes};
 use frame_support::{debug, ensure};
 
@@ -45,5 +47,15 @@ pub fn ensure_vote_exists<T: Trait>(vote_id: &VoteId) -> Result<(), Error<T>> {
         Votes::<T>::contains_key(vote_id),
         Error::<T>::VoteDoesNotExist
     );
+    Ok(())
+}
+
+pub fn ensure_vote_phase<T: Trait>(
+    vote_id: &VoteId,
+    phase: VotePhase,
+) -> Result<(), Error<T>> {
+    let vote = Votes::<T>::get(vote_id);
+    // check that the vote_id exists
+    ensure!(vote.phase == phase, Error::<T>::WrongVotePhase);
     Ok(())
 }

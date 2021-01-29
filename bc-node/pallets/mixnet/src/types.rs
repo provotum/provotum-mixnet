@@ -1,8 +1,10 @@
-use crypto::proofs::keygen::KeyGenerationProof;
+use codec::{Decode, Encode};
+use crypto::proofs::{decryption::DecryptionProof, keygen::KeyGenerationProof};
 use crypto::types::{Cipher as BigCipher, ElGamalParams, PublicKey as ElGamalPK};
-use frame_support::codec::{Decode, Encode};
+use frame_system::offchain::{SignedPayload, SigningTypes};
 use num_bigint::BigUint;
 use num_traits::One;
+use sp_runtime::RuntimeDebug;
 use sp_std::vec::Vec;
 
 /// the BigCipher from the crypto crate.
@@ -228,13 +230,30 @@ pub struct PublicKeyShare {
     pub proof: PublicKeyShareProof,
 }
 
-// TODO: update with real values
+pub type DecryptedShare = Vec<u8>;
+
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Debug)]
 pub struct DecryptedShareProof {
-    pub d: Vec<u8>,
-    pub u: Vec<u8>,
-    pub v: Vec<u8>,
-    pub s: Vec<u8>,
+    pub challenge: Vec<u8>,
+    pub response: Vec<u8>,
+}
+
+impl From<DecryptionProof> for DecryptedShareProof {
+    fn from(source: DecryptionProof) -> Self {
+        DecryptedShareProof {
+            challenge: source.challenge.to_bytes_be(),
+            response: source.response.to_bytes_be(),
+        }
+    }
+}
+
+impl From<DecryptedShareProof> for DecryptionProof {
+    fn from(source: DecryptedShareProof) -> Self {
+        DecryptionProof {
+            challenge: BigUint::from_bytes_be(&source.challenge),
+            response: BigUint::from_bytes_be(&source.response),
+        }
+    }
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Debug)]
@@ -243,4 +262,17 @@ pub struct Tally {
     pub yes: u32,
     pub no: u32,
     pub total: u32,
+}
+
+/// the type to sign and send transactions.
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+pub struct Payload<Public> {
+    ballot: Ballot,
+    public: Public,
+}
+
+impl<T: SigningTypes> SignedPayload<T> for Payload<T::Public> {
+    fn public(&self) -> T::Public {
+        self.public.clone()
+    }
 }

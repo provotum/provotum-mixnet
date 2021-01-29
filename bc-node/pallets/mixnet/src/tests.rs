@@ -56,7 +56,7 @@ fn setup_sealer(
     sealer_id: &[u8],
 ) -> (PublicKeyShare, KeyGenerationProof) {
     // create public key share + proof
-    let r = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+    let r = BigUint::parse_bytes(b"1701411834604692317316873", 10).unwrap();
     let proof = KeyGenerationProof::generate(params, &sk.x, &pk.h, &r, sealer_id);
     let pk_share = PublicKeyShare {
         proof: proof.clone().into(),
@@ -100,15 +100,7 @@ fn setup_vote(params: PublicParameters) -> (Vec<u8>, Vec<u8>) {
     (vote_id, topic_id)
 }
 
-fn shuffle_proof_test(
-    vote_id: Vec<u8>,
-    topic_id: Vec<u8>,
-    pk: ElGamalPK,
-    encoded: bool,
-) -> bool {
-    // store created public key and public parameters
-    setup_public_key(vote_id.clone(), pk.clone().into());
-
+fn setup_ciphers(vote_id: &VoteId, topic_id: &TopicId, pk: &ElGamalPK, encoded: bool) {
     let messages = vec![
         BigUint::from(1u32),
         BigUint::from(3u32),
@@ -120,7 +112,9 @@ fn shuffle_proof_test(
 
     // encrypt the message -> encrypted message
     // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
-    let randoms = vec![b"08", b"17", b"01", b"16", b"11", b"00"];
+    let randoms = vec![
+        b"081234", b"171234", b"011234", b"161234", b"111234", b"000000",
+    ];
     assert_eq!(messages.len(), randoms.len());
 
     // create the voter (i.e. the transaction signer)
@@ -134,17 +128,30 @@ fn shuffle_proof_test(
         // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
         let cipher: Cipher;
         if encoded {
-            cipher = ElGamal::encrypt_encode(&messages[index], &random, &pk).into();
+            cipher = ElGamal::encrypt_encode(&messages[index], &random, pk).into();
         } else {
-            cipher = ElGamal::encrypt(&messages[index], &random, &pk).into();
+            cipher = ElGamal::encrypt(&messages[index], &random, pk).into();
         }
         let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
         let ballot: Ballot = Ballot { answers };
 
-        let vote_submission_result =
-            OffchainModule::cast_ballot(voter.clone(), vote_id.clone(), ballot);
-        assert_ok!(vote_submission_result);
+        assert_ok!(OffchainModule::cast_ballot(
+            voter.clone(),
+            vote_id.clone(),
+            ballot
+        ));
     }
+}
+
+fn shuffle_proof_test(
+    vote_id: Vec<u8>,
+    topic_id: Vec<u8>,
+    pk: ElGamalPK,
+    encoded: bool,
+) -> bool {
+    // store created public key and public parameters
+    setup_public_key(vote_id.clone(), pk.clone().into());
+    setup_ciphers(&vote_id, &topic_id, &pk, encoded);
 
     // get the encrypted votes
     let big_ciphers_from_chain: Vec<BigCipher> =
@@ -1415,7 +1422,7 @@ fn test_store_public_key_share() {
         assert_eq!(shares[0].proof.response, proof.response.to_bytes_be());
 
         let share_by_sealer: PublicKeyShare =
-            OffchainModule::key_share_by_sealer((vote_id, account_id));
+            OffchainModule::key_share_by_sealer((vote_id, account_id)).unwrap();
         assert_eq!(share_by_sealer.pk, pk.h.to_bytes_be());
         assert_eq!(
             share_by_sealer.proof.challenge,
@@ -1491,5 +1498,376 @@ fn test_combine_public_key_shares() {
         let pk_from_chain: ElGamalPK =
             OffchainModule::public_key(vote_id).unwrap().into();
         assert_eq!(pk_from_chain, pk);
+    });
+}
+
+#[test]
+fn test_submit_decrypted_share_vote_does_not_exist() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // Setup
+        let (_, _, pk) = Helper::setup_sm_system();
+
+        // create fake everything
+        let vote_id = "20201212".as_bytes().to_vec();
+        let topic_id = "vote1".as_bytes().to_vec();
+        let shares: Vec<Vec<u8>> = Vec::new();
+        let proof = DecryptedShareProof {
+            challenge: Vec::new(),
+            response: Vec::new(),
+        };
+
+        // Setup Public Key
+        setup_public_key(vote_id.clone(), pk.clone().into());
+
+        // create the submitter (i.e. the voting_authority)
+        // use Alice as VotingAuthority
+        let who = get_voting_authority();
+
+        assert_err!(
+            OffchainModule::submit_decrypted_shares(
+                who, vote_id, topic_id, shares, proof
+            ),
+            Error::<TestRuntime>::VoteDoesNotExist
+        );
+    });
+}
+
+#[test]
+fn test_submit_decrypted_share_wrong_vote_phase() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // setup public key
+        let (params, _, pk) = Helper::setup_sm_system();
+
+        // setup vote
+        let (vote_id, topic_id) = setup_vote(params.into());
+        setup_public_key(vote_id.clone(), pk.clone().into());
+
+        // fake proof + fake decrypted shares
+        let shares: Vec<Vec<u8>> = Vec::new();
+        let proof = DecryptedShareProof {
+            challenge: Vec::new(),
+            response: Vec::new(),
+        };
+
+        // create the submitter (i.e. the voting_authority)
+        // use Alice as VotingAuthority
+        let who = get_voting_authority();
+
+        assert_err!(
+            OffchainModule::submit_decrypted_shares(
+                who, vote_id, topic_id, shares, proof
+            ),
+            Error::<TestRuntime>::WrongVotePhase
+        );
+    });
+}
+
+#[test]
+fn test_submit_decrypted_share_not_a_sealer() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // setup public key
+        let (params, _, pk) = Helper::setup_sm_system();
+
+        // setup vote
+        let (vote_id, topic_id) = setup_vote(params.into());
+        setup_public_key(vote_id.clone(), pk.clone().into());
+
+        // fake proof + fake decrypted shares
+        let shares: Vec<Vec<u8>> = Vec::new();
+        let proof = DecryptedShareProof {
+            challenge: Vec::new(),
+            response: Vec::new(),
+        };
+
+        // create the submitter (i.e. the voting_authority)
+        // use Alice as VotingAuthority
+        let who = get_voting_authority();
+
+        // change the VotePhase to Voting
+        assert_ok!(OffchainModule::set_vote_phase(
+            who.clone(),
+            vote_id.clone(),
+            VotePhase::Tallying
+        ));
+
+        // check that the voting authority is not allowed
+        assert_err!(
+            OffchainModule::submit_decrypted_shares(
+                who, vote_id, topic_id, shares, proof
+            ),
+            Error::<TestRuntime>::NotASealer
+        );
+    });
+}
+
+#[test]
+fn test_submit_decrypted_share() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // Distributed Key Generation Setup
+        let (params, _, _) = Helper::setup_md_system();
+        let (vote_id, topic_id) = setup_vote(params.clone().into());
+
+        // Use 1. Sealer: Bob
+        let (bob, _, bob_sealer_id) = get_sealer_bob();
+        let bob_sk_x = BigUint::parse_bytes(b"12345678", 10).unwrap();
+        let (bob_pk, bob_sk) = Helper::generate_key_pair(&params, &bob_sk_x);
+        let (_, _) = setup_sealer(
+            &params,
+            &bob_sk,
+            &bob_pk,
+            bob.clone(),
+            &vote_id,
+            &bob_sealer_id,
+        );
+
+        // Use 2. Sealer: Charlie
+        let (charlie, _, charlie_sealer_id) = get_sealer_charlie();
+        let charlie_sk_x = BigUint::parse_bytes(b"87654321", 10).unwrap();
+        let (charlie_pk, charlie_sk) = Helper::generate_key_pair(&params, &charlie_sk_x);
+        let (_, _) = setup_sealer(
+            &params,
+            &charlie_sk,
+            &charlie_pk,
+            charlie,
+            &vote_id,
+            &charlie_sealer_id,
+        );
+
+        // combine the public key shares
+        let voting_authority = get_voting_authority();
+        assert_ok!(OffchainModule::combine_public_key_shares(
+            voting_authority,
+            vote_id.clone()
+        ));
+
+        // get the public key from the chain
+        let system_pk: ElGamalPK =
+            OffchainModule::public_key(vote_id.clone()).unwrap().into();
+        let computed_system_pk: BigUint =
+            bob_pk.h.modmul(&charlie_pk.h, &bob_pk.params.p);
+        assert_eq!(system_pk.h, computed_system_pk);
+
+        // create encrypted votes - NOT ENCODED
+        setup_ciphers(&vote_id, &topic_id, &system_pk.clone().into(), false);
+
+        // create the submitter (i.e. the voting_authority)
+        // use Alice as VotingAuthority
+        let authority = get_voting_authority();
+
+        // change the VotePhase to Voting
+        assert_ok!(OffchainModule::set_vote_phase(
+            authority,
+            vote_id.clone(),
+            VotePhase::Tallying
+        ));
+
+        // fetch the encrypted votes from chain
+        let encryptions: Vec<BigCipher> =
+            Wrapper(OffchainModule::ciphers(&topic_id)).into();
+        assert!(encryptions.len() > 0);
+
+        // get bob's partial decryptions
+        let bob_partial_decrytpions = encryptions
+            .iter()
+            .map(|cipher| ElGamal::partial_decrypt_a(cipher, &bob_sk))
+            .collect::<Vec<BigUint>>();
+
+        // convert the decrypted shares: Vec<BigUint> to Vec<Vec<u8>>
+        let bob_shares: Vec<Vec<u8>> = bob_partial_decrytpions
+            .iter()
+            .map(|c| c.to_bytes_be())
+            .collect::<Vec<Vec<u8>>>();
+
+        // create bob's proof using bob's public and private key share
+        let r = BigUint::parse_bytes(b"1234123123", 10).unwrap();
+        let bob_proof = DecryptionProof::generate(
+            &params,
+            &bob_sk.x,
+            &bob_pk.h.into(),
+            &r,
+            encryptions,
+            bob_partial_decrytpions,
+            &bob_sealer_id,
+        );
+
+        // check that:
+        // 1. the decrypted share is submitted and
+        // 2. the proof is successfully verified
+        assert_ok!(OffchainModule::submit_decrypted_shares(
+            bob.clone(),
+            vote_id,
+            topic_id,
+            bob_shares,
+            bob_proof.into()
+        ));
+    });
+}
+
+#[test]
+fn test_combine_decrypted_shares_vote_does_not_exist() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // TODO: add implementation
+    })
+}
+
+#[test]
+fn test_combine_decrypted_shares_wrong_vote_phase() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // TODO: add implementation
+    })
+}
+
+#[test]
+fn test_combine_decrypted_shares_not_a_voting_authority() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // TODO: add implementation
+    })
+}
+
+#[test]
+fn test_combine_decrypted_shares() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // Distributed Key Generation Setup
+        let (params, _, _) = Helper::setup_md_system();
+        let (vote_id, topic_id) = setup_vote(params.clone().into());
+
+        // Use 1. Sealer: Bob
+        let (bob, _, bob_sealer_id) = get_sealer_bob();
+        let bob_sk_x = BigUint::parse_bytes(b"12345678", 10).unwrap();
+        let (bob_pk, bob_sk) = Helper::generate_key_pair(&params, &bob_sk_x);
+        let (_, _) = setup_sealer(
+            &params,
+            &bob_sk,
+            &bob_pk,
+            bob.clone(),
+            &vote_id,
+            &bob_sealer_id,
+        );
+
+        // Use 2. Sealer: Charlie
+        let (charlie, _, charlie_sealer_id) = get_sealer_charlie();
+        let charlie_sk_x = BigUint::parse_bytes(b"87654321", 10).unwrap();
+        let (charlie_pk, charlie_sk) = Helper::generate_key_pair(&params, &charlie_sk_x);
+        let (_, _) = setup_sealer(
+            &params,
+            &charlie_sk,
+            &charlie_pk,
+            charlie.clone(),
+            &vote_id,
+            &charlie_sealer_id,
+        );
+
+        // combine the public key shares
+        let voting_authority = get_voting_authority();
+        assert_ok!(OffchainModule::combine_public_key_shares(
+            voting_authority,
+            vote_id.clone()
+        ));
+
+        // get the public key from the chain
+        let system_pk: ElGamalPK =
+            OffchainModule::public_key(vote_id.clone()).unwrap().into();
+        let computed_system_pk: BigUint =
+            bob_pk.h.modmul(&charlie_pk.h, &bob_pk.params.p);
+        assert_eq!(system_pk.h, computed_system_pk);
+
+        // create encrypted votes - NOT ENCODED
+        setup_ciphers(&vote_id, &topic_id, &system_pk.clone().into(), false);
+
+        // create the submitter (i.e. the voting_authority)
+        // use Alice as VotingAuthority
+        let authority = get_voting_authority();
+
+        // change the VotePhase to Voting
+        assert_ok!(OffchainModule::set_vote_phase(
+            authority,
+            vote_id.clone(),
+            VotePhase::Tallying
+        ));
+
+        // fetch the encrypted votes from chain
+        let encryptions: Vec<BigCipher> =
+            Wrapper(OffchainModule::ciphers(&topic_id)).into();
+        assert!(encryptions.len() > 0);
+
+        // get bob's partial decryptions
+        let bob_partial_decrytpions = encryptions
+            .iter()
+            .map(|cipher| ElGamal::partial_decrypt_a(cipher, &bob_sk))
+            .collect::<Vec<BigUint>>();
+
+        // convert the decrypted shares: Vec<BigUint> to Vec<Vec<u8>>
+        let bob_shares: Vec<Vec<u8>> = bob_partial_decrytpions
+            .iter()
+            .map(|c| c.to_bytes_be())
+            .collect::<Vec<Vec<u8>>>();
+
+        // create bob's proof using bob's public and private key share
+        let r = BigUint::parse_bytes(b"1234123123", 10).unwrap();
+        let bob_proof = DecryptionProof::generate(
+            &params,
+            &bob_sk.x,
+            &bob_pk.h.into(),
+            &r,
+            encryptions.clone(),
+            bob_partial_decrytpions,
+            &bob_sealer_id,
+        );
+
+        // check that:
+        // 1. the decrypted share is submitted and
+        // 2. the proof is successfully verified
+        assert_ok!(OffchainModule::submit_decrypted_shares(
+            bob.clone(),
+            vote_id.clone(),
+            topic_id.clone(),
+            bob_shares,
+            bob_proof.into()
+        ));
+
+        // get charlie's partial decryptions
+        let charlie_paritial_decryptions = encryptions
+            .iter()
+            .map(|cipher| ElGamal::partial_decrypt_a(cipher, &charlie_sk))
+            .collect::<Vec<BigUint>>();
+
+        // convert the decrypted shares: Vec<BigUint> to Vec<Vec<u8>>
+        let charlie_shares: Vec<Vec<u8>> = charlie_paritial_decryptions
+            .iter()
+            .map(|c| c.to_bytes_be())
+            .collect::<Vec<Vec<u8>>>();
+
+        // create charlie's proof using charlie's public and private key share
+        let r = BigUint::parse_bytes(b"80981238129912392", 10).unwrap();
+        let charlie_proof = DecryptionProof::generate(
+            &params,
+            &charlie_sk.x,
+            &charlie_pk.h.into(),
+            &r,
+            encryptions,
+            charlie_paritial_decryptions,
+            &charlie_sealer_id,
+        );
+
+        // check that:
+        // 1. the decrypted share is submitted and
+        // 2. the proof is successfully verified
+        assert_ok!(OffchainModule::submit_decrypted_shares(
+            charlie.clone(),
+            vote_id,
+            topic_id,
+            charlie_shares,
+            charlie_proof.into()
+        ));
+
+        // TODO: call function to combine_decrypted_shares
     });
 }

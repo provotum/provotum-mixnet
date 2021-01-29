@@ -4,7 +4,8 @@ use super::*;
 use crate::sp_api_hidden_includes_decl_storage::hidden_include::StorageDoubleMap;
 use crate::types::{PublicParameters, ShuffleProof as Proof, Topic, Vote, Wrapper};
 use crypto::{
-    encryption::ElGamal, helper::Helper, types::Cipher as BigCipher, types::PublicKey as ElGamalPK,
+    encryption::ElGamal, helper::Helper, types::Cipher as BigCipher,
+    types::PublicKey as ElGamalPK,
 };
 use frame_benchmarking::{benchmarks, whitelisted_caller};
 use frame_system::RawOrigin;
@@ -40,7 +41,10 @@ fn get_sealer_charlie<T: Trait>() -> (RawOrigin<T::AccountId>, [u8; 32]) {
     (RawOrigin::Signed(account.into()), account_id)
 }
 
-fn setup_public_key<T: Trait>(vote_id: VoteId, pk: SubstratePK) -> Result<(), &'static str> {
+fn setup_public_key<T: Trait>(
+    vote_id: VoteId,
+    pk: SubstratePK,
+) -> Result<(), &'static str> {
     // use Alice as VotingAuthority
     let who = get_voting_authority::<T>();
 
@@ -49,7 +53,9 @@ fn setup_public_key<T: Trait>(vote_id: VoteId, pk: SubstratePK) -> Result<(), &'
     Ok(())
 }
 
-fn setup_vote<T: Trait>(params: PublicParameters) -> Result<(Vec<u8>, Vec<u8>), &'static str> {
+fn setup_vote<T: Trait>(
+    params: PublicParameters,
+) -> Result<(Vec<u8>, Vec<u8>), &'static str> {
     // use Alice as VotingAuthority
     let who = get_voting_authority::<T>();
 
@@ -62,7 +68,13 @@ fn setup_vote<T: Trait>(params: PublicParameters) -> Result<(Vec<u8>, Vec<u8>), 
     let topic: Topic = (topic_id.clone(), topic_question);
     let topics = vec![topic];
 
-    PalletMixnet::<T>::create_vote(who.into(), vote_id.clone(), vote_title, params, topics)?;
+    PalletMixnet::<T>::create_vote(
+        who.into(),
+        vote_id.clone(),
+        vote_title,
+        params,
+        topics,
+    )?;
     Ok((vote_id, topic_id))
 }
 
@@ -492,6 +504,10 @@ benchmarks! {
         let success = PalletMixnet::<T>::verify_shuffle_proof(&vote_id, proof, e, e_hat, &pk)?;
         ensure!(success, "proof did not verify!");
     }
+
+    // TODO: add benchmarks for
+    // 1. submit_decrypted_share
+    // 2. combine_decrypted_shares
 }
 
 #[cfg(test)]

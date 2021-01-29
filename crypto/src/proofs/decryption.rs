@@ -22,8 +22,8 @@ impl DecryptionProof {
     /// 3. compute d = a + c * sk
     pub fn generate(
         params: &ElGamalParams,
-        sk: &BigUint,
-        pk: &BigUint,
+        sk: &BigUint, // private key of public key share
+        pk: &BigUint, // public key of public key share -> not system public key
         r: &BigUint,
         vec_e: Vec<Cipher>,
         vec_c: Vec<BigUint>,
@@ -77,7 +77,7 @@ impl DecryptionProof {
     /// 4. verify that: g^d == b * h^c
     pub fn verify(
         params: &ElGamalParams,
-        pk: &BigUint,
+        pk: &BigUint, // public key of public key share -> not system public key
         proof: &DecryptionProof,
         vec_e: Vec<Cipher>,
         vec_c: Vec<BigUint>,
