@@ -30,7 +30,7 @@ use crate::helpers::{
         ensure_vote_phase, ensure_voting_authority,
     },
     ballot::store_ballot,
-    keys::{combine_shares, get_public_key, get_public_keyshare, get_public_params},
+    keys::{combine_shares, get_public_keyshare, get_public_params},
     phase::set_phase,
 };
 use crate::types::{
@@ -39,8 +39,11 @@ use crate::types::{
     Vote, VoteId, VotePhase, Wrapper,
 };
 use codec::Encode;
-use crypto::proofs::{decryption::DecryptionProof, keygen::KeyGenerationProof};
 use crypto::types::Cipher as BigCipher;
+use crypto::{
+    encryption::ElGamal,
+    proofs::{decryption::DecryptionProof, keygen::KeyGenerationProof},
+};
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
     ensure, weights::Pays,
@@ -50,8 +53,9 @@ use frame_system::{
     offchain::{AppCrypto, CreateSignedTransaction},
 };
 use num_bigint::BigUint;
+use num_traits::One;
 use sp_runtime::offchain as rt_offchain;
-use sp_std::{prelude::*, str, vec::Vec};
+use sp_std::{collections::btree_map::BTreeMap, if_std, prelude::*, str, vec::Vec};
 
 /// This is the pallet's configuration trait
 pub trait Trait: system::Trait + CreateSignedTransaction<Call<Self>> {
@@ -88,6 +92,9 @@ decl_storage! {
 
         /// Maps a vote to a list of results. [topic, yes, no, total]
         Tallies get(fn tallies): map hasher(blake2_128_concat) VoteId => Vec<Tally>;
+
+        /// Maps a topic to a map of results. [message/vote: count]
+        Results get(fn results): map hasher(blake2_128_concat) TopicId => Option<BTreeMap<Vec<u8>, Vec<u8>>>;
 
         /// Maps a sealer and a topic to a vector of decrypted shares.
         DecryptedShares get(fn decrypted_shares): double_map hasher(blake2_128_concat) TopicId, hasher(blake2_128_concat) T::AccountId  => Vec<Vec<u8>>;
@@ -200,6 +207,9 @@ decl_error! {
 
         // Error returned when not all sealers have submitted their decrypted shares yet
         NotEnoughDecryptedShares,
+
+        // Error returned when a topic has already been tallied and a second attempt to tally the votes is made
+        TopicHasAlreadyBeenTallied,
 
     }
 }
@@ -407,7 +417,7 @@ decl_module! {
 
         /// Combine decrypted shares into a final plain text tally.
         #[weight = (10_000, Pays::No)]
-        fn combine_decrypted_shares(origin, vote_id: VoteId) -> DispatchResult {
+        fn combine_decrypted_shares(origin, vote_id: VoteId, topic_id: TopicId, encoded: bool) -> DispatchResult {
             // only the voting_authority should be able to create the final tally
             let who: T::AccountId = ensure_signed(origin)?;
             ensure_vote_exists::<T>(&vote_id)?;
@@ -415,26 +425,82 @@ decl_module! {
             ensure_voting_authority::<T>(&who)?;
 
             // get the public parameters and the system public key
-            let sealer_id = who.encode();
             let params: PublicParameters = get_public_params::<T>(&vote_id)?;
-            let pk: SubstratePK = get_public_key::<T>(&vote_id)?;
-            let vote: Vote<T::AccountId> = Votes::<T>::get(&vote_id);
-            let topics: Vec<Topic> = Topics::get(&vote_id);
+            let big_p: BigUint = BigUint::from_bytes_be(&params.p);
+            let big_g: BigUint = BigUint::from_bytes_be(&params.g);
 
-            // TODO: combine all decrypted shares for all topics in the vote
+            // get all encrypted votes (ciphers) for the topic with id: topic_id
+            let ciphers: Vec<Cipher> = Ciphers::get(&topic_id);
 
             // type conversion: Vec<Cipher> (Vec<Vec<u8>>) to Vec<BigCipher> (Vec<BigUint>)
-            // let ciphers: Vec<Cipher> = Ciphers::get(&topic_id);
-            // let big_ciphers: Vec<BigCipher> = Wrapper(ciphers).into();
+            let big_ciphers: Vec<BigCipher> = Wrapper(ciphers).into();
 
-            // type conversion: DecryptedShare (Vec<u8>) to BigUint
-            // let decrypted_shares: Vec<BigUint> = shares.iter().map(|s| BigUint::from_bytes_be(s)).collect::<Vec<BigUint>>();
+            // retrieve the decrypted shares of all sealers
+            let sealers: Vec<T::AccountId> = Sealers::<T>::get();
+            let mut partial_decryptions: Vec<Vec<BigUint>> = Vec::with_capacity(sealers.len());
 
-            // store the decrypted shares
-            // let mut stored: Vec<DecryptedShare> = DecryptedShares::<T>::get::<&TopicId, &T::AccountId>(&topic_id, &who);
+            for sealer in sealers.iter() {
+                // get the partial decryptions of each sealer
+                let shares: Vec<DecryptedShare> = DecryptedShares::<T>::get::<&TopicId, &T::AccountId>(&topic_id, &sealer);
 
-            // TODO: compute tally
-            // Self::combine_decrypted_shares(&vote_id);
+                // make sure that each sealer has submitted his decrypted shares
+                ensure!(shares.len() > 0, Error::<T>::NotEnoughDecryptedShares);
+
+                // type conversion: DecryptedShare (Vec<u8>) to BigUint
+                let big_shares: Vec<BigUint> = shares.iter().map(|s| BigUint::from_bytes_be(s)).collect::<Vec<BigUint>>();
+                partial_decryptions.push(big_shares);
+            }
+
+            // combine all partial decryptions by all sealers
+            let combined_partial_decryptions = ElGamal::combine_partial_decrypted_as(
+                partial_decryptions,
+                &big_p,
+            );
+
+            // retrieve the plaintext votes
+            // by combining the decrypted components a with their decrypted components b
+            let iterator = big_ciphers.iter().zip(combined_partial_decryptions.iter());
+            let mut plaintexts = iterator
+                .map(|(cipher, decrypted_a)| {
+                    ElGamal::partial_decrypt_b(&cipher.b, decrypted_a, &big_p)
+                })
+                .collect::<Vec<BigUint>>();
+
+            if encoded {
+                plaintexts = plaintexts
+                .iter()
+                .map(|encoded| ElGamal::decode_message(encoded, &big_g, &big_p))
+                .collect::<Vec<BigUint>>();
+            }
+
+            // get tallies for vote_id
+            let tallies: Vec<Tally> = Tallies::get::<&VoteId>(&vote_id);
+
+            // check that topic has not been tallied yet
+            ensure!(!tallies.iter().any(|tally| &tally.topic_id == &topic_id), Error::<T>::TopicHasAlreadyBeenTallied);
+
+            // count the results
+            let one = BigUint::one();
+            let mut big_results: BTreeMap<BigUint, BigUint> = BTreeMap::new();
+            plaintexts.into_iter().for_each(|item| *big_results.entry(item).or_default() += &one);
+            debug::info!("results: {:?}", big_results);
+
+            if_std! {
+                println!("results: {:?}", big_results);
+            }
+
+            let mut results: BTreeMap<Vec<u8>, Vec<u8>> = BTreeMap::new();
+            for (key, value) in big_results.iter() {
+                results.insert(key.to_bytes_be(), value.to_bytes_be());
+            }
+
+            if_std! {
+                println!("res: {:?}", results);
+            }
+
+            // store the result on chain
+            Results::insert::<&TopicId, BTreeMap<Vec<u8>, Vec<u8>>>(&topic_id, results);
+
             Ok(())
         }
 

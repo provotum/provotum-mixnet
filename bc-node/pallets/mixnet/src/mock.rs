@@ -2,7 +2,9 @@ use crate as pallet_mixnet;
 use crate::Call;
 use codec::alloc::sync::Arc;
 use codec::Decode;
-use frame_support::{dispatch::Weight, impl_outer_event, impl_outer_origin, parameter_types};
+use frame_support::{
+    dispatch::Weight, impl_outer_event, impl_outer_origin, parameter_types,
+};
 use frame_system as system;
 use hex_literal::hex;
 use parking_lot::RwLock;
@@ -86,7 +88,9 @@ impl<LocalCall> system::offchain::CreateSignedTransaction<LocalCall> for TestRun
 where
     Call<TestRuntime>: From<LocalCall>,
 {
-    fn create_transaction<C: system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+    fn create_transaction<
+        C: system::offchain::AppCrypto<Self::Public, Self::Signature>,
+    >(
         call: Call<TestRuntime>,
         _public: <Signature as Verify>::Signer,
         _account: <TestRuntime as system::Trait>::AccountId,
@@ -133,33 +137,43 @@ impl ExternalityBuilder {
     ) {
         // use Alice as VotingAuthority
         let alice_account_id: [u8; 32] =
-            hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
+            hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
+                .into();
 
         let voting_authority: <TestRuntime as system::Trait>::AccountId =
-            <TestRuntime as system::Trait>::AccountId::decode(&mut &alice_account_id[..]).unwrap();
+            <TestRuntime as system::Trait>::AccountId::decode(&mut &alice_account_id[..])
+                .unwrap();
 
         // Use Bob, Charlie, Dave as Sealers
         let bob_account_id: [u8; 32] =
-            hex!("8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48").into();
+            hex!("8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48")
+                .into();
 
         let sealer1: <TestRuntime as system::Trait>::AccountId =
-            <TestRuntime as system::Trait>::AccountId::decode(&mut &bob_account_id[..]).unwrap();
-
-        let charlie_account_id: [u8; 32] =
-            hex!("90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22").into();
-
-        let sealer2: <TestRuntime as system::Trait>::AccountId =
-            <TestRuntime as system::Trait>::AccountId::decode(&mut &charlie_account_id[..])
+            <TestRuntime as system::Trait>::AccountId::decode(&mut &bob_account_id[..])
                 .unwrap();
 
-        let dave_account_id: [u8; 32] =
-            hex!("90b5ab205c6974c9ea841be688864633dc9ca8a357843eebbf2314649965fe22").into();
+        let charlie_account_id: [u8; 32] =
+            hex!("90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+                .into();
 
-        let sealer3: <TestRuntime as system::Trait>::AccountId =
-            <TestRuntime as system::Trait>::AccountId::decode(&mut &dave_account_id[..]).unwrap();
+        let sealer2: <TestRuntime as system::Trait>::AccountId =
+            <TestRuntime as system::Trait>::AccountId::decode(
+                &mut &charlie_account_id[..],
+            )
+            .unwrap();
+
+        // let dave_account_id: [u8; 32] =
+        //     hex!("90b5ab205c6974c9ea841be688864633dc9ca8a357843eebbf2314649965fe22")
+        //         .into();
+
+        // let sealer3: <TestRuntime as system::Trait>::AccountId =
+        //     <TestRuntime as system::Trait>::AccountId::decode(&mut &dave_account_id[..])
+        //         .unwrap();
 
         let voting_authorities = vec![voting_authority];
-        let sealers = vec![sealer1, sealer2, sealer3];
+        // let sealers = vec![sealer1, sealer2, sealer3];
+        let sealers = vec![sealer1, sealer2];
         (voting_authorities, sealers)
     }
 

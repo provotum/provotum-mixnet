@@ -218,7 +218,7 @@ fn test_initialization_works() {
 
         // Fetch Sealers
         let sealers = OffchainModule::sealers();
-        assert!(sealers.len() == 3);
+        assert!(sealers.len() == 2);
     });
 }
 
@@ -1768,7 +1768,7 @@ fn test_combine_decrypted_shares() {
         // combine the public key shares
         let voting_authority = get_voting_authority();
         assert_ok!(OffchainModule::combine_public_key_shares(
-            voting_authority,
+            voting_authority.clone(),
             vote_id.clone()
         ));
 
@@ -1782,13 +1782,9 @@ fn test_combine_decrypted_shares() {
         // create encrypted votes - NOT ENCODED
         setup_ciphers(&vote_id, &topic_id, &system_pk.clone().into(), false);
 
-        // create the submitter (i.e. the voting_authority)
-        // use Alice as VotingAuthority
-        let authority = get_voting_authority();
-
-        // change the VotePhase to Voting
+        // change the VotePhase to Voting using the voting authority
         assert_ok!(OffchainModule::set_vote_phase(
-            authority,
+            voting_authority.clone(),
             vote_id.clone(),
             VotePhase::Tallying
         ));
@@ -1862,12 +1858,18 @@ fn test_combine_decrypted_shares() {
         // 2. the proof is successfully verified
         assert_ok!(OffchainModule::submit_decrypted_shares(
             charlie.clone(),
-            vote_id,
-            topic_id,
+            vote_id.clone(),
+            topic_id.clone(),
             charlie_shares,
             charlie_proof.into()
         ));
 
-        // TODO: call function to combine_decrypted_shares
+        // combine the decrypted shares
+        assert_ok!(OffchainModule::combine_decrypted_shares(
+            voting_authority,
+            vote_id,
+            topic_id,
+            false
+        ));
     });
 }
