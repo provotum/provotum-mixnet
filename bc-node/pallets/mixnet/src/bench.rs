@@ -838,13 +838,51 @@ mod tests {
             assert_ok!(test_benchmark_store_question::<TestRuntime>());
             assert_ok!(test_benchmark_create_vote::<TestRuntime>());
             assert_ok!(test_benchmark_cast_ballot::<TestRuntime>());
+        });
+    }
+
+    #[test]
+    fn test_benchmarks_shuffle_ciphers() {
+        let (mut t, _, _) = ExternalityBuilder::build();
+        t.execute_with(|| {
             assert_ok!(test_benchmark_shuffle_ciphers_3::<TestRuntime>());
             assert_ok!(test_benchmark_shuffle_ciphers_3_encoded::<TestRuntime>());
+        });
+    }
+
+    #[test]
+    fn test_benchmarks_shuffle_proof() {
+        let (mut t, _, _) = ExternalityBuilder::build();
+        t.execute_with(|| {
             assert_ok!(test_benchmark_shuffle_proof_3::<TestRuntime>());
-            assert_ok!(test_benchmark_shuffle_proof_3_encoded::<TestRuntime>());
             assert_ok!(test_benchmark_verify_shuffle_proof_3::<TestRuntime>());
+        });
+    }
+
+    #[test]
+    fn test_benchmarks_shuffle_proof_encoded() {
+        let (mut t, _, _) = ExternalityBuilder::build();
+        t.execute_with(|| {
+            assert_ok!(test_benchmark_shuffle_proof_3_encoded::<TestRuntime>());
             assert_ok!(test_benchmark_verify_shuffle_proof_3_encoded::<TestRuntime>());
+        });
+    }
+
+    #[test]
+    fn test_benchmarks_decrypted_shares() {
+        let (mut t, _, _) = ExternalityBuilder::build();
+        t.execute_with(|| {
             assert_ok!(test_benchmark_verify_submit_decrypted_shares_100::<
+                TestRuntime,
+            >());
+        });
+    }
+
+    #[test]
+    fn test_benchmarks_decrypted_shares_encoded() {
+        let (mut t, _, _) = ExternalityBuilder::build();
+        t.execute_with(|| {
+            assert_ok!(test_benchmark_verify_submit_decrypted_shares_100_encoded::<
                 TestRuntime,
             >());
         });
