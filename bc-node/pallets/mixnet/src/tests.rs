@@ -1711,7 +1711,17 @@ fn test_submit_decrypted_share() {
 fn test_combine_decrypted_shares_vote_does_not_exist() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        // TODO: add implementation
+        let (params, _, pk) = Helper::setup_md_system();
+        let voting_authority = get_voting_authority();
+        assert_err!(
+            OffchainModule::combine_decrypted_shares(
+                voting_authority,
+                "vote_id".as_bytes().to_vec(),
+                "topic_id".as_bytes().to_vec(),
+                false
+            ),
+            Error::<TestRuntime>::VoteDoesNotExist
+        );
     })
 }
 
@@ -1719,7 +1729,25 @@ fn test_combine_decrypted_shares_vote_does_not_exist() {
 fn test_combine_decrypted_shares_wrong_vote_phase() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        // TODO: add implementation
+        let (params, _, _) = Helper::setup_md_system();
+        let (vote_id, topic_id) = setup_vote(params.clone().into());
+
+        // change the VotePhase to Voting using the voting authority
+        let voting_authority = get_voting_authority();
+        assert_ok!(OffchainModule::set_vote_phase(
+            voting_authority,
+            vote_id.clone(),
+            VotePhase::Tallying
+        ));
+
+        // use bob as a submitter
+        let (bob, _, _) = get_sealer_bob();
+
+        // try to combine shares -> not a voting authority
+        assert_err!(
+            OffchainModule::combine_decrypted_shares(bob, vote_id, topic_id, false),
+            Error::<TestRuntime>::NotAVotingAuthority
+        );
     })
 }
 
@@ -1727,7 +1755,20 @@ fn test_combine_decrypted_shares_wrong_vote_phase() {
 fn test_combine_decrypted_shares_not_a_voting_authority() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        // TODO: add implementation
+        let (params, _, _) = Helper::setup_md_system();
+        let (vote_id, topic_id) = setup_vote(params.clone().into());
+
+        // try to combine shares -> voting phase not updated yet
+        let voting_authority = get_voting_authority();
+        assert_err!(
+            OffchainModule::combine_decrypted_shares(
+                voting_authority,
+                vote_id,
+                topic_id,
+                false
+            ),
+            Error::<TestRuntime>::WrongVotePhase
+        );
     })
 }
 
@@ -1864,12 +1905,35 @@ fn test_combine_decrypted_shares() {
             charlie_proof.into()
         ));
 
-        // combine the decrypted shares
+        // combine the decrypted shares + tally topic
         assert_ok!(OffchainModule::combine_decrypted_shares(
             voting_authority,
             vote_id,
-            topic_id,
+            topic_id.clone(),
             false
         ));
+
+        // retrieve the tallied result from the storage on chain
+        let result: BTreeMap<Plaintext, Count> = OffchainModule::tally(topic_id).unwrap();
+
+        // transform the result from Vec<u8> (bytes) back to Vec<BigUint>
+        let mut big_result: BTreeMap<BigUint, BigUint> = BTreeMap::new();
+        for (key, value) in result.iter() {
+            big_result.insert(BigUint::from_bytes_be(key), BigUint::from_bytes_be(value));
+        }
+
+        // check that there are 2 entries for each type of vote
+        assert_eq!(
+            big_result.get(&BigUint::from(4u32)).unwrap(),
+            &BigUint::from(2u32)
+        );
+        assert_eq!(
+            big_result.get(&BigUint::from(1u32)).unwrap(),
+            &BigUint::from(2u32)
+        );
+        assert_eq!(
+            big_result.get(&BigUint::from(3u32)).unwrap(),
+            &BigUint::from(2u32)
+        );
     });
 }

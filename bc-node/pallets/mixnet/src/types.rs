@@ -5,7 +5,7 @@ use frame_system::offchain::{SignedPayload, SigningTypes};
 use num_bigint::BigUint;
 use num_traits::One;
 use sp_runtime::RuntimeDebug;
-use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
+use sp_std::vec::Vec;
 
 /// the BigCipher from the crypto crate.
 /// different types which the blockchain can handle.
@@ -165,6 +165,10 @@ pub type Title = Vec<u8>;
 pub type TopicId = Vec<u8>;
 pub type TopicQuestion = Vec<u8>;
 
+// result types
+pub type Plaintext = Vec<u8>;
+pub type Count = Vec<u8>;
+
 // topicId and question (string as Vec<u8>)
 pub type Topic = (TopicId, TopicQuestion);
 
@@ -254,13 +258,6 @@ impl From<DecryptedShareProof> for DecryptionProof {
             response: BigUint::from_bytes_be(&source.response),
         }
     }
-}
-
-#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug)]
-pub struct Tally {
-    pub topic_id: TopicId,
-    // store a map of result: count
-    pub result: BTreeMap<Vec<u8>, Vec<u8>>,
 }
 
 /// the type to sign and send transactions.

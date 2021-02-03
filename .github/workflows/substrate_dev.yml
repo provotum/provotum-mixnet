@@ -50,6 +50,10 @@ jobs:
       - name: Test Dev Binary
         run: cargo +nightly test --verbose -- --nocapture
 
+      - name: Perform Benchmark Tests
+        run: cargo +nightly test -p pallet-mixnet --features runtime-benchmarks --verbose -- --nocapture
+        working-directory: ${{ github.workspace }}/bc-node/node
+
       # this step uploads the built dev binary as an artifact (output)
       - name: Upload Dev Binary
         uses: actions/upload-artifact@v2

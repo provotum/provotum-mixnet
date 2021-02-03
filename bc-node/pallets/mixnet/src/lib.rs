@@ -24,19 +24,22 @@ mod tests;
 
 pub mod keys;
 
-use crate::helpers::{
-    assertions::{
-        ensure_not_a_voting_authority, ensure_sealer, ensure_vote_exists,
-        ensure_vote_phase, ensure_voting_authority,
-    },
-    ballot::store_ballot,
-    keys::{combine_shares, get_public_keyshare, get_public_params},
-    phase::set_phase,
-};
 use crate::types::{
     Ballot, Cipher, DecryptedShare, DecryptedShareProof, PublicKey as SubstratePK,
-    PublicKeyShare, PublicKeyShareProof, PublicParameters, Tally, Title, Topic, TopicId,
-    Vote, VoteId, VotePhase, Wrapper,
+    PublicKeyShare, PublicKeyShareProof, PublicParameters, Title, Topic, TopicId, Vote,
+    VoteId, VotePhase, Wrapper,
+};
+use crate::{
+    helpers::{
+        assertions::{
+            ensure_not_a_voting_authority, ensure_sealer, ensure_vote_exists,
+            ensure_vote_phase, ensure_voting_authority,
+        },
+        ballot::store_ballot,
+        keys::{combine_shares, get_public_keyshare, get_public_params},
+        phase::set_phase,
+    },
+    types::{Count, Plaintext},
 };
 use codec::Encode;
 use crypto::types::Cipher as BigCipher;
@@ -55,7 +58,7 @@ use frame_system::{
 use num_bigint::BigUint;
 use num_traits::One;
 use sp_runtime::offchain as rt_offchain;
-use sp_std::{collections::btree_map::BTreeMap, if_std, prelude::*, str, vec::Vec};
+use sp_std::{collections::btree_map::BTreeMap, prelude::*, str, vec::Vec};
 
 /// This is the pallet's configuration trait
 pub trait Trait: system::Trait + CreateSignedTransaction<Call<Self>> {
@@ -90,11 +93,8 @@ decl_storage! {
         /// Maps a topicId (question) to a list of Ciphers
         Ciphers get(fn ciphers): map hasher(blake2_128_concat) TopicId => Vec<Cipher>;
 
-        /// Maps a vote to a list of results. [topic, yes, no, total]
-        Tallies get(fn tallies): map hasher(blake2_128_concat) VoteId => Vec<Tally>;
-
-        /// Maps a topic to a map of results. [message/vote: count]
-        Results get(fn results): map hasher(blake2_128_concat) TopicId => Option<BTreeMap<Vec<u8>, Vec<u8>>>;
+        /// Maps a topic to a map of results. [topic_id -> {message/vote: count}]
+        Tally get(fn tally): map hasher(blake2_128_concat) TopicId => Option<BTreeMap<Plaintext, Count>>;
 
         /// Maps a sealer and a topic to a vector of decrypted shares.
         DecryptedShares get(fn decrypted_shares): double_map hasher(blake2_128_concat) TopicId, hasher(blake2_128_concat) T::AccountId  => Vec<Vec<u8>>;
@@ -139,6 +139,9 @@ decl_event!(
 
         /// A decrypted share was submitted for a vote. [paritial decryptions with its proof]
         DecryptedShareSubmitted(VoteId, AccountId),
+
+        /// A decrypted share was submitted for a vote. [paritial decryptions with its proof]
+        TopicTallied(TopicId),
     }
 );
 
@@ -466,6 +469,7 @@ decl_module! {
                 })
                 .collect::<Vec<BigUint>>();
 
+            // if the votes were encoded, we need to decoded them (brute force dlog)
             if encoded {
                 plaintexts = plaintexts
                 .iter()
@@ -473,34 +477,31 @@ decl_module! {
                 .collect::<Vec<BigUint>>();
             }
 
-            // get tallies for vote_id
-            let tallies: Vec<Tally> = Tallies::get::<&VoteId>(&vote_id);
+            // get the tally for the vote with topic id: topic_id
+            let tally: Option<BTreeMap<Plaintext, Count>> = Tally::get::<&TopicId>(&topic_id);
 
             // check that topic has not been tallied yet
-            ensure!(!tallies.iter().any(|tally| &tally.topic_id == &topic_id), Error::<T>::TopicHasAlreadyBeenTallied);
+            ensure!(tally.is_none(), Error::<T>::TopicHasAlreadyBeenTallied);
 
-            // count the results
+            // count the number of votes per voting option
+            // store result as a map -> key: voting option, value: count
             let one = BigUint::one();
             let mut big_results: BTreeMap<BigUint, BigUint> = BTreeMap::new();
             plaintexts.into_iter().for_each(|item| *big_results.entry(item).or_default() += &one);
-            debug::info!("results: {:?}", big_results);
 
-            if_std! {
-                println!("results: {:?}", big_results);
-            }
-
-            let mut results: BTreeMap<Vec<u8>, Vec<u8>> = BTreeMap::new();
+            // type conversion: BTreeMap<BigUint, BigUint> to BTreeMap<Vec<u8>, Vec<u8>>
+            // to be able to store the results on chain
+            let mut results: BTreeMap<Plaintext, Count> = BTreeMap::new();
             for (key, value) in big_results.iter() {
                 results.insert(key.to_bytes_be(), value.to_bytes_be());
             }
 
-            if_std! {
-                println!("res: {:?}", results);
-            }
+            // store the results on chain
+            Tally::insert::<&TopicId, BTreeMap<Plaintext, Count>>(&topic_id, results);
 
-            // store the result on chain
-            Results::insert::<&TopicId, BTreeMap<Vec<u8>, Vec<u8>>>(&topic_id, results);
-
+            // notify that the decrypted shares have been successfully combined
+            // and that the result has been tallied!
+            Self::deposit_event(RawEvent::TopicTallied(topic_id));
             Ok(())
         }
 

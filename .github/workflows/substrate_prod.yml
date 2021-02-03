@@ -48,6 +48,10 @@ jobs:
       - name: Test Prod Binary
         run: cargo +nightly test --release
 
+      - name: Perform Benchmark Tests
+        run: cargo +nightly test -p pallet-mixnet --features runtime-benchmarks --release --verbose -- --nocapture
+        working-directory: ${{ github.workspace }}/bc-node/node
+
       # this step uploads the built prod binary as an artifact (output)
       - name: Upload Prod Binary
         uses: actions/upload-artifact@v2
