@@ -352,6 +352,58 @@ fn create_decrypted_shares_and_proof<T: Trait>(
     Ok((decryption_proof, decrypted_shares))
 }
 
+fn submit_decrypted_shares_and_proofs<T: Trait>(
+    size: usize,
+    encoded: bool,
+) -> Result<(TopicId, VoteId), &'static str> {
+    // setup system with distributed keys
+    let (topic_id, vote_id, _, bob_pk, bob_sk, charlie_pk, charlie_sk) =
+        setup_vote_with_distributed_keys::<T>(size, encoded)?;
+
+    // use bob
+    let (bob, bob_id) = get_sealer_bob::<T>();
+
+    // create bob's decrypted shares + proof using bob's public and private key share
+    let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(
+        &topic_id,
+        &bob_pk.params,
+        &bob_pk,
+        &bob_sk,
+        bob_id,
+    )?;
+
+    // submit bob's proof + shares
+    PalletMixnet::<T>::submit_decrypted_shares(
+        bob.into(),
+        vote_id.clone(),
+        topic_id.clone(),
+        bob_shares,
+        bob_proof.into(),
+    )?;
+
+    // use charlie
+    let (charlie, charlie_id) = get_sealer_charlie::<T>();
+
+    // create charlie's decrypted shares + proof using charlie's public and private key share
+    let (charlie_proof, charlie_shares) = create_decrypted_shares_and_proof::<T>(
+        &topic_id,
+        &charlie_pk.params,
+        &charlie_pk,
+        &charlie_sk,
+        charlie_id,
+    )?;
+
+    // submit charlie's proof + shares
+    PalletMixnet::<T>::submit_decrypted_shares(
+        charlie.into(),
+        vote_id.clone(),
+        topic_id.clone(),
+        charlie_shares,
+        charlie_proof.into(),
+    )?;
+    Ok((topic_id, vote_id))
+}
+
 benchmarks! {
     _{ }
 
@@ -719,11 +771,9 @@ benchmarks! {
 
         // use bob
         let (bob, bob_id) = get_sealer_bob::<T>();
-        let params = &bob_pk.params;
-        let q = &params.q();
 
         // create bob's decrypted shares + proof using bob's public and private key share
-        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &params, &bob_pk, &bob_sk, bob_id)?;
+        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &bob_pk.params, &bob_pk, &bob_sk, bob_id)?;
     }: {
         let _success = PalletMixnet::<T>::submit_decrypted_shares(
             bob.into(),
@@ -740,11 +790,9 @@ benchmarks! {
 
         // use bob
         let (bob, bob_id) = get_sealer_bob::<T>();
-        let params = &bob_pk.params;
-        let q = &params.q();
 
         // create bob's decrypted shares + proof using bob's public and private key share
-        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &params, &bob_pk, &bob_sk, bob_id)?;
+        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &bob_pk.params, &bob_pk, &bob_sk, bob_id)?;
     }: {
         let _success = PalletMixnet::<T>::submit_decrypted_shares(
             bob.into(),
@@ -761,11 +809,9 @@ benchmarks! {
 
         // use bob
         let (bob, bob_id) = get_sealer_bob::<T>();
-        let params = &bob_pk.params;
-        let q = &params.q();
 
         // create bob's decrypted shares + proof using bob's public and private key share
-        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &params, &bob_pk, &bob_sk, bob_id)?;
+        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &bob_pk.params, &bob_pk, &bob_sk, bob_id)?;
     }: {
         let _success = PalletMixnet::<T>::submit_decrypted_shares(
             bob.into(),
@@ -782,11 +828,9 @@ benchmarks! {
 
         // use bob
         let (bob, bob_id) = get_sealer_bob::<T>();
-        let params = &bob_pk.params;
-        let q = &params.q();
 
         // create bob's decrypted shares + proof using bob's public and private key share
-        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &params, &bob_pk, &bob_sk, bob_id)?;
+        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &bob_pk.params, &bob_pk, &bob_sk, bob_id)?;
     }: {
         let _success = PalletMixnet::<T>::submit_decrypted_shares(
             bob.into(),
@@ -803,11 +847,9 @@ benchmarks! {
 
         // use bob
         let (bob, bob_id) = get_sealer_bob::<T>();
-        let params = &bob_pk.params;
-        let q = &params.q();
 
         // create bob's decrypted shares + proof using bob's public and private key share
-        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &params, &bob_pk, &bob_sk, bob_id)?;
+        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &bob_pk.params, &bob_pk, &bob_sk, bob_id)?;
     }: {
         let _success = PalletMixnet::<T>::submit_decrypted_shares(
             bob.into(),
@@ -818,8 +860,80 @@ benchmarks! {
         )?;
     }
 
-    // TODO: add benchmarks for
-    // 2. combine_decrypted_shares
+    combine_decrypted_shares_100 {
+        // setup everything including keys, votes, decrypted shares
+        let (topic_id, vote_id) = submit_decrypted_shares_and_proofs::<T>(100, false)?;
+
+        // use Alice as VotingAuthority to combine the votes
+        let who = get_voting_authority::<T>();
+    }: {
+        let _success = PalletMixnet::<T>::combine_decrypted_shares(
+            who.into(),
+            vote_id,
+            topic_id,
+            false
+        )?;
+    }
+
+    combine_decrypted_shares_1000 {
+        // setup everything including keys, votes, decrypted shares
+        let (topic_id, vote_id) = submit_decrypted_shares_and_proofs::<T>(1000, false)?;
+
+        // use Alice as VotingAuthority to combine the votes
+        let who = get_voting_authority::<T>();
+    }: {
+        let _success = PalletMixnet::<T>::combine_decrypted_shares(
+            who.into(),
+            vote_id,
+            topic_id,
+            false
+        )?;
+    }
+
+    combine_decrypted_shares_10000 {
+        // setup everything including keys, votes, decrypted shares
+        let (topic_id, vote_id) = submit_decrypted_shares_and_proofs::<T>(10000, false)?;
+
+        // use Alice as VotingAuthority to combine the votes
+        let who = get_voting_authority::<T>();
+    }: {
+        let _success = PalletMixnet::<T>::combine_decrypted_shares(
+            who.into(),
+            vote_id,
+            topic_id,
+            false
+        )?;
+    }
+
+    combine_decrypted_shares_100_encoded {
+        // setup everything including keys, votes, decrypted shares
+        let (topic_id, vote_id) = submit_decrypted_shares_and_proofs::<T>(100, true)?;
+
+        // use Alice as VotingAuthority to combine the votes
+        let who = get_voting_authority::<T>();
+    }: {
+        let _success = PalletMixnet::<T>::combine_decrypted_shares(
+            who.into(),
+            vote_id,
+            topic_id,
+            false
+        )?;
+    }
+
+    combine_decrypted_shares_1000_encoded {
+        // setup everything including keys, votes, decrypted shares
+        let (topic_id, vote_id) = submit_decrypted_shares_and_proofs::<T>(1000, true)?;
+
+        // use Alice as VotingAuthority to combine the votes
+        let who = get_voting_authority::<T>();
+    }: {
+        let _success = PalletMixnet::<T>::combine_decrypted_shares(
+            who.into(),
+            vote_id,
+            topic_id,
+            false
+        )?;
+    }
 }
 
 #[cfg(test)]
@@ -869,7 +983,7 @@ mod tests {
     }
 
     #[test]
-    fn test_benchmarks_decrypted_shares() {
+    fn test_benchmarks_submit_decrypted_shares() {
         let (mut t, _, _) = ExternalityBuilder::build();
         t.execute_with(|| {
             assert_ok!(test_benchmark_verify_submit_decrypted_shares_100::<
@@ -879,10 +993,28 @@ mod tests {
     }
 
     #[test]
-    fn test_benchmarks_decrypted_shares_encoded() {
+    fn test_benchmarks_submit_decrypted_shares_encoded() {
         let (mut t, _, _) = ExternalityBuilder::build();
         t.execute_with(|| {
             assert_ok!(test_benchmark_verify_submit_decrypted_shares_100_encoded::<
+                TestRuntime,
+            >());
+        });
+    }
+
+    #[test]
+    fn test_benchmarks_combine_decrypted_shares() {
+        let (mut t, _, _) = ExternalityBuilder::build();
+        t.execute_with(|| {
+            assert_ok!(test_benchmark_combine_decrypted_shares_100::<TestRuntime>());
+        });
+    }
+
+    #[test]
+    fn test_benchmarks_combine_decrypted_shares_encoded() {
+        let (mut t, _, _) = ExternalityBuilder::build();
+        t.execute_with(|| {
+            assert_ok!(test_benchmark_combine_decrypted_shares_100_encoded::<
                 TestRuntime,
             >());
         });
