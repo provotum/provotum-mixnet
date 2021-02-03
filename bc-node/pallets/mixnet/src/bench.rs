@@ -1,16 +1,22 @@
 #![cfg(feature = "runtime-benchmarks")]
 
-use crate::sp_api_hidden_includes_decl_storage::hidden_include::StorageDoubleMap;
 use crate::types::{
     Ballot, Cipher, PublicKey as SubstratePK, PublicKeyShare, PublicParameters,
     ShuffleProof as Proof, Topic, TopicId, Vote, VoteId, Wrapper,
+};
+use crate::{
+    sp_api_hidden_includes_decl_storage::hidden_include::StorageDoubleMap,
+    types::VotePhase,
 };
 use crate::{Ballots, Module, Trait};
 use alloc::vec::Vec;
 use codec::Decode;
 use crypto::{
-    encryption::ElGamal, helper::Helper, proofs::keygen::KeyGenerationProof,
-    types::Cipher as BigCipher, types::PublicKey as ElGamalPK,
+    encryption::ElGamal,
+    helper::Helper,
+    proofs::{decryption::DecryptionProof, keygen::KeyGenerationProof},
+    types::Cipher as BigCipher,
+    types::{ElGamalParams, ModuloOperations, PrivateKey, PublicKey as ElGamalPK},
 };
 use frame_benchmarking::{benchmarks, whitelisted_caller};
 use frame_support::{ensure, traits::Box};
@@ -84,6 +90,44 @@ fn setup_vote<T: Trait>(
     Ok((vote_id, topic_id))
 }
 
+fn generate_random_encryptions_encoded<T: Trait>(
+    pk: &ElGamalPK,
+    q: &BigUint,
+    number: usize,
+) -> Result<Vec<Cipher>, &'static str> {
+    let mut encryptions: Vec<Cipher> = Vec::new();
+
+    for i in 0..number {
+        let nr = BigUint::from(i);
+        let r = PalletMixnet::<T>::get_random_biguint_less_than(q)?;
+        let enc = ElGamal::encrypt_encode(&nr, &r, pk);
+        encryptions.push(enc.into());
+    }
+    Ok(encryptions)
+}
+
+fn generate_random_encryptions<T: Trait>(
+    pk: &ElGamalPK,
+    q: &BigUint,
+    number: usize,
+) -> Result<Vec<Cipher>, &'static str> {
+    let mut encryptions: Vec<Cipher> = Vec::new();
+    let mut i: u32 = 0;
+    let one = BigUint::one();
+    let p = &pk.params.p;
+
+    while encryptions.len() != number {
+        let nr = BigUint::from(i);
+        if nr.modpow(q, p) == one {
+            let r = PalletMixnet::<T>::get_random_biguint_less_than(q)?;
+            let enc = ElGamal::encrypt(&nr, &r, pk);
+            encryptions.push(enc.into());
+        }
+        i += 1u32;
+    }
+    Ok(encryptions)
+}
+
 fn setup_shuffle<T: Trait>(
     size: usize,
     encoded: bool,
@@ -95,25 +139,20 @@ fn setup_shuffle<T: Trait>(
 
     // create messages and random values
     let q = &pk.params.q();
-    let messages = PalletMixnet::<T>::get_random_biguints_less_than(q, size)?;
-    let randoms = PalletMixnet::<T>::get_random_biguints_less_than(q, size)?;
 
     // create the voter (i.e. the transaction signer)
     let account: T::AccountId = whitelisted_caller();
     let voter = RawOrigin::Signed(account.into());
 
-    for index in 0..messages.len() {
-        let random = &randoms[index];
-        let message = &messages[index];
+    // generate random encryptions
+    let ciphers: Vec<Cipher>;
+    if encoded {
+        ciphers = generate_random_encryptions_encoded::<T>(&pk, q, size)?;
+    } else {
+        ciphers = generate_random_encryptions::<T>(&pk, q, size)?;
+    }
 
-        // transform the ballot into a from that the blockchain can handle
-        // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
-        let cipher: Cipher;
-        if encoded {
-            cipher = ElGamal::encrypt_encode(message, random, &pk).into();
-        } else {
-            cipher = ElGamal::encrypt(message, random, &pk).into();
-        }
+    for cipher in ciphers {
         let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
         let ballot: Ballot = Ballot { answers };
         PalletMixnet::<T>::cast_ballot(voter.clone().into(), vote_id.clone(), ballot)?;
@@ -148,6 +187,169 @@ fn setup_shuffle_proof<T: Trait>(
     let r = s.1; // the re-encryption randoms
     let permutation = s.2;
     Ok((vote_id, e, e_hat, r, permutation, pk))
+}
+
+fn setup_sealer<T: Trait>(
+    params: &ElGamalParams,
+    sk: &PrivateKey,
+    pk: &ElGamalPK,
+    who: RawOrigin<T::AccountId>,
+    vote_id: &VoteId,
+    sealer_id: &[u8],
+) -> Result<(PublicKeyShare, KeyGenerationProof), &'static str> {
+    // create public key share + proof
+    let q = &pk.params.q();
+    let r = PalletMixnet::<T>::get_random_biguint_less_than(q)?;
+    let proof = KeyGenerationProof::generate(params, &sk.x, &pk.h, &r, sealer_id);
+    let pk_share = PublicKeyShare {
+        proof: proof.clone().into(),
+        pk: pk.h.to_bytes_be(),
+    };
+
+    // submit the public key share
+    PalletMixnet::<T>::store_public_key_share(
+        who.into(),
+        vote_id.clone(),
+        pk_share.clone().into(),
+    )?;
+    Ok((pk_share, proof))
+}
+
+fn setup_vote_with_distributed_keys<T: Trait>(
+    size: usize,
+    encoded: bool,
+) -> Result<
+    (
+        Vec<u8>,
+        Vec<u8>,
+        ElGamalPK,  // system public key
+        ElGamalPK,  // bob's public key share
+        PrivateKey, // bob's private key
+        ElGamalPK,  // charlie's public key share
+        PrivateKey, // charlie's private key share
+    ),
+    &'static str,
+> {
+    // setup the vote and generate intial system parameters
+    let (params, _, _) = Helper::setup_lg_system();
+    let q = &params.q();
+    let (vote_id, topic_id) = setup_vote::<T>(params.clone().into())?;
+
+    // distributed key generation setup
+    // Use 1. Sealer: Bob
+    let (bob, bob_sealer_id) = get_sealer_bob::<T>();
+    let bob_sk_x = PalletMixnet::<T>::get_random_biguint_less_than(q)?;
+    let (bob_pk, bob_sk) = Helper::generate_key_pair(&params, &bob_sk_x);
+    let (_, _) = setup_sealer::<T>(
+        &params,
+        &bob_sk,
+        &bob_pk,
+        bob.clone(),
+        &vote_id,
+        &bob_sealer_id,
+    )?;
+
+    // Use 2. Sealer: Charlie
+    let (charlie, charlie_sealer_id) = get_sealer_charlie::<T>();
+    let charlie_sk_x = PalletMixnet::<T>::get_random_biguint_less_than(q)?;
+    let (charlie_pk, charlie_sk) = Helper::generate_key_pair(&params, &charlie_sk_x);
+    let (_, _) = setup_sealer::<T>(
+        &params,
+        &charlie_sk,
+        &charlie_pk,
+        charlie,
+        &vote_id,
+        &charlie_sealer_id,
+    )?;
+
+    // combine the public key shares
+    let voting_authority = get_voting_authority::<T>();
+    PalletMixnet::<T>::combine_public_key_shares(
+        voting_authority.clone().into(),
+        vote_id.clone(),
+    )?;
+
+    // get the public key from the chain
+    let system_pk: ElGamalPK = PalletMixnet::<T>::public_key(vote_id.clone())
+        .unwrap()
+        .into();
+    let computed_system_pk: BigUint = bob_pk.h.modmul(&charlie_pk.h, &bob_pk.params.p);
+    ensure!(
+        system_pk.h == computed_system_pk,
+        "public keys are not the same!"
+    );
+
+    // create the voter (i.e. the transaction signer)
+    let account: T::AccountId = whitelisted_caller();
+    let voter = RawOrigin::Signed(account.into());
+
+    // generate random encryptions
+    let ciphers: Vec<Cipher>;
+    if encoded {
+        ciphers = generate_random_encryptions_encoded::<T>(&system_pk, q, size)?;
+    } else {
+        ciphers = generate_random_encryptions::<T>(&system_pk, q, size)?;
+    }
+
+    for cipher in ciphers {
+        let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
+        let ballot: Ballot = Ballot { answers };
+        PalletMixnet::<T>::cast_ballot(voter.clone().into(), vote_id.clone(), ballot)?;
+    }
+
+    // change the VotePhase to Voting
+    PalletMixnet::<T>::set_vote_phase(
+        voting_authority.into(),
+        vote_id.clone(),
+        VotePhase::Tallying,
+    )?;
+
+    Ok((
+        topic_id, vote_id, system_pk, bob_pk, bob_sk, charlie_pk, charlie_sk,
+    ))
+}
+
+fn create_decrypted_shares_and_proof<T: Trait>(
+    topic_id: &TopicId,
+    params: &ElGamalParams,
+    sealer_pk: &ElGamalPK,
+    sealer_sk: &PrivateKey,
+    sealer_id: [u8; 32],
+) -> Result<(DecryptionProof, Vec<Vec<u8>>), &'static str> {
+    let q = &params.q();
+
+    // fetch the encrypted votes from chain
+    let encryptions: Vec<BigCipher> =
+        Wrapper(PalletMixnet::<T>::ciphers(topic_id)).into();
+    ensure!(
+        encryptions.len() > 0,
+        "the number of encryptions is too low"
+    );
+
+    // get sealer's partial decryptions
+    let partial_decrytpions = encryptions
+        .iter()
+        .map(|cipher| ElGamal::partial_decrypt_a(cipher, sealer_sk))
+        .collect::<Vec<BigUint>>();
+
+    // convert the decrypted shares: Vec<BigUint> to Vec<Vec<u8>>
+    let decrypted_shares: Vec<Vec<u8>> = partial_decrytpions
+        .iter()
+        .map(|c| c.to_bytes_be())
+        .collect::<Vec<Vec<u8>>>();
+
+    // create sealer's proof using sealer's public and private key share
+    let r = PalletMixnet::<T>::get_random_biguint_less_than(q)?;
+    let decryption_proof = DecryptionProof::generate(
+        params,
+        &sealer_sk.x,
+        &sealer_pk.h.clone().into(),
+        &r,
+        encryptions,
+        partial_decrytpions,
+        &sealer_id,
+    );
+    Ok((decryption_proof, decrypted_shares))
 }
 
 benchmarks! {
@@ -214,7 +416,7 @@ benchmarks! {
         let result_ = PalletMixnet::<T>::store_public_key_share(charlie.into(), vote_id.clone(), pk_share_charlie.clone().into());
     }: {
         // combine the public key shares
-        let _result = PalletMixnet::<T>::combine_public_key_shares(voting_authority.into(), vote_id.clone());
+        let _result = PalletMixnet::<T>::combine_public_key_shares(voting_authority.into(), vote_id.clone())?;
     }
 
     create_vote {
@@ -511,8 +713,112 @@ benchmarks! {
         ensure!(success, "proof did not verify!");
     }
 
+    verify_submit_decrypted_shares_100 {
+        // setup system with distributed keys
+        let (topic_id, vote_id, system_pk, bob_pk, bob_sk, charlie_pk, charlie_sk) = setup_vote_with_distributed_keys::<T>(100, false)?;
+
+        // use bob
+        let (bob, bob_id) = get_sealer_bob::<T>();
+        let params = &bob_pk.params;
+        let q = &params.q();
+
+        // create bob's decrypted shares + proof using bob's public and private key share
+        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &params, &bob_pk, &bob_sk, bob_id)?;
+    }: {
+        let _success = PalletMixnet::<T>::submit_decrypted_shares(
+            bob.into(),
+            vote_id,
+            topic_id,
+            bob_shares,
+            bob_proof.into()
+        )?;
+    }
+
+    verify_submit_decrypted_shares_1000 {
+        // setup system with distributed keys
+        let (topic_id, vote_id, system_pk, bob_pk, bob_sk, charlie_pk, charlie_sk) = setup_vote_with_distributed_keys::<T>(1000, false)?;
+
+        // use bob
+        let (bob, bob_id) = get_sealer_bob::<T>();
+        let params = &bob_pk.params;
+        let q = &params.q();
+
+        // create bob's decrypted shares + proof using bob's public and private key share
+        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &params, &bob_pk, &bob_sk, bob_id)?;
+    }: {
+        let _success = PalletMixnet::<T>::submit_decrypted_shares(
+            bob.into(),
+            vote_id,
+            topic_id,
+            bob_shares,
+            bob_proof.into()
+        )?;
+    }
+
+    verify_submit_decrypted_shares_10000 {
+        // setup system with distributed keys
+        let (topic_id, vote_id, system_pk, bob_pk, bob_sk, charlie_pk, charlie_sk) = setup_vote_with_distributed_keys::<T>(10000, false)?;
+
+        // use bob
+        let (bob, bob_id) = get_sealer_bob::<T>();
+        let params = &bob_pk.params;
+        let q = &params.q();
+
+        // create bob's decrypted shares + proof using bob's public and private key share
+        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &params, &bob_pk, &bob_sk, bob_id)?;
+    }: {
+        let _success = PalletMixnet::<T>::submit_decrypted_shares(
+            bob.into(),
+            vote_id,
+            topic_id,
+            bob_shares,
+            bob_proof.into()
+        )?;
+    }
+
+    verify_submit_decrypted_shares_100_encoded {
+        // setup system with distributed keys
+        let (topic_id, vote_id, system_pk, bob_pk, bob_sk, charlie_pk, charlie_sk) = setup_vote_with_distributed_keys::<T>(100, true)?;
+
+        // use bob
+        let (bob, bob_id) = get_sealer_bob::<T>();
+        let params = &bob_pk.params;
+        let q = &params.q();
+
+        // create bob's decrypted shares + proof using bob's public and private key share
+        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &params, &bob_pk, &bob_sk, bob_id)?;
+    }: {
+        let _success = PalletMixnet::<T>::submit_decrypted_shares(
+            bob.into(),
+            vote_id,
+            topic_id,
+            bob_shares,
+            bob_proof.into()
+        )?;
+    }
+
+    verify_submit_decrypted_shares_1000_encoded {
+        // setup system with distributed keys
+        let (topic_id, vote_id, system_pk, bob_pk, bob_sk, charlie_pk, charlie_sk) = setup_vote_with_distributed_keys::<T>(1000, true)?;
+
+        // use bob
+        let (bob, bob_id) = get_sealer_bob::<T>();
+        let params = &bob_pk.params;
+        let q = &params.q();
+
+        // create bob's decrypted shares + proof using bob's public and private key share
+        let (bob_proof, bob_shares) = create_decrypted_shares_and_proof::<T>(&topic_id, &params, &bob_pk, &bob_sk, bob_id)?;
+    }: {
+        let _success = PalletMixnet::<T>::submit_decrypted_shares(
+            bob.into(),
+            vote_id,
+            topic_id,
+            bob_shares,
+            bob_proof.into()
+        )?;
+    }
+
     // TODO: add benchmarks for
-    // 1. submit_decrypted_share
     // 2. combine_decrypted_shares
 }
 
@@ -538,6 +844,9 @@ mod tests {
             assert_ok!(test_benchmark_shuffle_proof_3_encoded::<TestRuntime>());
             assert_ok!(test_benchmark_verify_shuffle_proof_3::<TestRuntime>());
             assert_ok!(test_benchmark_verify_shuffle_proof_3_encoded::<TestRuntime>());
+            assert_ok!(test_benchmark_verify_submit_decrypted_shares_100::<
+                TestRuntime,
+            >());
         });
     }
 }
