@@ -1,13 +1,19 @@
 #![cfg(feature = "runtime-benchmarks")]
 
-use super::*;
 use crate::sp_api_hidden_includes_decl_storage::hidden_include::StorageDoubleMap;
-use crate::types::{PublicParameters, ShuffleProof as Proof, Topic, Vote, Wrapper};
+use crate::types::{
+    Ballot, Cipher, PublicKey as SubstratePK, PublicKeyShare, PublicParameters,
+    ShuffleProof as Proof, Topic, TopicId, Vote, VoteId, Wrapper,
+};
+use crate::{Ballots, Module, Trait};
+use alloc::vec::Vec;
+use codec::Decode;
 use crypto::{
-    encryption::ElGamal, helper::Helper, types::Cipher as BigCipher,
-    types::PublicKey as ElGamalPK,
+    encryption::ElGamal, helper::Helper, proofs::keygen::KeyGenerationProof,
+    types::Cipher as BigCipher, types::PublicKey as ElGamalPK,
 };
 use frame_benchmarking::{benchmarks, whitelisted_caller};
+use frame_support::{ensure, traits::Box};
 use frame_system::RawOrigin;
 use hex_literal::hex;
 use num_bigint::BigUint;

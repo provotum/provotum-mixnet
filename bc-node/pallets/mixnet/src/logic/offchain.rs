@@ -46,8 +46,9 @@ impl<T: Trait> Module<T> {
         //   - `None`: no account is available for sending transaction
         //   - `Some((account, Ok(())))`: transaction is successfully sent
         //   - `Some((account, Err(())))`: error occured when sending the transaction
-        let result = signer
-            .send_signed_transaction(|_acct| Call::cast_ballot(vote_id.clone(), ballot.clone()));
+        let result = signer.send_signed_transaction(|_acct| {
+            Call::cast_ballot(vote_id.clone(), ballot.clone())
+        });
 
         // Display error if the signed tx fails.
         if let Some((acc, res)) = result {
@@ -66,4 +67,5 @@ impl<T: Trait> Module<T> {
 
     // TODO: implement shuffle_ciphers -> used by offchain worker
     // TODO: implement generate_shuffle_proof -> used by offchain worker
+    // TODO: implement creating a decrypted share + submitting it -> used by offchain worker
 }
