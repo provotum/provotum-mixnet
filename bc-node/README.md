@@ -23,9 +23,20 @@ If the command above doesn't work, the dependencies can also be installed manual
 sudo apt install -y cmake pkg-config libssl-dev git gcc build-essential git clang libclang-dev
 curl https://sh.rustup.rs -sSf | sh
 rustup default stable
-rustup toolchain install nightly
-rustup target add wasm32-unknown-unknown --toolchain nightly
+rustup toolchain install nightly-2021-01-20
+rustup target add wasm32-unknown-unknown --toolchain nightly-2021-01-20
 rustup update 
+```
+
+#### Upgrading Rust Nightly Version
+
+The current rust nightly version is fixed to the nightly build: `nightly-2021-01-20` to ensure that the project always builds and the tests work.
+This is especially the case for the GitHub Actions pipelines which otherwise update their rust versions everytime they are triggered.
+
+In order to upgrade the nightly version, the following commands need to be run: 
+```bash
+rustup check # check if there is a new version
+rustup update # updates the rust version
 ```
 
 ### Manual Setup
@@ -40,7 +51,7 @@ Once the development environment is set up, build the node template. This comman
 [native](https://substrate.dev/docs/en/knowledgebase/advanced/executor#native-execution) code:
 
 ```bash
-WASM_BUILD_TOOLCHAIN=nightly cargo build --release
+WASM_BUILD_TOOLCHAIN=nightly-2021-01-20 cargo build --release
 ```
 
 ### Tests
@@ -48,13 +59,13 @@ WASM_BUILD_TOOLCHAIN=nightly cargo build --release
 Run the following command to execute all tests.
 
 ```bash
-cargo +nightly test
+cargo +nightly-2021-01-20 test
 ```
 
 Run the following command to execute the test of the `pallet-mixnet` crate:
 
 ```bash
-cargo +nightly test -p pallet-mixnet --features runtime-benchmarks
+cargo +nightly-2021-01-20 test -p pallet-mixnet --features runtime-benchmarks
 ```
 
 ### Benchmarks
@@ -62,13 +73,13 @@ cargo +nightly test -p pallet-mixnet --features runtime-benchmarks
 Navigate into the folder: `bc-node/node` and run the following command to check that all benchmarks are working correctly. _Note: This executes the tests._
 
 ```bash
-cargo +nightly test -p pallet-mixnet --features runtime-benchmarks
+cargo +nightly-2021-01-20 test -p pallet-mixnet --features runtime-benchmarks
 ```
 
 Build the provotum node including the benchmark feature by running the following command: 
 
 ```bash
-cargo +nightly build --features runtime-benchmarks
+cargo +nightly-2021-01-20 build --features runtime-benchmarks
 ```
 
 **Note:** To produce results that closely resemble the production environment, make sure to use the flag `--release`. Please, be aware that this will increase the compilation time. Also, the binary will end up inside `./target/release` and not `./target/debug`.

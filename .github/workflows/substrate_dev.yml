@@ -39,19 +39,19 @@ jobs:
       - name: Setup Rust toolchain
         run: |
           rustup default stable
-          rustup toolchain install nightly
-          rustup target add wasm32-unknown-unknown --toolchain nightly
+          rustup toolchain install nightly-2021-01-20
+          rustup target add wasm32-unknown-unknown --toolchain nightly-2021-01-20
           rustup update
 
       - name: Build Dev Binary
-        run: cargo +nightly build --features runtime-benchmarks --verbose
+        run: cargo +nightly-2021-01-20 build --features runtime-benchmarks --verbose
         working-directory: ${{ github.workspace }}/bc-node/node
 
       - name: Test Dev Binary
-        run: cargo +nightly test --verbose -- --nocapture
+        run: cargo +nightly-2021-01-20 test --verbose -- --nocapture
 
       - name: Perform Benchmark Tests
-        run: cargo +nightly test -p pallet-mixnet --features runtime-benchmarks --verbose -- --nocapture
+        run: cargo +nightly-2021-01-20 test -p pallet-mixnet --features runtime-benchmarks --verbose -- --nocapture
         working-directory: ${{ github.workspace }}/bc-node/node
 
       # this step uploads the built dev binary as an artifact (output)
