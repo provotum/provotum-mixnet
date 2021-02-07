@@ -25,15 +25,11 @@ RUN rustup target add wasm32-unknown-unknown --toolchain nightly-2021-01-20
 #compiler ENV
 ENV CC gcc
 ENV CXX g++
-ENV CARGO_NET_GIT_FETCH_WITH_CLI true
-# ENV GITHUB_USERNAME meck93
-
-# ARG GITHUB_TOKEN
-# ENV GITHUB_TOKEN GITHUB_TOKEN
 
 # Copy code to build directory, instead of only using .dockerignore, we copy elements
 # explicitly. This lets us cache build results while iterating on scripts.
-# currently, the docker image can only be built from the root folder because the crypto crate needs to be copied manually -> TODO: remove as soon as project is public + change the way dependency is referenced (remove path, add Github).
+# Currently, the docker image can only be built from the root folder because the crypto crate needs to be copied manually.
+# TODO: remove as soon as project is public + change the way dependency is referenced (remove path, add Github).
 COPY ./bc-node/runtime ./bc-node/runtime
 COPY ./bc-node/node ./bc-node/node
 COPY ./bc-node/pallets ./bc-node/pallets
@@ -61,7 +57,7 @@ RUN apt-get -y update \
   && apt-get clean \
   && find /var/lib/apt/lists/ -type f -not -name lock -delete;
 
-# add user
+# add non root user
 RUN useradd -m -u 1000 -U -s /bin/sh -d /provotum provotum-user
 
 # might need these for uploads to keytore
@@ -79,7 +75,6 @@ ENV RUST_BACKTRACE 1
 USER provotum-user
 
 # check if executable works in this container
-RUN ls -lahf /provotum  
 RUN provotum --version
 
 # expose node ports
