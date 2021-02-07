@@ -97,19 +97,19 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
                 wasm_binary,
                 // Initial PoA authorities
                 vec![
-                    authority_keys_from_seed("Alice"),
                     authority_keys_from_seed("Bob"),
+                    authority_keys_from_seed("Charlie"),
                 ],
                 // Sudo account
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                get_account_id_from_seed::<sr25519::Public>("Bob"),
                 // Pre-funded accounts
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
                     get_account_id_from_seed::<sr25519::Public>("Charlie"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+                    // get_account_id_from_seed::<sr25519::Public>("Dave"),
+                    // get_account_id_from_seed::<sr25519::Public>("Eve"),
+                    // get_account_id_from_seed::<sr25519::Public>("Ferdie"),
                 ],
                 true,
                 // Voting Authority
@@ -118,9 +118,9 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
                     get_account_id_from_seed::<sr25519::Public>("Charlie"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+                    // get_account_id_from_seed::<sr25519::Public>("Dave"),
+                    // get_account_id_from_seed::<sr25519::Public>("Eve"),
+                    // get_account_id_from_seed::<sr25519::Public>("Ferdie"),
                 ],
             )
         },
