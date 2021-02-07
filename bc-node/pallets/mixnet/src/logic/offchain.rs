@@ -1,5 +1,8 @@
-use crate::sp_api_hidden_includes_decl_storage::hidden_include::StorageMap;
 use crate::types::{Ballot, Cipher, TopicId};
+use crate::{
+    helpers::assertions::ensure_sealer,
+    sp_api_hidden_includes_decl_storage::hidden_include::StorageMap,
+};
 use crate::{Call, Error, Module, PublicKey, Trait, Votes};
 use core::convert::TryInto;
 use crypto::{encryption::ElGamal, types::PublicKey as ElGamalPK};
@@ -63,6 +66,14 @@ impl<T: Trait> Module<T> {
         // The case of `None`: no account is available for sending
         debug::error!("No local account available");
         Err(<Error<T>>::NoLocalAcctForSigning)
+    }
+
+    pub fn test() -> Result<(), Error<T>> {
+        // We retrieve a signer and check if it is valid.
+        // ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.Signer.html
+        let signer = Signer::<T, T::AuthorityId>::any_account();
+
+        Ok(())
     }
 
     // TODO: implement shuffle_ciphers -> used by offchain worker

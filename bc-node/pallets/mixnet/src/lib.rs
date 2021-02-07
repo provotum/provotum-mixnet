@@ -230,7 +230,7 @@ decl_module! {
         fn set_vote_phase(origin, vote_id: VoteId, phase: VotePhase) -> DispatchResult {
             // only the voting_authority should be able to store the key
             let who: T::AccountId = ensure_signed(origin)?;
-            helpers::assertions::ensure_voting_authority::<T>(&who)?;
+            ensure_voting_authority::<T>(&who)?;
 
             // check that the vote_id exists
             ensure!(Votes::<T>::contains_key(&vote_id), Error::<T>::VoteDoesNotExist);
@@ -360,7 +360,7 @@ decl_module! {
           let who = ensure_signed(origin)?;
           ensure_vote_exists::<T>(&vote_id)?;
 
-          // TODO: ensure that it is a legit voter
+          // TODO: ensure that it is a legit voter -> TODO in some other project
 
           // store the ballot
           store_ballot::<T>(&who, &vote_id, ballot.clone());
@@ -510,6 +510,7 @@ decl_module! {
 
             if sp_io::offchain::is_validator() {
                 debug::info!("hi there i'm a validator");
+                let result = Self::test();
             }
 
             debug::info!("off-chain worker: done...");

@@ -43,6 +43,8 @@ RUN cd ./bc-node && cargo build --release --color=always
 # Final stage. Copy the node executable and the script
 FROM debian:stretch-slim
 
+LABEL org.opencontainers.image.source https://github.com/meck93/provotum-mixnet
+
 WORKDIR /provotum
 
 COPY --from=builder /provotum/bc-node/target/release/provotum .
