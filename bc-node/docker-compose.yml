@@ -1,17 +1,27 @@
-version: "3.2"
+version: "3.8"
 
 services:
-  dev:
-    container_name: provotum
-    image: paritytech/ci-linux:974ba3ac-20201006
-    working_dir: /var/www/provotum
+  alice:
+    container_name: alice
+    image: ghcr.io/meck93/provotum-mixnet:latest
+    ports: # HOST_PORT:CONTAINER_PORT
+      - 9944:9944
+      - 30333:30333
+      - 9933:9933
+    command: --chain=local --alice --validator
+  bob:
+    container_name: bob
+    image: ghcr.io/meck93/provotum-mixnet:latest
     ports:
-      - "9944:9944"
-    environment:
-      - CARGO_HOME=/var/www/provotum/.cargo
-    volumes:
-      - .:/var/www/provotum
-      - type: bind
-        source: ./.local
-        target: /root/.local
-    command: bash -c "cargo build --release && ./target/release/provotum --dev --ws-external"
+      - 9945:9944
+      - 30334:30333
+      - 9934:9933
+    command: --chain=local --bob --validator
+  charlie:
+    container_name: charlie
+    image: ghcr.io/meck93/provotum-mixnet:latest
+    ports:
+      - 9946:9944
+      - 30335:30333
+      - 9936:9933
+    command: --chain=local --charlie --validator

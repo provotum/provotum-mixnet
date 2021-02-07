@@ -54,6 +54,39 @@ Once the development environment is set up, build the node template. This comman
 WASM_BUILD_TOOLCHAIN=nightly-2021-01-20 cargo build --release
 ```
 
+### Docker Container
+
+The following section describes how to build the provotum-mixnet docker image and how to use the Github container registry.
+
+### Github Container Registry
+
+To use the images built and hosted on the Github container registry (ghcr.io), you need to be logged in.
+
+Expose a Github personal access token with `package:read` rights and expose it: 
+- locally as an ENV variable `export CR_PAT=***`
+- as a Github secret such that it can be used inside a Github Action: `${{ secrets.CR_PAT }}`
+
+#### Login (Local)
+ 
+```bash
+echo $CR_PAT | docker login ghcr.io -u $GITHUB_USER --password-stdin
+```
+
+#### Build Image (Local)
+
+The command needs to be execute from the parent folder of: `/bc-node` and `/crypto` (in this case called: `provotum-mixnet`) since both folders are required inside the Docker context during the build.
+
+```bash
+~/.../provotum-mixnet: DOCKER_BUILDKIT=1 docker build . -f ./bc-node/Dockerfile
+```
+
+##### Note. 
+Once the project has been published and is publicy available. The path requirement for the `crypto` crate inside `bc-node/pallets/mixnet/Cargo.toml` can be replaced with a reference to the Github project in which the `crypto` crate is hosted.
+
+#### Build Image (Github Action)
+
+A Github Action workflow exists to build the `provotum` docker container and push it to the Github container registry. Have a look at the `.github/workflows/build.yml` for more details.
+
 ### Tests
 
 Run the following command to execute all tests.
@@ -121,8 +154,15 @@ RUST_LOG=debug RUST_BACKTRACE=1 ./target/release/provotum -lruntime=debug --dev
 
 ### Multi-Node Local Testnet
 
-If you want to see the multi-node consensus algorithm in action, refer to
-[our Start a Private Network tutorial](https://substrate.dev/docs/en/tutorials/start-a-private-network/).
+To start a multi-node local test network, the `docker-compose.yml` file can be used.
+
+```bash
+docker-compose up
+```
+
+This starts a three-node local test network with: 
+- **Alice**, as voting-authority (cannot author blocks, but is the voting admin)
+- **Bob** and **Charlie**, as sealers and PoA-authorities (can author blocks)
 
 ## Structure
 
@@ -214,29 +254,3 @@ A FRAME pallet is compromised of a number of blockchain primitives:
 -   Errors: When a dispatchable fails, it returns an error.
 -   Trait: The `Trait` configuration interface is used to define the types and parameters upon which
     a FRAME pallet depends.
-
-### Run in Docker
-
-First, install [Docker](https://docs.docker.com/get-docker/) and
-[Docker Compose](https://docs.docker.com/compose/install/).
-
-Then run the following command to start a single node development chain.
-
-```bash
-./scripts/docker_run.sh
-```
-
-This command will firstly compile your code, and then start a local development network. You can
-also replace the default command (`cargo build --release && ./target/release/provotum --dev --ws-external`)
-by appending your own. A few useful ones are as follow.
-
-```bash
-# Run Substrate node without re-compiling
-./scripts/docker_run.sh ./target/release/provotum --dev --ws-external
-
-# Purge the local dev chain
-./scripts/docker_run.sh ./target/release/provotum purge-chain --dev
-
-# Check whether the code is compilable
-./scripts/docker_run.sh cargo check
-```
