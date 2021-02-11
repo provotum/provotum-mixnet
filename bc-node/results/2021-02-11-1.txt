@@ -1,0 +1,987 @@
+Pallet: "pallet_mixnet", Extrinsic: "store_public_key", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    12.63
+              µs
+
+Reads = 1
+Writes = 1
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    12.63
+              µs
+
+Reads = 1
+Writes = 1
+Pallet: "pallet_mixnet", Extrinsic: "store_public_key_share", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=     5275
+              µs
+
+Reads = 4
+Writes = 2
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=     5275
+              µs
+
+Reads = 4
+Writes = 2
+Pallet: "pallet_mixnet", Extrinsic: "combine_public_key_shares", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    38.98
+              µs
+
+Reads = 3
+Writes = 2
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    38.98
+              µs
+
+Reads = 3
+Writes = 2
+Pallet: "pallet_mixnet", Extrinsic: "create_vote", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    15.13
+              µs
+
+Reads = 2
+Writes = 3
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    15.13
+              µs
+
+Reads = 2
+Writes = 3
+Pallet: "pallet_mixnet", Extrinsic: "store_question", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    15.91
+              µs
+
+Reads = 3
+Writes = 1
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    15.91
+              µs
+
+Reads = 3
+Writes = 1
+Pallet: "pallet_mixnet", Extrinsic: "cast_ballot", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    16.73
+              µs
+
+Reads = 2
+Writes = 2
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    16.73
+              µs
+
+Reads = 2
+Writes = 2
+Pallet: "pallet_mixnet", Extrinsic: "verify_public_key_share_proof", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=     5309
+              µs
+
+Reads = 4
+Writes = 2
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=     5309
+              µs
+
+Reads = 4
+Writes = 2
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_ciphers_3", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    22070
+              µs
+
+Reads = 2
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    22070
+              µs
+
+Reads = 2
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_ciphers_10", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    73490
+              µs
+
+Reads = 2
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    73490
+              µs
+
+Reads = 2
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_ciphers_30", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   220200
+              µs
+
+Reads = 2
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   220200
+              µs
+
+Reads = 2
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_ciphers_100", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   741200
+              µs
+
+Reads = 2
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   741200
+              µs
+
+Reads = 2
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_ciphers_1000", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  7442500
+              µs
+
+Reads = 2
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  7442500
+              µs
+
+Reads = 2
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_ciphers_3_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    22030
+              µs
+
+Reads = 2
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    22030
+              µs
+
+Reads = 2
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_ciphers_10_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    73490
+              µs
+
+Reads = 2
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    73490
+              µs
+
+Reads = 2
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_ciphers_30_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   220900
+              µs
+
+Reads = 2
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   220900
+              µs
+
+Reads = 2
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_ciphers_100_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   734400
+              µs
+
+Reads = 2
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   734400
+              µs
+
+Reads = 2
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_ciphers_1000_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  7430500
+              µs
+
+Reads = 2
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  7430500
+              µs
+
+Reads = 2
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_proof_3", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   102600
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   102600
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_proof_10", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   309300
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   309300
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_proof_30", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   899000
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   899000
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_proof_100", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  2963300
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  2963300
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_proof_1000", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~= 29545000
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~= 29545000
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_proof_3_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   102400
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   102400
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_proof_10_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   309200
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   309200
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_proof_30_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   899400
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   899400
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_proof_100_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  2966200
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  2966200
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "shuffle_proof_1000_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~= 29593200
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~= 29593200
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "verify_shuffle_proof_3", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    95150
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    95150
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "verify_shuffle_proof_10", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   252000
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   252000
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "verify_shuffle_proof_30", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   700200
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   700200
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "verify_shuffle_proof_100", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  2260100
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  2260100
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "verify_shuffle_proof_1000", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~= 22239100
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~= 22239100
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "verify_shuffle_proof_3_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    95310
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    95310
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "verify_shuffle_proof_10_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   251100
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   251100
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "verify_shuffle_proof_30_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   697300
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   697300
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "verify_shuffle_proof_100_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  2264400
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  2264400
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "verify_shuffle_proof_1000_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~= 22362500
+              µs
+
+Reads = 0
+Writes = 0
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~= 22362500
+              µs
+
+Reads = 0
+Writes = 0
+Pallet: "pallet_mixnet", Extrinsic: "verify_submit_decrypted_shares_100", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   470200
+              µs
+
+Reads = 5
+Writes = 1
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   470200
+              µs
+
+Reads = 5
+Writes = 1
+Pallet: "pallet_mixnet", Extrinsic: "verify_submit_decrypted_shares_1000", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  4653500
+              µs
+
+Reads = 5
+Writes = 1
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  4653500
+              µs
+
+Reads = 5
+Writes = 1
+Pallet: "pallet_mixnet", Extrinsic: "verify_submit_decrypted_shares_10000", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~= 46509400
+              µs
+
+Reads = 5
+Writes = 1
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~= 46509400
+              µs
+
+Reads = 5
+Writes = 1
+Pallet: "pallet_mixnet", Extrinsic: "verify_submit_decrypted_shares_100_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   490500
+              µs
+
+Reads = 5
+Writes = 1
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=   490500
+              µs
+
+Reads = 5
+Writes = 1
+Pallet: "pallet_mixnet", Extrinsic: "verify_submit_decrypted_shares_1000_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  4928800
+              µs
+
+Reads = 5
+Writes = 1
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=  4928800
+              µs
+
+Reads = 5
+Writes = 1
+Pallet: "pallet_mixnet", Extrinsic: "combine_decrypted_shares_100", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    789.3
+              µs
+
+Reads = 7
+Writes = 1
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    789.3
+              µs
+
+Reads = 7
+Writes = 1
+Pallet: "pallet_mixnet", Extrinsic: "combine_decrypted_shares_1000", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=     1190
+              µs
+
+Reads = 7
+Writes = 1
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=     1190
+              µs
+
+Reads = 7
+Writes = 1
+Pallet: "pallet_mixnet", Extrinsic: "combine_decrypted_shares_10000", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=     6757
+              µs
+
+Reads = 7
+Writes = 1
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=     6757
+              µs
+
+Reads = 7
+Writes = 1
+Pallet: "pallet_mixnet", Extrinsic: "combine_decrypted_shares_100_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    791.1
+              µs
+
+Reads = 7
+Writes = 1
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=    791.1
+              µs
+
+Reads = 7
+Writes = 1
+Pallet: "pallet_mixnet", Extrinsic: "combine_decrypted_shares_1000_encoded", Lowest values: [], Highest values: [], Steps: [3], Repeat: 3
+Median Slopes Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=     1197
+              µs
+
+Reads = 7
+Writes = 1
+Min Squares Analysis
+========
+-- Extrinsic Time --
+
+Model:
+Time ~=     1197
+              µs
+
+Reads = 7
+Writes = 1
