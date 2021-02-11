@@ -2,11 +2,7 @@
 
 use crate::types::{
     Ballot, Cipher, PublicKey as SubstratePK, PublicKeyShare, PublicParameters,
-    ShuffleProof as Proof, Topic, TopicId, Vote, VoteId, Wrapper,
-};
-use crate::{
-    sp_api_hidden_includes_decl_storage::hidden_include::StorageDoubleMap,
-    types::VotePhase,
+    ShuffleProof as Proof, Topic, TopicId, Vote, VoteId, VotePhase, Wrapper,
 };
 use crate::{Ballots, Module, Trait};
 use alloc::vec::Vec;
@@ -19,7 +15,7 @@ use crypto::{
     types::{ElGamalParams, ModuloOperations, PrivateKey, PublicKey as ElGamalPK},
 };
 use frame_benchmarking::{benchmarks, whitelisted_caller};
-use frame_support::{ensure, traits::Box};
+use frame_support::{ensure, storage::StorageDoubleMap, traits::Box};
 use frame_system::RawOrigin;
 use hex_literal::hex;
 use num_bigint::BigUint;

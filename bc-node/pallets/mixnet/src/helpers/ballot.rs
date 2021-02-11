@@ -1,6 +1,6 @@
-use crate::sp_api_hidden_includes_decl_storage::hidden_include::{StorageDoubleMap, StorageMap};
 use crate::types::{Ballot, Cipher, VoteId};
 use crate::{Ballots, Ciphers, Module, Trait};
+use frame_support::storage::{StorageDoubleMap, StorageMap};
 use sp_std::vec::Vec;
 
 /// all functions related to ballot operations in the offchain worker

@@ -1,8 +1,8 @@
 use crate::{
-    sp_api_hidden_includes_decl_storage::hidden_include::StorageMap, types::VotePhase,
+    types::{VoteId, VotePhase},
+    Error, Module, Trait, Votes,
 };
-use crate::{types::VoteId, Error, Module, Trait, Votes};
-use frame_support::{debug, ensure};
+use frame_support::{debug, ensure, storage::StorageMap};
 
 pub fn ensure_voting_authority<T: Trait>(
     account_id: &T::AccountId,

@@ -1,11 +1,10 @@
 use super::assertions::ensure_vote_exists;
 use crate::{
-    sp_api_hidden_includes_decl_storage::hidden_include::StorageMap,
     types::{PublicKey as SubstratePK, PublicKeyShare, PublicParameters, Vote, VoteId},
     Error, PublicKey, PublicKeyShareBySealer, PublicKeyShares, Trait, Votes,
 };
 use crypto::types::PublicKey as ElGamalPK;
-use frame_support::ensure;
+use frame_support::{ensure, storage::StorageMap};
 use num_bigint::BigUint;
 use num_traits::One;
 use sp_std::vec::Vec;
