@@ -1,9 +1,13 @@
-use crate::sp_api_hidden_includes_decl_storage::hidden_include::StorageMap;
-use crate::types::{Ballot, Cipher, TopicId};
-use crate::{Call, Error, Module, PublicKey, Trait, Votes};
+use crate::helpers::assertions::ensure_vote_exists;
+use crate::types::{Ballot, Cipher, TopicId, VoteId};
+use crate::{Call, Error, Module, PublicKey, Sealers, Trait, VoteIds};
 use core::convert::TryInto;
 use crypto::{encryption::ElGamal, types::PublicKey as ElGamalPK};
-use frame_support::{debug, ensure};
+use frame_support::{
+    debug,
+    storage::{StorageMap, StorageValue},
+    traits::Get,
+};
 use frame_system::offchain::{SendSignedTransaction, Signer};
 use num_bigint::BigUint;
 use sp_std::{vec, vec::Vec};
@@ -14,10 +18,7 @@ impl<T: Trait> Module<T> {
         vote_id: Vec<u8>,
         topic_id: Vec<u8>,
     ) -> Result<(), Error<T>> {
-        ensure!(
-            Votes::<T>::contains_key(&vote_id),
-            Error::<T>::VoteDoesNotExist
-        );
+        ensure_vote_exists::<T>(&vote_id)?;
         // We retrieve a signer and check if it is valid.
         // ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.Signer.html
         let signer = Signer::<T, T::AuthorityId>::any_account();
@@ -65,12 +66,38 @@ impl<T: Trait> Module<T> {
         Err(<Error<T>>::NoLocalAcctForSigning)
     }
 
-    pub fn test() -> Result<(), Error<T>> {
-        // We retrieve a signer and check if it is valid.
-        // ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.Signer.html
-        let accounts = Signer::<T, T::AuthorityId>::all_accounts();
+    pub fn offchain_shuffle_and_proof(
+        block_number: T::BlockNumber,
+    ) -> Result<(), Error<T>> {
+        if sp_io::offchain::is_validator() {
+            debug::info!("hi there i'm a validator");
 
-        // debug::info!("count: {:#?}", accounts);
+            let duration = T::BlockDuration::get();
+            let zero: T::BlockNumber = 0u32.into();
+            debug::info!("block duration: {:#?}", duration);
+
+            let timestamp = sp_io::offchain::timestamp();
+            debug::info!("timestamp: {:#?}", timestamp);
+
+            let sealers: Vec<T::AccountId> = Sealers::<T>::get();
+            debug::info!("sealers: {:#?}", sealers);
+
+            // shuffle votes + create a proof
+            if duration > zero && block_number % duration == zero {
+                debug::info!("boss move");
+            }
+
+            // get all vote_ids
+            let vote_ids: Vec<VoteId> = VoteIds::get();
+
+            for vote_id in vote_ids {
+                // ensure_vote_exists::<T>(&vote_id)?;
+                debug::info!("vote_id: {:#?}", vote_id);
+            }
+        }
+
+        // get the signer for the voter
+        let signer = Signer::<T, T::AuthorityId>::any_account();
 
         Ok(())
     }

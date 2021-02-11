@@ -239,7 +239,7 @@ decl_module! {
             ensure_voting_authority::<T>(&who)?;
 
             // check that the vote_id exists
-            ensure!(Votes::<T>::contains_key(&vote_id), Error::<T>::VoteDoesNotExist);
+            ensure_vote_exists::<T>(&vote_id)?;
 
             // set the new phase
             let mut vote: Vote<T::AccountId> = Votes::<T>::get(&vote_id);
@@ -514,26 +514,7 @@ decl_module! {
         fn offchain_worker(block_number: T::BlockNumber) {
             debug::info!("off-chain worker: entering...");
 
-            if sp_io::offchain::is_validator() {
-                debug::info!("hi there i'm a validator");
-                let result = Self::test();
-
-                let duration = T::BlockDuration::get();
-                let zero: T::BlockNumber = 0u32.into();
-                debug::info!("block duration: {:#?}", duration);
-
-                let timestamp = sp_io::offchain::timestamp();
-                debug::info!("timestamp: {:#?}", timestamp);
-
-                let sealers: Vec<T::AccountId> = Sealers::<T>::get();
-                debug::info!("sealers: {:#?}", sealers);
-
-                // shuffle votes + create a proof
-                if duration > zero && block_number % duration == zero {
-                    debug::info!("boss move");
-                }
-
-            }
+            Self::offchain_shuffle_and_proof(block_number);
 
             debug::info!("off-chain worker: done...");
         }
