@@ -59,29 +59,29 @@ pub fn new_partial(
 
     // Initialize seed for signing transaction using off-chain workers
     // FIXME: this shall be done at runtime via an RPC call
+    // keystore
+    //     .write()
+    //     .insert_ephemeral_from_seed_by_type::<pallet_mixnet::keys::Pair>(
+    //         "//Alice",
+    //         pallet_mixnet::keys::KEY_TYPE,
+    //     )
+    //     .expect("Creating key with account Alice should succeed.");
+
     keystore
         .write()
         .insert_ephemeral_from_seed_by_type::<pallet_mixnet::keys::Pair>(
-            "//Alice",
+            "//Bob",
             pallet_mixnet::keys::KEY_TYPE,
         )
-        .expect("Creating key with account Alice should succeed.");
+        .expect("Creating key with account Bob should succeed.");
 
-    // keystore
-    //     .write()
-    //     .insert_ephemeral_from_seed_by_type::<pallet_mixnet::keys::Pair>(
-    //         "//Bob",
-    //         pallet_mixnet::keys::KEY_TYPE,
-    //     )
-    //     .expect("Creating key with account Bob should succeed.");
-
-    // keystore
-    //     .write()
-    //     .insert_ephemeral_from_seed_by_type::<pallet_mixnet::keys::Pair>(
-    //         "//Charlie",
-    //         pallet_mixnet::keys::KEY_TYPE,
-    //     )
-    //     .expect("Creating key with account Charlie should succeed.");
+    keystore
+        .write()
+        .insert_ephemeral_from_seed_by_type::<pallet_mixnet::keys::Pair>(
+            "//Charlie",
+            pallet_mixnet::keys::KEY_TYPE,
+        )
+        .expect("Creating key with account Charlie should succeed.");
 
     // keystore
     //     .write()

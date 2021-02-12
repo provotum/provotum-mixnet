@@ -99,6 +99,13 @@ decl_storage! {
         /// Maps a topicId (question) to a list of Ciphers
         Ciphers get(fn ciphers): map hasher(blake2_128_concat) TopicId => Vec<Cipher>;
 
+        // TODO: create ShuffledCiphers Ciphers get(fn ciphers): map hasher(blake2_128_concat) (TopicId, # of shuffles) => Vec<Cipher>;
+        // Alternatively, Ciphers can be refactored -> and initially # of shuffles = 0 is stored.
+        // consider the data structure.
+        // 1. is a an array the best solution to store the shuffled ciphers?
+        // 2. does the order of the votes even matter?
+        // 3.
+
         /// Maps a topic to a map of results. [topic_id -> {message/vote: count}]
         Tally get(fn tally): map hasher(blake2_128_concat) TopicId => Option<BTreeMap<Plaintext, Count>>;
 
@@ -439,6 +446,7 @@ decl_module! {
             let big_g: BigUint = BigUint::from_bytes_be(&params.g);
 
             // get all encrypted votes (ciphers) for the topic with id: topic_id
+            // TODO: fetch the ShuffledCiphers for the number of desired shuffles
             let ciphers: Vec<Cipher> = Ciphers::get(&topic_id);
 
             // type conversion: Vec<Cipher> (Vec<Vec<u8>>) to Vec<BigCipher> (Vec<BigUint>)
@@ -508,6 +516,14 @@ decl_module! {
             // notify that the decrypted shares have been successfully combined
             // and that the result has been tallied!
             Self::deposit_event(RawEvent::TopicTallied(topic_id));
+            Ok(())
+        }
+
+        /// Test function to check signer.
+        #[weight = (10_000, Pays::No)]
+        fn test(origin, test: bool) -> DispatchResult {
+            let who: T::AccountId = ensure_signed(origin)?;
+            debug::info!("who called the function: {:?}", who);
             Ok(())
         }
 

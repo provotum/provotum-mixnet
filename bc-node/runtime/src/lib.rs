@@ -48,7 +48,7 @@ pub use sp_runtime::{Perbill, Permill};
 pub use pallet_mixnet;
 
 /// An index to a block.
-pub type BlockNumber = u32;
+pub type BlockNumber = u64;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -271,7 +271,7 @@ impl pallet_sudo::Trait for Runtime {
 // off-chain worker (mixnet) pallet configuation
 
 parameter_types! {
-    pub const BlockDuration: BlockNumber = 1;
+    pub const BlockDuration: BlockNumber = 1u64;
 }
 
 impl pallet_mixnet::Trait for Runtime {

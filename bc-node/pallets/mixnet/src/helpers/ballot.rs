@@ -15,3 +15,5 @@ pub fn store_ballot<T: Trait>(from: &T::AccountId, vote_id: &VoteId, ballot: Bal
         Ciphers::insert(&topic_id, ciphers);
     }
 }
+
+// TODO: create function to append shuffled ciphers to storage (ShuffledCiphers)
