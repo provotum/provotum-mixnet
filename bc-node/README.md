@@ -164,6 +164,42 @@ This starts a three-node local test network with:
 - **Alice**, as voting-authority (cannot author blocks, but is the voting admin)
 - **Bob** and **Charlie**, as sealers and PoA-authorities (can author blocks)
 
+#### Network Modes
+
+There are two possible network modes:
+- **bridge** all containers run in a separate docker network (e.g., 172.31.0.0/16, Alice on 172.31.0.2, Bob on 172.31.0.3, and so on...)
+- **host** all containers are exposed on the local network (e.g., 127.0.0.1, Alice on 127.0.0.1:9944, Bob on 127.0.0.1:9945, and so on...)
+
+*Note: If you want to `curl` one of the conatiners from the local network and the containers are running in **bridge** mode, it won't work. You need to either execute the `curl` from inside of one of the containers OR alterantively switch to the host network.* 
+
+Switching networks can be done by commenting out the respective network block in the `docker-compose.yml`:
+- to activate **host** network mode:
+    ```yaml
+      alice:
+        container_name: alice
+        image: ghcr.io/meck93/provotum-mixnet:latest
+        command: --chain=local --name Alice --base-path /tmp/alice --port 30333 --ws-port 9944 --rpc-port 9933
+        network_mode: host
+        # network_mode: bridge
+        # ports:
+        #   - 9944:9944 # (host_port:container_port)
+        #   - 30333:30333
+        #   - 9933:9933
+    ```
+- to activate **bridge** network mode:
+    ```yaml
+      alice:
+        container_name: alice
+        image: ghcr.io/meck93/provotum-mixnet:latest
+        command: --chain=local --name Alice --base-path /tmp/alice --port 30333 --ws-port 9944 --rpc-port 9933
+        # network_mode: host
+        network_mode: bridge
+        ports: 
+          - 9944:9944 # (host_port:container_port)
+          - 30333:30333
+          - 9933:9933
+    ```
+
 ## Structure
 
 A Substrate project such as this consists of a number of components that are spread across a few

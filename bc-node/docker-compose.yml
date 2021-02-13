@@ -1,27 +1,40 @@
 version: "3.8"
 
 services:
+  # Alice is the Voting Authority
+  # Alice doesn't validate any blocks -> just runs a full node
   alice:
     container_name: alice
     image: ghcr.io/meck93/provotum-mixnet:latest
-    ports: # HOST_PORT:CONTAINER_PORT
-      - 9944:9944
-      - 30333:30333
-      - 9933:9933
-    command: --chain=local --alice --validator
+    command: --chain=local --name Alice --base-path /tmp/alice --port 30333 --ws-port 9944 --rpc-port 9933
+    network_mode: host
+    # network_mode: bridge
+    # ports: # HOST_PORT:CONTAINER_PORT
+    #   - 9944:9944
+    #   - 30333:30333
+    #   - 9933:9933
+
+  # Bob is a Sealer (Voting) and a Proof-Of-Authority Validator
+  # Bob authors and validates blocks
   bob:
     container_name: bob
     image: ghcr.io/meck93/provotum-mixnet:latest
-    ports:
-      - 9945:9944
-      - 30334:30333
-      - 9934:9933
-    command: --chain=local --bob --validator
+    command: --chain=local --bob --validator --base-path /tmp/bob --port 30334 --ws-port 9945 --rpc-port 9934
+    network_mode: host
+    # network_mode: bridge
+    # ports:
+    #   - 9945:9945
+    #   - 30334:30334
+    #   - 9934:9934
+
+  # Charlie is a Sealer (Voting) and a Proof-Of-Authority Validator
+  # Charlie authors and validates blocks
   charlie:
     container_name: charlie
     image: ghcr.io/meck93/provotum-mixnet:latest
-    ports:
-      - 9946:9944
-      - 30335:30333
-      - 9936:9933
-    command: --chain=local --charlie --validator
+    command: --chain=local --charlie --validator --base-path /tmp/charlie --port 30335 --ws-port 9946 --rpc-port 9935
+    network_mode: host
+    # ports:
+    #   - 9946:9946
+    #   - 30335:30335
+    #   - 9935:9935
