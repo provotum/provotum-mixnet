@@ -3,7 +3,7 @@ use crate::Call;
 use codec::alloc::sync::Arc;
 use codec::Decode;
 use frame_support::{
-    dispatch::Weight, impl_outer_event, impl_outer_origin, parameter_types, traits::Get,
+    dispatch::Weight, impl_outer_event, impl_outer_origin, parameter_types,
 };
 use hex_literal::hex;
 use pallet_timestamp;

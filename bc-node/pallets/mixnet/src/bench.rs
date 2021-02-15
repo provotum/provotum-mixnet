@@ -24,6 +24,8 @@ use sp_std::vec;
 
 use crate::Module as PalletMixnet;
 
+const NR_OF_SHUFFLES: u8 = 0;
+
 fn get_voting_authority<T: Trait>() -> RawOrigin<T::AccountId> {
     // use Alice as VotingAuthority
     let account_id: [u8; 32] =
@@ -173,11 +175,12 @@ fn setup_shuffle_proof<T: Trait>(
     let (topic_id, vote_id, pk) = setup_shuffle::<T>(size, encoded)?;
 
     // get the encrypted votes
-    let e: Vec<BigCipher> = Wrapper(PalletMixnet::<T>::ciphers(&topic_id)).into();
+    let e: Vec<BigCipher> =
+        Wrapper(PalletMixnet::<T>::ciphers(&topic_id, NR_OF_SHUFFLES)).into();
     ensure!(e.len() == size, "# of votes on chain is not correct");
 
     // shuffle the votes
-    let result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+    let result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
     let s: (Vec<BigCipher>, Vec<BigUint>, Vec<usize>) = result.unwrap();
     let e_hat = s.0; // the shuffled votes
     let r = s.1; // the re-encryption randoms
@@ -316,7 +319,7 @@ fn create_decrypted_shares_and_proof<T: Trait>(
 
     // fetch the encrypted votes from chain
     let encryptions: Vec<BigCipher> =
-        Wrapper(PalletMixnet::<T>::ciphers(topic_id)).into();
+        Wrapper(PalletMixnet::<T>::ciphers(topic_id, NR_OF_SHUFFLES)).into();
     ensure!(
         encryptions.len() > 0,
         "the number of encryptions is too low"
@@ -375,6 +378,7 @@ fn submit_decrypted_shares_and_proofs<T: Trait>(
         topic_id.clone(),
         bob_shares,
         bob_proof.into(),
+        NR_OF_SHUFFLES,
     )?;
 
     // use charlie
@@ -396,6 +400,7 @@ fn submit_decrypted_shares_and_proofs<T: Trait>(
         topic_id.clone(),
         charlie_shares,
         charlie_proof.into(),
+        NR_OF_SHUFFLES,
     )?;
     Ok((topic_id, vote_id))
 }
@@ -564,61 +569,61 @@ benchmarks! {
     shuffle_ciphers_3 {
         let (topic_id, vote_id, _) = setup_shuffle::<T>(3, false)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
     }
 
     shuffle_ciphers_10 {
         let (topic_id, vote_id, _) = setup_shuffle::<T>(10, false)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
     }
 
     shuffle_ciphers_30 {
         let (topic_id, vote_id, _) = setup_shuffle::<T>(30, false)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
     }
 
     shuffle_ciphers_100 {
         let (topic_id, vote_id, _) = setup_shuffle::<T>(100, false)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
     }
 
     shuffle_ciphers_1000 {
         let (topic_id, vote_id, _) = setup_shuffle::<T>(1000, false)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
     }
 
     shuffle_ciphers_3_encoded {
         let (topic_id, vote_id, _) = setup_shuffle::<T>(3, true)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
     }
 
     shuffle_ciphers_10_encoded {
         let (topic_id, vote_id, _) = setup_shuffle::<T>(10, true)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
     }
 
     shuffle_ciphers_30_encoded {
         let (topic_id, vote_id, _) = setup_shuffle::<T>(30, true)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
     }
 
     shuffle_ciphers_100_encoded {
         let (topic_id, vote_id, _) = setup_shuffle::<T>(100, true)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
     }
 
     shuffle_ciphers_1000_encoded {
         let (topic_id, vote_id, _) = setup_shuffle::<T>(1000, true)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
     }
 
     shuffle_proof_3 {
@@ -776,7 +781,7 @@ benchmarks! {
             vote_id,
             topic_id,
             bob_shares,
-            bob_proof.into()
+            bob_proof.into(), NR_OF_SHUFFLES
         )?;
     }
 
@@ -795,7 +800,7 @@ benchmarks! {
             vote_id,
             topic_id,
             bob_shares,
-            bob_proof.into()
+            bob_proof.into(), NR_OF_SHUFFLES
         )?;
     }
 
@@ -814,7 +819,7 @@ benchmarks! {
             vote_id,
             topic_id,
             bob_shares,
-            bob_proof.into()
+            bob_proof.into(), NR_OF_SHUFFLES
         )?;
     }
 
@@ -833,7 +838,7 @@ benchmarks! {
             vote_id,
             topic_id,
             bob_shares,
-            bob_proof.into()
+            bob_proof.into(), NR_OF_SHUFFLES
         )?;
     }
 
@@ -852,7 +857,7 @@ benchmarks! {
             vote_id,
             topic_id,
             bob_shares,
-            bob_proof.into()
+            bob_proof.into(), NR_OF_SHUFFLES
         )?;
     }
 
@@ -867,7 +872,7 @@ benchmarks! {
             who.into(),
             vote_id,
             topic_id,
-            false
+            false, NR_OF_SHUFFLES
         )?;
     }
 
@@ -882,7 +887,7 @@ benchmarks! {
             who.into(),
             vote_id,
             topic_id,
-            false
+            false, NR_OF_SHUFFLES
         )?;
     }
 
@@ -897,7 +902,7 @@ benchmarks! {
             who.into(),
             vote_id,
             topic_id,
-            false
+            false, NR_OF_SHUFFLES
         )?;
     }
 
@@ -912,7 +917,7 @@ benchmarks! {
             who.into(),
             vote_id,
             topic_id,
-            false
+            false, NR_OF_SHUFFLES
         )?;
     }
 
@@ -927,7 +932,7 @@ benchmarks! {
             who.into(),
             vote_id,
             topic_id,
-            false
+            false, NR_OF_SHUFFLES
         )?;
     }
 }

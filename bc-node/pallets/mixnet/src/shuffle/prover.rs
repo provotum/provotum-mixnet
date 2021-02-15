@@ -64,8 +64,13 @@ impl<T: Trait> Module<T> {
 
         // get {size} challenges
         // vec_u = get_challenges(size, hash(e, e_tilde, vec_c, pk))
-        let vec_u =
-            ShuffleProof::get_challenges(size, e.clone(), e_tilde.clone(), vec_c.clone(), pk);
+        let vec_u = ShuffleProof::get_challenges(
+            size,
+            e.clone(),
+            e_tilde.clone(),
+            vec_c.clone(),
+            pk,
+        );
 
         // permute the challenges -> same order as randoms + permuation
         let u_tilde = Self::permute_vector(vec_u.clone(), permutation);
@@ -325,7 +330,8 @@ impl<T: Trait> Module<T> {
         // for an explanation see: Verifiable Re-Encryption Mixnets (Haenni, Locher, Koenig, Dubuis) page 9
         let inv_pk = pk.invmod(p).ok_or(Error::InvModError)?;
         let inv_pk_pow_w4 = inv_pk.modpow(&w4, p);
-        let vec_b_tilde: Vec<BigUint> = shuffled_encryptions.into_iter().map(|c| c.b).collect();
+        let vec_b_tilde: Vec<BigUint> =
+            shuffled_encryptions.into_iter().map(|c| c.b).collect();
         let prod_b_tilde_w_tilde =
             Self::zip_vectors_multiply_a_pow_b(&vec_b_tilde, &vec_w_tilde, p);
         let t4_2 = inv_pk_pow_w4.modmul(&prod_b_tilde_w_tilde, p);

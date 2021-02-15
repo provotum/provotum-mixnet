@@ -1,11 +1,14 @@
 use crate::{
-    helpers::keys::get_public_key,
-    types::{Cipher, PublicKey as SubstratePK, QAsBigUint, TopicId, VoteId, Wrapper},
+    helpers::params::get_public_key,
+    types::{
+        Cipher, NrOfShuffles, PublicKey as SubstratePK, QAsBigUint, TopicId, VoteId,
+        Wrapper,
+    },
 };
 use crate::{Ciphers, Error, Module, Trait};
 use crypto::encryption::ElGamal;
 use crypto::types::Cipher as BigCipher;
-use frame_support::storage::StorageMap;
+use frame_support::storage::StorageDoubleMap;
 use num_bigint::BigUint;
 use sp_std::vec::Vec;
 
@@ -14,13 +17,16 @@ impl<T: Trait> Module<T> {
     pub fn shuffle_ciphers(
         vote_id: &VoteId,
         topic_id: &TopicId,
+        nr_of_shuffles: NrOfShuffles,
     ) -> Result<(Vec<BigCipher>, Vec<BigUint>, Vec<usize>), Error<T>> {
         // get the system public key
         let pk: SubstratePK = get_public_key(&vote_id)?.into();
         let q = QAsBigUint::q(&pk.params);
 
-        // get the encrypted ballots stored on chain
-        let ciphers: Vec<Cipher> = Ciphers::get(topic_id);
+        // get all encrypted votes (ciphers)
+        // for the topic with id: topic_id and the # of shuffles (nr_of_shuffles)
+        let ciphers: Vec<Cipher> = Ciphers::get(&topic_id, nr_of_shuffles);
+
         // type conversion: Ballot (Vec<u8>) to BigCipher (BigUint)
         let ciphers: Vec<BigCipher> = Wrapper(ciphers).into();
 
@@ -41,6 +47,10 @@ impl<T: Trait> Module<T> {
         let shuffle = ElGamal::shuffle(&ciphers, &permutation, &randoms, &(pk.into()));
         let shuffled_ciphers: Vec<BigCipher> =
             shuffle.into_iter().map(|item| item.0).collect();
+
+        // // store the shuffle ciphers + increase the number of shuffles
+        // Ciphers::insert(&topic_id, nr_of_shuffles + 1);
+        // TODO: only store the votes once the proof has been verified...
 
         // return the shuffled ciphers, randoms, permutation as result
         Ok((shuffled_ciphers, randoms, permutation))

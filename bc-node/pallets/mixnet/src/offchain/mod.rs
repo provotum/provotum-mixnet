@@ -1,5 +1,7 @@
+mod send;
+
 use crate::{
-    helpers::{assertions::ensure_vote_exists, keys::get_public_key},
+    helpers::{assertions::ensure_vote_exists, params::get_public_key},
     types::{Ballot, Cipher, Topic, TopicId, Vote, VoteId, VotePhase, Wrapper},
 };
 use crate::{
@@ -12,11 +14,12 @@ use crypto::{
 };
 use frame_support::{
     debug,
-    storage::{StorageMap, StorageValue},
+    storage::{StorageDoubleMap, StorageMap, StorageValue},
     traits::Get,
 };
-use frame_system::offchain::{SendSignedTransaction, Signer};
+use frame_system::offchain::Signer;
 use num_bigint::BigUint;
+use send::send_signed;
 use sp_std::{vec, vec::Vec};
 
 impl<T: Trait> Module<T> {
@@ -122,19 +125,26 @@ impl<T: Trait> Module<T> {
                 // get public key
                 let pk: ElGamalPK = get_public_key::<T>(&vote_id)?.into();
 
+                // TODO: figure out a way on how to decide what the current number of shuffles is
+                let current_nr_of_shuffles: u8 = 0;
+
                 for (topic_id, _) in topics.iter() {
+                    // get all encrypted votes (ciphers)
+                    // for the topic with id: topic_id and the # of shuffles (current_nr_of_shuffles)
+                    // TODO: implement a function to retrieve the most recent number of shuffles...
+                    let ciphers: Vec<Cipher> =
+                        Ciphers::get(&topic_id, current_nr_of_shuffles);
+
+                    // type conversion: Cipher (Vec<u8>) to BigCipher (BigUint)
+                    let encryptions: Vec<BigCipher> = Wrapper(ciphers).into();
+
                     // for each topic_id & vote_id
                     // shuffle the votes
                     let (shuffled_encryptions, re_encryption_randoms, permutation): (
                         Vec<BigCipher>,
                         Vec<BigUint>,
                         Vec<usize>,
-                    ) = Self::shuffle_ciphers(vote_id, topic_id)?;
-
-                    // fetch the original votes
-                    let encryptions: Vec<Cipher> = Ciphers::get(topic_id);
-                    // type conversion: Ballot (Vec<u8>) to BigCipher (BigUint)
-                    let encryptions: Vec<BigCipher> = Wrapper(encryptions).into();
+                    ) = Self::shuffle_ciphers(vote_id, topic_id, current_nr_of_shuffles)?;
 
                     // generate the shuffle proof
                     let proof = Self::generate_shuffle_proof(
@@ -156,31 +166,6 @@ impl<T: Trait> Module<T> {
 
     // TODO: implement shuffle_ciphers -> used by offchain worker
     // TODO: implement generate_shuffle_proof -> used by offchain worker
-}
-
-pub fn send_signed<T: Trait>(
-    signer: Signer<T, T::AuthorityId>,
-    call: Call<T>,
-) -> Result<(), Error<T>> {
-    // `result` is in the type of `Option<(Account<T>, Result<(), ()>)>`. It is:
-    //   - `None`: no account is available for sending transaction
-    //   - `Some((account, Ok(())))`: transaction is successfully sent
-    //   - `Some((account, Err(())))`: error occured when sending the transaction
-    let result = signer.send_signed_transaction(|_acct| call.clone());
-
-    // display error if the signed tx fails.
-    if let Some((acc, res)) = result {
-        if res.is_err() {
-            debug::error!("failure: offchain_signed_tx: tx sent: {:#?}", acc.id);
-            return Err(<Error<T>>::OffchainSignedTxError);
-        }
-        // Transaction is sent successfully
-        return Ok(());
-    }
-
-    // The case of `None`: no account is available for sending
-    debug::error!("No local account available");
-    return Err(<Error<T>>::NoLocalAcctForSigning);
 }
 
 // TODO: implement creating a decrypted share + submitting it -> used by offchain worker

@@ -8,6 +8,7 @@ use codec::Decode;
 use crypto::{
     encryption::ElGamal,
     helper::Helper,
+    proofs::{decryption::DecryptionProof, keygen::KeyGenerationProof},
     types::{
         Cipher as BigCipher, ElGamalParams, ModuloOperations, PrivateKey,
         PublicKey as ElGamalPK,
@@ -18,6 +19,8 @@ use hex_literal::hex;
 use num_bigint::BigUint;
 use num_traits::Zero;
 use sp_std::vec;
+
+const NR_OF_SHUFFLES: u8 = 0;
 
 fn get_voting_authority() -> Origin {
     // use Alice as VotingAuthority
@@ -165,11 +168,12 @@ fn shuffle_proof_test(
 
     // get the encrypted votes
     let big_ciphers_from_chain: Vec<BigCipher> =
-        Wrapper(OffchainModule::ciphers(&topic_id)).into();
+        Wrapper(OffchainModule::ciphers(&topic_id, NR_OF_SHUFFLES)).into();
     assert!(big_ciphers_from_chain.len() > 0);
 
     // shuffle the votes
-    let shuffle_result = OffchainModule::shuffle_ciphers(&vote_id, &topic_id);
+    let shuffle_result =
+        OffchainModule::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
     let shuffled: (Vec<BigCipher>, Vec<BigUint>, Vec<usize>) = shuffle_result.unwrap();
     let shuffled_ciphers = shuffled.0;
     let re_encryption_randoms = shuffled.1;
@@ -479,7 +483,7 @@ fn test_cast_ballot_works_encoded() {
 
         // Cipher is inserted into Ciphers
         assert_eq!(
-            OffchainModule::ciphers(topic_id.clone()),
+            OffchainModule::ciphers(topic_id.clone(), NR_OF_SHUFFLES),
             vec![cipher.clone()]
         );
 
@@ -503,7 +507,7 @@ fn test_cast_ballot_works_encoded() {
 
         // Cipher is inserted into Ciphers
         assert_eq!(
-            OffchainModule::ciphers(topic_id.clone()),
+            OffchainModule::ciphers(topic_id.clone(), NR_OF_SHUFFLES),
             vec![cipher.clone(), cipher]
         );
     });
@@ -545,7 +549,7 @@ fn test_cast_ballot_works() {
 
         // Cipher is inserted into Ciphers
         assert_eq!(
-            OffchainModule::ciphers(topic_id.clone()),
+            OffchainModule::ciphers(topic_id.clone(), NR_OF_SHUFFLES),
             vec![cipher.clone()]
         );
 
@@ -569,7 +573,7 @@ fn test_cast_ballot_works() {
 
         // Cipher is inserted into Ciphers
         assert_eq!(
-            OffchainModule::ciphers(topic_id.clone()),
+            OffchainModule::ciphers(topic_id.clone(), NR_OF_SHUFFLES),
             vec![cipher.clone(), cipher]
         );
     });
@@ -776,7 +780,8 @@ fn test_fetch_ballots_size_zero() {
         let topic_id = "Moritz for President?".as_bytes().to_vec();
         // Read pallet storage (i.e. the submitted ballots)
         // and assert an expected result.
-        let ciphers_from_chain: Vec<Cipher> = OffchainModule::ciphers(topic_id);
+        let ciphers_from_chain: Vec<Cipher> =
+            OffchainModule::ciphers(topic_id, NR_OF_SHUFFLES);
         assert!(ciphers_from_chain.len() == 0);
     });
 }
@@ -810,7 +815,8 @@ fn store_small_dummy_vote_works_encoded() {
         assert_ok!(vote_submission_result);
 
         // fetch the submitted ballot
-        let ciphers_from_chain: Vec<Cipher> = OffchainModule::ciphers(topic_id);
+        let ciphers_from_chain: Vec<Cipher> =
+            OffchainModule::ciphers(topic_id, NR_OF_SHUFFLES);
         assert!(ciphers_from_chain.len() > 0);
 
         let cipher_from_chain: Cipher = ciphers_from_chain[0].clone();
@@ -854,7 +860,8 @@ fn store_small_dummy_vote_works() {
         assert_ok!(vote_submission_result);
 
         // fetch the submitted ballot
-        let ciphers_from_chain: Vec<Cipher> = OffchainModule::ciphers(topic_id);
+        let ciphers_from_chain: Vec<Cipher> =
+            OffchainModule::ciphers(topic_id, NR_OF_SHUFFLES);
         assert!(ciphers_from_chain.len() > 0);
 
         let cipher_from_chain: Cipher = ciphers_from_chain[0].clone();
@@ -898,7 +905,8 @@ fn store_real_size_vote_works_encoded() {
         assert_ok!(vote_submission_result);
 
         // fetch the submitted ballot
-        let ciphers_from_chain: Vec<Cipher> = OffchainModule::ciphers(topic_id);
+        let ciphers_from_chain: Vec<Cipher> =
+            OffchainModule::ciphers(topic_id, NR_OF_SHUFFLES);
         assert!(ciphers_from_chain.len() > 0);
 
         let cipher_from_chain: Cipher = ciphers_from_chain[0].clone();
@@ -942,7 +950,8 @@ fn store_real_size_vote_works() {
         assert_ok!(vote_submission_result);
 
         // fetch the submitted ballot
-        let ciphers_from_chain: Vec<Cipher> = OffchainModule::ciphers(topic_id);
+        let ciphers_from_chain: Vec<Cipher> =
+            OffchainModule::ciphers(topic_id, NR_OF_SHUFFLES);
         assert!(ciphers_from_chain.len() > 0);
 
         let cipher_from_chain: Cipher = ciphers_from_chain[0].clone();
@@ -1001,7 +1010,8 @@ fn test_shuffle_ciphers_encoded() {
         }
 
         // shuffle the votes
-        let shuffle_result = OffchainModule::shuffle_ciphers(&vote_id, &topic_id);
+        let shuffle_result =
+            OffchainModule::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
         let shuffled_big_ciphers: Vec<BigCipher> = shuffle_result.unwrap().0;
         assert!(shuffled_big_ciphers.len() == 3);
 
@@ -1070,7 +1080,8 @@ fn test_shuffle_ciphers() {
         }
 
         // shuffle the votes
-        let shuffle_result = OffchainModule::shuffle_ciphers(&vote_id, &topic_id);
+        let shuffle_result =
+            OffchainModule::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
         let shuffled_big_ciphers: Vec<BigCipher> = shuffle_result.unwrap().0;
         assert!(shuffled_big_ciphers.len() == 3);
 
@@ -1103,7 +1114,7 @@ fn test_shuffle_ciphers_pk_does_not_exist() {
         let topic_id = "Moritz for President?".as_bytes().to_vec();
         let vote_id = "20201212".as_bytes().to_vec();
         // try to shuffle the ballots -> public key doesn't exist yet
-        OffchainModule::shuffle_ciphers(&vote_id, &topic_id).expect_err(
+        OffchainModule::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES).expect_err(
             "The returned value should be: 'Error::<T>::PublicKeyNotExistsError'",
         );
     });
@@ -1119,7 +1130,7 @@ fn test_shuffle_ciphers_no_ballots() {
         setup_public_key(vote_id.clone(), pk.clone().into());
 
         // try -> to shuffle the ballots (which don't exist)
-        OffchainModule::shuffle_ciphers(&vote_id, &topic_id).expect_err(
+        OffchainModule::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES).expect_err(
             "The returned value should be: 'Error::<T>::ShuffleCiphersSizeZeroError'",
         );
     });
@@ -1536,7 +1547,12 @@ fn test_submit_decrypted_share_vote_does_not_exist() {
 
         assert_err!(
             OffchainModule::submit_decrypted_shares(
-                who, vote_id, topic_id, shares, proof
+                who,
+                vote_id,
+                topic_id,
+                shares,
+                proof,
+                NR_OF_SHUFFLES
             ),
             Error::<TestRuntime>::VoteDoesNotExist
         );
@@ -1567,7 +1583,12 @@ fn test_submit_decrypted_share_wrong_vote_phase() {
 
         assert_err!(
             OffchainModule::submit_decrypted_shares(
-                who, vote_id, topic_id, shares, proof
+                who,
+                vote_id,
+                topic_id,
+                shares,
+                proof,
+                NR_OF_SHUFFLES
             ),
             Error::<TestRuntime>::WrongVotePhase
         );
@@ -1606,7 +1627,12 @@ fn test_submit_decrypted_share_not_a_sealer() {
         // check that the voting authority is not allowed
         assert_err!(
             OffchainModule::submit_decrypted_shares(
-                who, vote_id, topic_id, shares, proof
+                who,
+                vote_id,
+                topic_id,
+                shares,
+                proof,
+                NR_OF_SHUFFLES
             ),
             Error::<TestRuntime>::NotASealer
         );
@@ -1677,7 +1703,7 @@ fn test_submit_decrypted_share() {
 
         // fetch the encrypted votes from chain
         let encryptions: Vec<BigCipher> =
-            Wrapper(OffchainModule::ciphers(&topic_id)).into();
+            Wrapper(OffchainModule::ciphers(&topic_id, NR_OF_SHUFFLES)).into();
         assert!(encryptions.len() > 0);
 
         // get bob's partial decryptions
@@ -1712,7 +1738,8 @@ fn test_submit_decrypted_share() {
             vote_id,
             topic_id,
             bob_shares,
-            bob_proof.into()
+            bob_proof.into(),
+            NR_OF_SHUFFLES
         ));
     });
 }
@@ -1728,7 +1755,8 @@ fn test_combine_decrypted_shares_vote_does_not_exist() {
                 voting_authority,
                 "vote_id".as_bytes().to_vec(),
                 "topic_id".as_bytes().to_vec(),
-                false
+                false,
+                NR_OF_SHUFFLES
             ),
             Error::<TestRuntime>::VoteDoesNotExist
         );
@@ -1755,7 +1783,13 @@ fn test_combine_decrypted_shares_wrong_vote_phase() {
 
         // try to combine shares -> not a voting authority
         assert_err!(
-            OffchainModule::combine_decrypted_shares(bob, vote_id, topic_id, false),
+            OffchainModule::combine_decrypted_shares(
+                bob,
+                vote_id,
+                topic_id,
+                false,
+                NR_OF_SHUFFLES
+            ),
             Error::<TestRuntime>::NotAVotingAuthority
         );
     })
@@ -1775,7 +1809,8 @@ fn test_combine_decrypted_shares_not_a_voting_authority() {
                 voting_authority,
                 vote_id,
                 topic_id,
-                false
+                false,
+                NR_OF_SHUFFLES
             ),
             Error::<TestRuntime>::WrongVotePhase
         );
@@ -1842,7 +1877,7 @@ fn test_combine_decrypted_shares() {
 
         // fetch the encrypted votes from chain
         let encryptions: Vec<BigCipher> =
-            Wrapper(OffchainModule::ciphers(&topic_id)).into();
+            Wrapper(OffchainModule::ciphers(&topic_id, NR_OF_SHUFFLES)).into();
         assert!(encryptions.len() > 0);
 
         // get bob's partial decryptions
@@ -1877,7 +1912,8 @@ fn test_combine_decrypted_shares() {
             vote_id.clone(),
             topic_id.clone(),
             bob_shares,
-            bob_proof.into()
+            bob_proof.into(),
+            NR_OF_SHUFFLES
         ));
 
         // get charlie's partial decryptions
@@ -1912,7 +1948,8 @@ fn test_combine_decrypted_shares() {
             vote_id.clone(),
             topic_id.clone(),
             charlie_shares,
-            charlie_proof.into()
+            charlie_proof.into(),
+            NR_OF_SHUFFLES
         ));
 
         // combine the decrypted shares + tally topic
@@ -1920,7 +1957,8 @@ fn test_combine_decrypted_shares() {
             voting_authority,
             vote_id,
             topic_id.clone(),
-            false
+            false,
+            NR_OF_SHUFFLES
         ));
 
         // retrieve the tallied result from the storage on chain

@@ -2,7 +2,9 @@ use crate::{types::BigS, types::ShuffleProof as Proof, Error, Module, Trait};
 use crypto::{
     helper::Helper,
     proofs::shuffle::ShuffleProof,
-    types::{BigT, BigY, Cipher as BigCipher, ElGamalParams, ModuloOperations, PublicKey},
+    types::{
+        BigT, BigY, Cipher as BigCipher, ElGamalParams, ModuloOperations, PublicKey,
+    },
 };
 use num_bigint::BigUint;
 use num_traits::One;
@@ -62,8 +64,13 @@ impl<T: Trait> Module<T> {
 
         // get {size} challenges
         // vec_u = get_challenges(size, hash(e, e_tilde, vec_c, pk))
-        let vec_u =
-            ShuffleProof::get_challenges(size, e.clone(), e_tilde.clone(), vec_c.clone(), pk);
+        let vec_u = ShuffleProof::get_challenges(
+            size,
+            e.clone(),
+            e_tilde.clone(),
+            vec_c.clone(),
+            pk,
+        );
 
         // get c_hat_0
         // h = the 2. public generator
@@ -138,7 +145,8 @@ impl<T: Trait> Module<T> {
         // public commitment t = (t1, t2, t3, (t4_1, t4_2), (t_hat_0, ..., t_hat_(size-1)))
         let public_value: BigY = (e, e_tilde, vec_c, vec_c_hat, &pk.h);
         let public_commitment: BigT = (t1, t2, t3, t4_1, t4_2, vec_t_hat);
-        let recomputed_challenge = ShuffleProof::get_challenge(public_value, public_commitment, q);
+        let recomputed_challenge =
+            ShuffleProof::get_challenge(public_value, public_commitment, q);
 
         let is_proof_valid = recomputed_challenge == challenge;
         Ok(is_proof_valid)

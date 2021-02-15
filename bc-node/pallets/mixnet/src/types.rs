@@ -150,6 +150,15 @@ pub type BigS = (
     Vec<BigUint>, // vec_s_tilde
 );
 
+pub type BigSAsBytes = (
+    Vec<u8>,      // s1
+    Vec<u8>,      // s2
+    Vec<u8>,      // s3
+    Vec<u8>,      // s4
+    Vec<Vec<u8>>, // vec_s_hat
+    Vec<Vec<u8>>, // vec_s_tilde
+);
+
 /// Algorithm 8.47: The ShuffleProof
 pub type ShuffleProof = (
     BigUint,      // challenge
@@ -158,10 +167,18 @@ pub type ShuffleProof = (
     Vec<BigUint>, // permutation_chain_commitments
 );
 
+pub type ShuffleProofAsBytes = (
+    Vec<u8>,      // challenge
+    BigSAsBytes,  // S
+    Vec<Vec<u8>>, // permutation_commitments
+    Vec<Vec<u8>>, // permutation_chain_commitments
+);
+
 pub type VoteId = Vec<u8>;
 pub type Title = Vec<u8>;
 
 // both types are strings encoded as bytes
+pub type NrOfShuffles = u8;
 pub type TopicId = Vec<u8>;
 pub type TopicQuestion = Vec<u8>;
 

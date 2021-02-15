@@ -5,10 +5,13 @@ extern crate alloc;
 mod helpers;
 
 #[allow(clippy::many_single_char_names)]
-mod logic;
+mod offchain;
 
 #[allow(clippy::many_single_char_names)]
 mod shuffle;
+
+#[allow(clippy::many_single_char_names)]
+mod dkg;
 
 #[allow(clippy::many_single_char_names)]
 pub mod types;
@@ -24,39 +27,34 @@ mod tests;
 
 pub mod keys;
 
-use crate::types::{
-    Ballot, Cipher, DecryptedShare, DecryptedShareProof, PublicKey as SubstratePK,
-    PublicKeyShare, PublicKeyShareProof, PublicParameters, Title, Topic, TopicId, Vote,
-    VoteId, VotePhase, Wrapper,
-};
-use crate::{
-    helpers::{
-        assertions::{
-            ensure_not_a_voting_authority, ensure_sealer, ensure_vote_exists,
-            ensure_vote_phase, ensure_voting_authority,
-        },
-        ballot::store_ballot,
-        keys::{combine_shares, get_public_keyshare, get_public_params},
-        phase::set_phase,
+use crate::dkg::{
+    create::combine_shares,
+    tally::combine_shares_and_tally_topic,
+    verify::{
+        verify_proof_and_store_decrypted_share, verify_proof_and_store_keygen_share,
     },
-    types::{Count, Plaintext},
 };
-use codec::Encode;
-use crypto::types::Cipher as BigCipher;
-use crypto::{
-    encryption::ElGamal,
-    proofs::{decryption::DecryptionProof, keygen::KeyGenerationProof},
+use crate::helpers::{
+    assertions::{
+        ensure_not_a_voting_authority, ensure_sealer, ensure_vote_exists,
+        ensure_vote_phase, ensure_voting_authority,
+    },
+    ballot::store_ballot,
+    phase::set_phase,
+};
+use crate::types::{
+    Ballot, Cipher, Count, DecryptedShare, DecryptedShareProof, NrOfShuffles, Plaintext,
+    PublicKey as SubstratePK, PublicKeyShare, PublicParameters, ShuffleProofAsBytes,
+    Title, Topic, TopicId, Vote, VoteId, VotePhase,
 };
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
-    ensure, traits::Get, weights::Pays,
+    traits::Get, weights::Pays,
 };
 use frame_system::{
     ensure_signed,
     offchain::{AppCrypto, CreateSignedTransaction},
 };
-use num_bigint::BigUint;
-use num_traits::One;
 use sp_runtime::offchain as rt_offchain;
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, str, vec::Vec};
 
@@ -96,15 +94,8 @@ decl_storage! {
         /// Maps an voter and a vote to a ballot. Used to verify if a voter has already voted.
         Ballots get(fn ballots): double_map hasher(blake2_128_concat) VoteId, hasher(blake2_128_concat) T::AccountId => Ballot;
 
-        /// Maps a topicId (question) to a list of Ciphers
-        Ciphers get(fn ciphers): map hasher(blake2_128_concat) TopicId => Vec<Cipher>;
-
-        // TODO: create ShuffledCiphers Ciphers get(fn ciphers): map hasher(blake2_128_concat) (TopicId, # of shuffles) => Vec<Cipher>;
-        // Alternatively, Ciphers can be refactored -> and initially # of shuffles = 0 is stored.
-        // consider the data structure.
-        // 1. is a an array the best solution to store the shuffled ciphers?
-        // 2. does the order of the votes even matter?
-        // 3.
+        /// Maps a topicId (question) to a list of Ciphers and how many times each Cipher has been shuffled
+        Ciphers get(fn ciphers): double_map hasher(blake2_128_concat) TopicId, hasher(blake2_128_concat) NrOfShuffles => Vec<Cipher>;
 
         /// Maps a topic to a map of results. [topic_id -> {message/vote: count}]
         Tally get(fn tally): map hasher(blake2_128_concat) TopicId => Option<BTreeMap<Plaintext, Count>>;
@@ -151,10 +142,13 @@ decl_event!(
         PublicKeyCreated(VoteId, SubstratePK),
 
         /// A decrypted share was submitted for a vote. [paritial decryptions with its proof]
-        DecryptedShareSubmitted(VoteId, AccountId),
+        DecryptedShareSubmitted(TopicId, AccountId),
 
         /// A decrypted share was submitted for a vote. [paritial decryptions with its proof]
         TopicTallied(TopicId),
+
+        /// A decrypted share was submitted for a vote. [paritial decryptions with its proof]
+        ShuffleProofSubmitted(TopicId, AccountId),
     }
 );
 
@@ -283,22 +277,9 @@ decl_module! {
             ensure_not_a_voting_authority::<T>(&who)?;
             ensure_sealer::<T>(&who)?;
 
-            // get the public parameters
-            let params: PublicParameters = get_public_params::<T>(&vote_id)?;
-
-            // verify the public key share proof
-            let sealer_id = who.encode();
-            let proof: PublicKeyShareProof = pk_share.proof.clone();
-            let pk: BigUint = BigUint::from_bytes_be(&pk_share.pk);
-            let proof_valid = KeyGenerationProof::verify(&params.into(), &pk, &proof.into(), &sealer_id);
-            ensure!(proof_valid, Error::<T>::PublicKeyShareProofError);
-
-            // store the public key share
-            let mut shares: Vec<PublicKeyShare> = PublicKeyShares::get(&vote_id);
-            shares.push(pk_share.clone());
-            PublicKeyShares::insert(&vote_id, shares);
-            PublicKeyShareBySealer::<T>::insert((&vote_id, &who), pk_share.clone());
-            debug::info!("public_key_share successfully submitted and proof verified!");
+            // verify key generatin proof
+            // and store public key share
+            verify_proof_and_store_keygen_share::<T>(who, &vote_id, pk_share.clone())?;
 
             Self::deposit_event(RawEvent::PublicKeyShareSubmitted(pk_share));
             Ok(())
@@ -313,12 +294,7 @@ decl_module! {
             ensure_vote_exists::<T>(&vote_id)?;
 
             // create the system's public key
-            let pk: SubstratePK = combine_shares::<T>(&vote_id)?;
-            PublicKey::insert(vote_id.clone(), pk.clone());
-            debug::info!("public_key successfully generated!");
-
-            // advance the voting phase to the next stage
-            set_phase::<T>(&who, &vote_id, VotePhase::Voting)?;
+            let pk: SubstratePK = combine_shares::<T>(who, &vote_id)?;
 
             Self::deposit_event(RawEvent::PublicKeyCreated(vote_id, pk));
             Ok(())
@@ -385,45 +361,38 @@ decl_module! {
           Ok(())
         }
 
+        /// Test function to check signer.
+        #[weight = (10_000, Pays::No)]
+        fn submit_shuffle_proof(origin, vote_id: VoteId, topic_id: TopicId, proof: ShuffleProofAsBytes) -> DispatchResult {
+            let who: T::AccountId = ensure_signed(origin)?;
+            ensure_vote_exists::<T>(&vote_id)?;
+            ensure_vote_phase::<T>(&vote_id, VotePhase::Tallying)?;
+            ensure_sealer::<T>(&who)?;
+
+            // Self::verify_shuffle_proof(        &topic_id, // topicId (vote question)
+            // proof: Proof,
+            // encryptions: Vec<BigCipher>,
+            // shuffled_encryptions: Vec<BigCipher>,
+            // pk: &PublicKey,);
+
+            // notify that the decrypted share has been:
+            // submitted, the proof verified and successfully stored
+            Self::deposit_event(RawEvent::ShuffleProofSubmitted(topic_id, who));
+            Ok(())
+        }
+
         /// Store a decrypted shares.
         #[weight = (10_000, Pays::No)]
-        fn submit_decrypted_shares(origin, vote_id: VoteId, topic_id: TopicId, shares: Vec<DecryptedShare>, proof: DecryptedShareProof) -> DispatchResult {
+        fn submit_decrypted_shares(origin, vote_id: VoteId, topic_id: TopicId, shares: Vec<DecryptedShare>, proof: DecryptedShareProof, nr_of_shuffles: NrOfShuffles) -> DispatchResult {
             // only sealers should be able to store their decrypted shares
             let who: T::AccountId = ensure_signed(origin)?;
             ensure_vote_exists::<T>(&vote_id)?;
             ensure_vote_phase::<T>(&vote_id, VotePhase::Tallying)?;
             ensure_sealer::<T>(&who)?;
 
-            // get the public parameters and the public key share of the sealer
-            let sealer_id = who.encode();
-            let params: PublicParameters = get_public_params::<T>(&vote_id)?;
-            let sealer_pk_share: PublicKeyShare = get_public_keyshare::<T>(&vote_id, &who)?;
-            let sealer_pk: BigUint = BigUint::from_bytes_be(&sealer_pk_share.pk);
-
-            // type conversion: Vec<Cipher> (Vec<Vec<u8>>) to Vec<BigCipher> (Vec<BigUint>)
-            let ciphers: Vec<Cipher> = Ciphers::get(&topic_id);
-            let big_ciphers: Vec<BigCipher> = Wrapper(ciphers).into();
-
-            // type conversion: DecryptedShare (Vec<u8>) to BigUint
-            let decrypted_shares: Vec<BigUint> = shares.iter().map(|s| BigUint::from_bytes_be(s)).collect::<Vec<BigUint>>();
-
-            // verify the proof using the sealer's public key share
-            let proof: DecryptionProof = proof.into();
-            let is_valid: bool = DecryptionProof::verify(&params.into(), &sealer_pk, &proof.into(), big_ciphers, decrypted_shares, &sealer_id);
-            ensure!(is_valid, Error::<T>::DecryptedShareProofError);
-
-            // store the decrypted shares
-            let mut stored: Vec<DecryptedShare> = DecryptedShares::<T>::get::<&TopicId, &T::AccountId>(&topic_id, &who);
-
-            // check if the share has been already submitted. if not, store it.
-            for share in shares.iter() {
-                if !stored.contains(share) {
-                    stored.push(share.clone());
-                }
-            }
-
-            // store the decrypted shares per topic and sealer
-            DecryptedShares::<T>::insert(&topic_id, &who, stored);
+            // verify the decrypted share proof
+            // and store the decrypted shares if proof verification is successfull
+            verify_proof_and_store_decrypted_share::<T>(who.clone(), &vote_id, &topic_id, shares, proof, &nr_of_shuffles)?;
 
             // notify that the decrypted share has been:
             // submitted, the proof verified and successfully stored
@@ -433,85 +402,16 @@ decl_module! {
 
         /// Combine decrypted shares into a final plain text tally.
         #[weight = (10_000, Pays::No)]
-        fn combine_decrypted_shares(origin, vote_id: VoteId, topic_id: TopicId, encoded: bool) -> DispatchResult {
+        fn combine_decrypted_shares(origin, vote_id: VoteId, topic_id: TopicId, encoded: bool, nr_of_shuffles: NrOfShuffles) -> DispatchResult {
             // only the voting_authority should be able to create the final tally
             let who: T::AccountId = ensure_signed(origin)?;
             ensure_vote_exists::<T>(&vote_id)?;
             ensure_vote_phase::<T>(&vote_id, VotePhase::Tallying)?;
             ensure_voting_authority::<T>(&who)?;
 
-            // get the public parameters and the system public key
-            let params: PublicParameters = get_public_params::<T>(&vote_id)?;
-            let big_p: BigUint = BigUint::from_bytes_be(&params.p);
-            let big_g: BigUint = BigUint::from_bytes_be(&params.g);
-
-            // get all encrypted votes (ciphers) for the topic with id: topic_id
-            // TODO: fetch the ShuffledCiphers for the number of desired shuffles
-            let ciphers: Vec<Cipher> = Ciphers::get(&topic_id);
-
-            // type conversion: Vec<Cipher> (Vec<Vec<u8>>) to Vec<BigCipher> (Vec<BigUint>)
-            let big_ciphers: Vec<BigCipher> = Wrapper(ciphers).into();
-
-            // retrieve the decrypted shares of all sealers
-            let sealers: Vec<T::AccountId> = Sealers::<T>::get();
-            let mut partial_decryptions: Vec<Vec<BigUint>> = Vec::with_capacity(sealers.len());
-
-            for sealer in sealers.iter() {
-                // get the partial decryptions of each sealer
-                let shares: Vec<DecryptedShare> = DecryptedShares::<T>::get::<&TopicId, &T::AccountId>(&topic_id, &sealer);
-
-                // make sure that each sealer has submitted his decrypted shares
-                ensure!(shares.len() > 0, Error::<T>::NotEnoughDecryptedShares);
-
-                // type conversion: DecryptedShare (Vec<u8>) to BigUint
-                let big_shares: Vec<BigUint> = shares.iter().map(|s| BigUint::from_bytes_be(s)).collect::<Vec<BigUint>>();
-                partial_decryptions.push(big_shares);
-            }
-
-            // combine all partial decryptions by all sealers
-            let combined_partial_decryptions = ElGamal::combine_partial_decrypted_as(
-                partial_decryptions,
-                &big_p,
-            );
-
-            // retrieve the plaintext votes
-            // by combining the decrypted components a with their decrypted components b
-            let iterator = big_ciphers.iter().zip(combined_partial_decryptions.iter());
-            let mut plaintexts = iterator
-                .map(|(cipher, decrypted_a)| {
-                    ElGamal::partial_decrypt_b(&cipher.b, decrypted_a, &big_p)
-                })
-                .collect::<Vec<BigUint>>();
-
-            // if the votes were encoded, we need to decoded them (brute force dlog)
-            if encoded {
-                plaintexts = plaintexts
-                .iter()
-                .map(|encoded| ElGamal::decode_message(encoded, &big_g, &big_p))
-                .collect::<Vec<BigUint>>();
-            }
-
-            // get the tally for the vote with topic id: topic_id
-            let tally: Option<BTreeMap<Plaintext, Count>> = Tally::get::<&TopicId>(&topic_id);
-
-            // check that topic has not been tallied yet
-            ensure!(tally.is_none(), Error::<T>::TopicHasAlreadyBeenTallied);
-
-            // count the number of votes per voting option
-            // store result as a map -> key: voting option, value: count
-            let one = BigUint::one();
-            let mut big_results: BTreeMap<BigUint, BigUint> = BTreeMap::new();
-            plaintexts.into_iter().for_each(|item| *big_results.entry(item).or_default() += &one);
-
-            // type conversion: BTreeMap<BigUint, BigUint> to BTreeMap<Vec<u8>, Vec<u8>>
-            // to be able to store the results on chain
-            let mut results: BTreeMap<Plaintext, Count> = BTreeMap::new();
-            for (key, value) in big_results.iter() {
-                results.insert(key.to_bytes_be(), value.to_bytes_be());
-            }
-
-            // store the results on chain
-            Tally::insert::<&TopicId, BTreeMap<Plaintext, Count>>(&topic_id, results);
+            // combine the decrypted shares
+            // tally the topic
+            combine_shares_and_tally_topic::<T>(&vote_id, &topic_id, encoded, &nr_of_shuffles)?;
 
             // notify that the decrypted shares have been successfully combined
             // and that the result has been tallied!

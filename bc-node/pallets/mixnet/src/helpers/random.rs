@@ -161,7 +161,11 @@ impl<T: Trait> Module<T> {
         Self::random_range(&mut rng, lower, upper)
     }
 
-    fn random_range(rng: &mut ChaChaRng, lower: usize, upper: usize) -> Result<usize, Error<T>> {
+    fn random_range(
+        rng: &mut ChaChaRng,
+        lower: usize,
+        upper: usize,
+    ) -> Result<usize, Error<T>> {
         if upper == 0 {
             return Err(Error::RandomRangeError);
         }
