@@ -122,7 +122,12 @@ impl<T: Trait> Module<T> {
             size,
         );
         // return (challenge, s, permutation_commitments, chain_commitments)
-        let proof: Proof = (challenge, s, vec_c, vec_c_hat);
+        let proof: Proof = Proof {
+            challenge,
+            S: s,
+            permutation_commitments: vec_c,
+            permutation_chain_commitments: vec_c_hat,
+        };
         Ok(proof)
     }
 
@@ -218,7 +223,14 @@ impl<T: Trait> Module<T> {
             let s_tilde_i = w_tilde_i.modsub(&c_u_tilde_i, q);
             vec_s_tilde.push(s_tilde_i);
         }
-        (s1, s2, s3, s4, vec_s_hat, vec_s_tilde)
+        BigS {
+            s1,
+            s2,
+            s3,
+            s4,
+            vec_s_hat,
+            vec_s_tilde,
+        }
     }
 
     fn generate_t_and_w_values(

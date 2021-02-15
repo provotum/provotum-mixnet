@@ -141,38 +141,122 @@ impl Into<ElGamalParams> for PublicParameters {
 }
 
 /// Algorithm 8.47: The s value of the ShuffleProof
-pub type BigS = (
-    BigUint,      // s1
-    BigUint,      // s2
-    BigUint,      // s3
-    BigUint,      // s4
-    Vec<BigUint>, // vec_s_hat
-    Vec<BigUint>, // vec_s_tilde
-);
+#[derive(Default, Clone, PartialEq, Eq, Debug)]
+pub struct BigS {
+    pub s1: BigUint,               // s1
+    pub s2: BigUint,               // s2
+    pub s3: BigUint,               // s3
+    pub s4: BigUint,               // s4
+    pub vec_s_hat: Vec<BigUint>,   // vec_s_hat
+    pub vec_s_tilde: Vec<BigUint>, // vec_s_tilde
+}
 
-pub type BigSAsBytes = (
-    Vec<u8>,      // s1
-    Vec<u8>,      // s2
-    Vec<u8>,      // s3
-    Vec<u8>,      // s4
-    Vec<Vec<u8>>, // vec_s_hat
-    Vec<Vec<u8>>, // vec_s_tilde
-);
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
+pub struct BigSAsBytes {
+    pub s1: Vec<u8>,               // s1
+    pub s2: Vec<u8>,               // s2
+    pub s3: Vec<u8>,               // s3
+    pub s4: Vec<u8>,               // s4
+    pub vec_s_hat: Vec<Vec<u8>>,   // vec_s_hat
+    pub vec_s_tilde: Vec<Vec<u8>>, // vec_s_tilde
+}
+
+impl Into<BigS> for BigSAsBytes {
+    fn into(self) -> BigS {
+        BigS {
+            s1: BigUint::from_bytes_be(&self.s1),
+            s2: BigUint::from_bytes_be(&self.s2),
+            s3: BigUint::from_bytes_be(&self.s3),
+            s4: BigUint::from_bytes_be(&self.s4),
+            vec_s_hat: self
+                .vec_s_hat
+                .iter()
+                .map(|v| BigUint::from_bytes_be(v))
+                .collect::<Vec<BigUint>>(),
+            vec_s_tilde: self
+                .vec_s_tilde
+                .iter()
+                .map(|v| BigUint::from_bytes_be(v))
+                .collect::<Vec<BigUint>>(),
+        }
+    }
+}
+
+impl Into<BigSAsBytes> for BigS {
+    fn into(self) -> BigSAsBytes {
+        BigSAsBytes {
+            s1: self.s1.to_bytes_be(),
+            s2: self.s2.to_bytes_be(),
+            s3: self.s3.to_bytes_be(),
+            s4: self.s4.to_bytes_be(),
+            vec_s_hat: self
+                .vec_s_hat
+                .into_iter()
+                .map(|v| v.to_bytes_be())
+                .collect::<Vec<Vec<u8>>>(),
+            vec_s_tilde: self
+                .vec_s_tilde
+                .into_iter()
+                .map(|v| v.to_bytes_be())
+                .collect::<Vec<Vec<u8>>>(),
+        }
+    }
+}
 
 /// Algorithm 8.47: The ShuffleProof
-pub type ShuffleProof = (
-    BigUint,      // challenge
-    BigS,         // S
-    Vec<BigUint>, // permutation_commitments
-    Vec<BigUint>, // permutation_chain_commitments
-);
+#[derive(Default, Clone, PartialEq, Eq, Debug)]
+pub struct ShuffleProof {
+    pub challenge: BigUint,                          // challenge
+    pub S: BigS,                                     // S
+    pub permutation_commitments: Vec<BigUint>,       // permutation_commitments
+    pub permutation_chain_commitments: Vec<BigUint>, // permutation_chain_commitments
+}
 
-pub type ShuffleProofAsBytes = (
-    Vec<u8>,      // challenge
-    BigSAsBytes,  // S
-    Vec<Vec<u8>>, // permutation_commitments
-    Vec<Vec<u8>>, // permutation_chain_commitments
-);
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
+pub struct ShuffleProofAsBytes {
+    pub challenge: Vec<u8>,                          // challenge
+    pub S: BigSAsBytes,                              // S
+    pub permutation_commitments: Vec<Vec<u8>>,       // permutation_commitments
+    pub permutation_chain_commitments: Vec<Vec<u8>>, // permutation_chain_commitments
+}
+
+impl Into<ShuffleProof> for ShuffleProofAsBytes {
+    fn into(self) -> ShuffleProof {
+        ShuffleProof {
+            challenge: BigUint::from_bytes_be(&self.challenge),
+            S: self.S.into(),
+            permutation_commitments: self
+                .permutation_commitments
+                .iter()
+                .map(|v| BigUint::from_bytes_be(v))
+                .collect::<Vec<BigUint>>(),
+            permutation_chain_commitments: self
+                .permutation_chain_commitments
+                .iter()
+                .map(|v| BigUint::from_bytes_be(v))
+                .collect::<Vec<BigUint>>(),
+        }
+    }
+}
+
+impl Into<ShuffleProofAsBytes> for ShuffleProof {
+    fn into(self) -> ShuffleProofAsBytes {
+        ShuffleProofAsBytes {
+            challenge: self.challenge.to_bytes_be(),
+            S: self.S.into(),
+            permutation_commitments: self
+                .permutation_commitments
+                .into_iter()
+                .map(|v| v.to_bytes_be())
+                .collect::<Vec<Vec<u8>>>(),
+            permutation_chain_commitments: self
+                .permutation_chain_commitments
+                .into_iter()
+                .map(|v| v.to_bytes_be())
+                .collect::<Vec<Vec<u8>>>(),
+        }
+    }
+}
 
 pub type VoteId = Vec<u8>;
 pub type Title = Vec<u8>;

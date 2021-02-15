@@ -26,8 +26,16 @@ impl<T: Trait> Module<T> {
     ) -> Result<bool, Error<T>> {
         let e = encryptions;
         let e_tilde = shuffled_encryptions;
-        let (challenge, s, vec_c, vec_c_hat): Proof = proof;
-        let (s1, s2, s3, s4, vec_s_hat, vec_s_tilde): BigS = s;
+        let challenge: BigUint = proof.challenge;
+        let s: BigS = proof.S;
+        let vec_c: Vec<BigUint> = proof.permutation_commitments;
+        let vec_c_hat: Vec<BigUint> = proof.permutation_chain_commitments;
+        let s1: BigUint = s.s1;
+        let s2: BigUint = s.s2;
+        let s3: BigUint = s.s3;
+        let s4: BigUint = s.s4;
+        let vec_s_hat: Vec<BigUint> = s.vec_s_hat;
+        let vec_s_tilde: Vec<BigUint> = s.vec_s_tilde;
 
         // input checks
         assert!(
