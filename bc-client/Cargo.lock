@@ -302,6 +302,10 @@ dependencies = [
  "async-std",
  "crypto",
  "env_logger",
+ "num-bigint 0.3.1",
+ "num-traits",
+ "pallet-mixnet",
+ "parity-scale-codec",
  "sp-keyring",
  "substrate-subxt",
 ]
@@ -1168,6 +1172,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "644f9158b2f133fd50f5fb3242878846d9eb792e445c893805ff0e3824006e35"
 
 [[package]]
+name = "hex-literal"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5af1f635ef1bc545d78392b136bfe1c9809e029023c84a3638a864a10b8819c8"
+
+[[package]]
 name = "hmac"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1762,6 +1772,28 @@ dependencies = [
  "sp-io",
  "sp-keyring",
  "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-mixnet"
+version = "2.0.1"
+dependencies = [
+ "crypto",
+ "frame-support",
+ "frame-system",
+ "hex-literal",
+ "num-bigint 0.3.1",
+ "num-traits",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "rand 0.7.3",
+ "rand_chacha 0.2.2",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-session",
  "sp-std",
 ]
 

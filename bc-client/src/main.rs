@@ -1,10 +1,17 @@
+mod calls;
+
+use crate::calls::CreateVoteCall;
 use crypto::helper::Helper;
+use pallet_mixnet::types::{PublicParameters, Topic};
 use sp_keyring::{sr25519::sr25519::Pair, AccountKeyring};
-use std::vec;
-use substrate_subxt::{
-    system::AccountStoreExt, Call, ClientBuilder, Error, NodeTemplateRuntime, PairSigner,
-    RuntimeVersion,
-};
+use substrate_subxt::system::AccountStoreExt;
+use substrate_subxt::{Call, ClientBuilder, Error, EventsDecoder, NodeTemplateRuntime, PairSigner};
+
+impl Call<NodeTemplateRuntime> for CreateVoteCall {
+    const MODULE: &'static str = "TemplateModule";
+    const FUNCTION: &'static str = "create_vote";
+    fn events_decoder(_decoder: &mut EventsDecoder<NodeTemplateRuntime>) {}
+}
 
 #[async_std::main]
 async fn main() -> Result<(), Error> {
@@ -34,18 +41,27 @@ async fn main() -> Result<(), Error> {
 
     // create the vote
     let (params, _, _) = Helper::setup_sm_system();
+    let params: PublicParameters = params.into();
     let vote_id = "20201212".as_bytes().to_vec();
     let vote_title = "Popular Vote of 12.12.2020".as_bytes().to_vec();
 
     let topic_id = "20201212-01".as_bytes().to_vec();
     let topic_question = "Moritz for President?".as_bytes().to_vec();
-    type Topic = (Vec<u8>, Vec<u8>);
     let topic: Topic = (topic_id, topic_question);
     let topics = vec![topic];
 
-    // let result = client.create_signed(Call, &signer).await?;
-    // let vote_created = create_vote(who, vote_id, vote_title, params.into(), topics);
-    // assert!(vote_created);
+    let response = client
+        .watch(
+            CreateVoteCall {
+                params,
+                title: vote_title,
+                vote_id,
+                topics,
+            },
+            &signer,
+        )
+        .await?;
+    println!("response: {:?}", response);
 
     Ok(())
 }
