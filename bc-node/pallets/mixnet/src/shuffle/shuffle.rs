@@ -48,10 +48,6 @@ impl<T: Trait> Module<T> {
         let shuffled_ciphers: Vec<BigCipher> =
             shuffle.into_iter().map(|item| item.0).collect();
 
-        // // store the shuffle ciphers + increase the number of shuffles
-        // Ciphers::insert(&topic_id, nr_of_shuffles + 1);
-        // TODO: only store the votes once the proof has been verified...
-
         // return the shuffled ciphers, randoms, permutation as result
         Ok((shuffled_ciphers, randoms, permutation))
     }

@@ -17,7 +17,7 @@ pub fn store_ballot<T: Trait>(from: &T::AccountId, vote_id: &VoteId, ballot: Bal
             Ciphers::get(&topic_id, INITIAL_NUMBER_OF_SHUFFLES);
         ciphers.push(cipher);
 
-        // store the
+        // store the ciphers
         Ciphers::insert(&topic_id, INITIAL_NUMBER_OF_SHUFFLES, ciphers);
     }
 }

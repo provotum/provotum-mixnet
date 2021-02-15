@@ -1985,3 +1985,73 @@ fn test_combine_decrypted_shares() {
         );
     });
 }
+
+#[test]
+fn test_offchain_shuffle_and_proof() {
+    let (mut t, pool_state, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        // // Test
+        // let result = OffchainModule::offchain_shuffle_and_proof().unwrap();
+
+        // // Verify
+        // let tx = pool_state.write().transactions.pop().unwrap();
+        // assert!(pool_state.read().transactions.is_empty());
+        // let tx = TestExtrinsic::decode(&mut &*tx).unwrap();
+        // // assert_eq!(tx.signature.unwrap().0, 0);
+        // assert_eq!(tx.call, Call::offchain_shuffle_and_proof());
+        // TODO: implement this test
+    });
+}
+
+#[test]
+fn test_submit_shuffle_proof() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let (params, _, pk) = Helper::setup_tiny_system();
+        let (vote_id, topic_id) = setup_vote(params.into());
+        let encoded: bool = false;
+
+        // store created public key and public parameters
+        setup_public_key(vote_id.clone(), pk.clone().into());
+        setup_ciphers(&vote_id, &topic_id, &pk, encoded);
+
+        // get the encrypted votes
+        let big_ciphers_from_chain: Vec<BigCipher> =
+            Wrapper(OffchainModule::ciphers(&topic_id, NR_OF_SHUFFLES)).into();
+        assert!(big_ciphers_from_chain.len() > 0);
+
+        // shuffle the votes
+        let shuffle_result =
+            OffchainModule::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
+        let shuffled: (Vec<BigCipher>, Vec<BigUint>, Vec<usize>) =
+            shuffle_result.unwrap();
+        let shuffled_ciphers = shuffled.0;
+        let re_encryption_randoms = shuffled.1;
+        let permutation = &shuffled.2;
+
+        // TODO: implment test to call extrinsic -> submit_shuffle_proof
+
+        // // TEST
+        // // GENERATE PROOF
+        // let result = OffchainModule::generate_shuffle_proof(
+        //     &topic_id,
+        //     big_ciphers_from_chain.clone(),
+        //     shuffled_ciphers.clone(),
+        //     re_encryption_randoms,
+        //     permutation,
+        //     &pk,
+        // );
+        // let proof: Proof = result.unwrap();
+
+        // // VERIFY PROOF
+        // let verification = OffchainModule::verify_shuffle_proof(
+        //     &topic_id,
+        //     proof,
+        //     big_ciphers_from_chain,
+        //     shuffled_ciphers,
+        //     &pk,
+        // );
+        // let is_proof_valid = verification.unwrap();
+        // assert!(is_proof_valid);
+    });
+}

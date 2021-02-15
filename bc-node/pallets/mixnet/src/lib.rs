@@ -185,8 +185,6 @@ decl_error! {
         // Error returned when permutation size is zero
         PermutationSizeZeroError,
 
-        // Error returned when ballots are empty when trying to shuffle them
-        ShuffleCiphersSizeZeroError,
 
         // Error returned when public key doesn't exist
         PublicKeyNotExistsError,
@@ -221,6 +219,14 @@ decl_error! {
         // Error returned when a topic has already been tallied and a second attempt to tally the votes is made
         TopicHasAlreadyBeenTallied,
 
+        // Error returned when a shuffle proof verification fails
+        ShuffleProofVerifcationFailed,
+
+        // Error returned when ballots are empty when trying to shuffle them
+        ShuffleCiphersSizeZeroError,
+
+        // Error returned when no encryptions exists for given nr_of_shuffles
+        NrOfShufflesDoesNotExist,
     }
 }
 
@@ -363,17 +369,13 @@ decl_module! {
 
         /// Test function to check signer.
         #[weight = (10_000, Pays::No)]
-        fn submit_shuffle_proof(origin, vote_id: VoteId, topic_id: TopicId, proof: ShuffleProofAsBytes) -> DispatchResult {
+        fn submit_shuffle_proof(origin, vote_id: VoteId, topic_id: TopicId, proof: ShuffleProofAsBytes, shuffled_encryptions: Vec<Cipher>, nr_of_shuffles: NrOfShuffles) -> DispatchResult {
             let who: T::AccountId = ensure_signed(origin)?;
             ensure_vote_exists::<T>(&vote_id)?;
             ensure_vote_phase::<T>(&vote_id, VotePhase::Tallying)?;
             ensure_sealer::<T>(&who)?;
 
-            // Self::verify_shuffle_proof(        &topic_id, // topicId (vote question)
-            // proof: Proof,
-            // encryptions: Vec<BigCipher>,
-            // shuffled_encryptions: Vec<BigCipher>,
-            // pk: &PublicKey,);
+            Self::verify_proof_store_shuffled_ciphers(&vote_id, &topic_id, proof, shuffled_encryptions, nr_of_shuffles)?;
 
             // notify that the decrypted share has been:
             // submitted, the proof verified and successfully stored

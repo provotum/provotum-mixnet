@@ -2,7 +2,10 @@ mod send;
 
 use crate::{
     helpers::{assertions::ensure_vote_exists, params::get_public_key},
-    types::{Ballot, Cipher, Topic, TopicId, Vote, VoteId, VotePhase, Wrapper},
+    types::{
+        Ballot, Cipher, ShuffleProof, ShuffleProofAsBytes, Topic, TopicId, Vote, VoteId,
+        VotePhase, Wrapper,
+    },
 };
 use crate::{
     Call, Ciphers, Error, Module, Sealers, Topics, Trait, VoteIds, Votes,
@@ -58,10 +61,6 @@ impl<T: Trait> Module<T> {
         );
     }
 
-    pub fn block_number_to_u64(input: T::BlockNumber) -> Option<u64> {
-        TryInto::<u64>::try_into(input).ok()
-    }
-
     pub fn do_work_in_offchain_worker(
         block_number: T::BlockNumber,
     ) -> Result<(), Error<T>> {
@@ -90,16 +89,16 @@ impl<T: Trait> Module<T> {
             let n: T::BlockNumber = (sealers.len() as u32).into();
             let index = block_number % n;
 
-            let test = Self::block_number_to_u64(index);
+            let test = TryInto::<u64>::try_into(index).ok();
             let index_as_u64 = test.expect("Type conversion failed!");
             let sealer: &T::AccountId = &sealers[index_as_u64 as usize];
             debug::info!("it is sealer {:#?} (index: {:#?})", sealer, index);
 
-            // get the signer for the voter
-            let signer = Signer::<T, T::AuthorityId>::any_account();
-
             // creat the shuffle
             let result_ = Self::offchain_shuffle_and_proof()?;
+
+            // get the signer for the transaction
+            let signer = Signer::<T, T::AuthorityId>::any_account();
 
             // call send + return its result
             return send_signed::<T>(signer, Call::test(true));
@@ -147,17 +146,34 @@ impl<T: Trait> Module<T> {
                     ) = Self::shuffle_ciphers(vote_id, topic_id, current_nr_of_shuffles)?;
 
                     // generate the shuffle proof
-                    let proof = Self::generate_shuffle_proof(
+                    let proof: ShuffleProof = Self::generate_shuffle_proof(
                         &topic_id,
                         encryptions,
-                        shuffled_encryptions,
+                        shuffled_encryptions.clone(),
                         re_encryption_randoms,
                         &permutation,
                         &pk,
                     )?;
 
-                    // TODO: call extrinsic to verify shuffle proof
-                    // let response = send_signed::<T>(signer, Call::verify_shuffle_proof)
+                    // type conversions
+                    let shuffled_encryptions_as_bytes: Vec<Cipher> =
+                        Wrapper(shuffled_encryptions).into();
+                    let proof_as_bytes: ShuffleProofAsBytes = proof.into();
+
+                    // get the signer for the transaction
+                    let signer = Signer::<T, T::AuthorityId>::any_account();
+
+                    // submit the shuffle proof and the shuffled ciphers
+                    send_signed::<T>(
+                        signer,
+                        Call::submit_shuffle_proof(
+                            vote_id.to_vec(),
+                            topic_id.to_vec(),
+                            proof_as_bytes,
+                            shuffled_encryptions_as_bytes,
+                            current_nr_of_shuffles,
+                        ),
+                    )?;
                 }
             }
         }
