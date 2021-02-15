@@ -530,7 +530,7 @@ decl_module! {
         fn offchain_worker(block_number: T::BlockNumber) {
             debug::info!("off-chain worker: entering...");
 
-            Self::offchain_shuffle_and_proof(block_number);
+            Self::do_work_in_offchain_worker(block_number);
 
             debug::info!("off-chain worker: done...");
         }

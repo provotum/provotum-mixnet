@@ -178,7 +178,7 @@ fn shuffle_proof_test(
     // TEST
     // GENERATE PROOF
     let result = OffchainModule::generate_shuffle_proof(
-        &vote_id,
+        &topic_id,
         big_ciphers_from_chain.clone(),
         shuffled_ciphers.clone(),
         re_encryption_randoms,
@@ -189,7 +189,7 @@ fn shuffle_proof_test(
 
     // VERIFY PROOF
     let verification = OffchainModule::verify_shuffle_proof(
-        &vote_id,
+        &topic_id,
         proof,
         big_ciphers_from_chain,
         shuffled_ciphers,

@@ -1,7 +1,8 @@
-use crate::types::{
-    Cipher, PublicKey as SubstratePK, QAsBigUint, TopicId, VoteId, Wrapper,
+use crate::{
+    helpers::keys::get_public_key,
+    types::{Cipher, PublicKey as SubstratePK, QAsBigUint, TopicId, VoteId, Wrapper},
 };
-use crate::{Ciphers, Error, Module, PublicKey, Trait};
+use crate::{Ciphers, Error, Module, Trait};
 use crypto::encryption::ElGamal;
 use crypto::types::Cipher as BigCipher;
 use frame_support::storage::StorageMap;
@@ -15,12 +16,14 @@ impl<T: Trait> Module<T> {
         topic_id: &TopicId,
     ) -> Result<(Vec<BigCipher>, Vec<BigUint>, Vec<usize>), Error<T>> {
         // get the system public key
-        let pk: SubstratePK =
-            PublicKey::get(&vote_id).ok_or(Error::<T>::PublicKeyNotExistsError)?;
+        let pk: SubstratePK = get_public_key(&vote_id)?.into();
         let q = QAsBigUint::q(&pk.params);
 
         // get the encrypted ballots stored on chain
         let ciphers: Vec<Cipher> = Ciphers::get(topic_id);
+        // type conversion: Ballot (Vec<u8>) to BigCipher (BigUint)
+        let ciphers: Vec<BigCipher> = Wrapper(ciphers).into();
+
         let size = ciphers.len();
 
         // check that there are ballots to shuffle
@@ -33,9 +36,6 @@ impl<T: Trait> Module<T> {
 
         // get the random values
         let randoms: Vec<BigUint> = Self::get_random_biguints_less_than(&q, size)?;
-
-        // type conversion: Ballot (Vec<u8>) to BigCipher (BigUint)
-        let ciphers: Vec<BigCipher> = Wrapper(ciphers).into();
 
         // shuffle the ciphers
         let shuffle = ElGamal::shuffle(&ciphers, &permutation, &randoms, &(pk.into()));

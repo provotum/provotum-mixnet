@@ -1,8 +1,15 @@
-use crate::helpers::assertions::ensure_vote_exists;
-use crate::types::{Ballot, Cipher, TopicId, VoteId};
-use crate::{Call, Error, Module, PublicKey, Sealers, Trait, VoteIds, VotingAuthorities};
+use crate::{
+    helpers::{assertions::ensure_vote_exists, keys::get_public_key},
+    types::{Ballot, Cipher, Topic, TopicId, Vote, VoteId, VotePhase, Wrapper},
+};
+use crate::{
+    Call, Ciphers, Error, Module, Sealers, Topics, Trait, VoteIds, Votes,
+    VotingAuthorities,
+};
 use core::convert::TryInto;
-use crypto::{encryption::ElGamal, types::PublicKey as ElGamalPK};
+use crypto::{
+    encryption::ElGamal, types::Cipher as BigCipher, types::PublicKey as ElGamalPK,
+};
 use frame_support::{
     debug,
     storage::{StorageMap, StorageValue},
@@ -19,6 +26,7 @@ impl<T: Trait> Module<T> {
         topic_id: Vec<u8>,
     ) -> Result<(), Error<T>> {
         ensure_vote_exists::<T>(&vote_id)?;
+
         // We retrieve a signer and check if it is valid.
         // ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.Signer.html
         let signer = Signer::<T, T::AuthorityId>::any_account();
@@ -30,9 +38,7 @@ impl<T: Trait> Module<T> {
         let number_as_biguint: BigUint = BigUint::from(number);
 
         // get public key
-        let pk: ElGamalPK = PublicKey::get(&vote_id)
-            .ok_or(Error::<T>::PublicKeyNotExistsError)?
-            .into();
+        let pk: ElGamalPK = get_public_key::<T>(&vote_id)?.into();
         let q = &pk.params.q();
 
         // get a random value < q
@@ -43,34 +49,17 @@ impl<T: Trait> Module<T> {
         let answers: Vec<(TopicId, Cipher)> = vec![(topic_id, cipher)];
         let ballot: Ballot = Ballot { answers };
 
-        // `result` is in the type of `Option<(Account<T>, Result<(), ()>)>`. It is:
-        //   - `None`: no account is available for sending transaction
-        //   - `Some((account, Ok(())))`: transaction is successfully sent
-        //   - `Some((account, Err(())))`: error occured when sending the transaction
-        let result = signer.send_signed_transaction(|_acct| {
-            Call::cast_ballot(vote_id.clone(), ballot.clone())
-        });
-
-        // Display error if the signed tx fails.
-        if let Some((acc, res)) = result {
-            if res.is_err() {
-                debug::error!("failure: offchain_signed_tx: tx sent: {:?}", acc.id);
-                return Err(<Error<T>>::OffchainSignedTxError);
-            }
-            // Transaction is sent successfully
-            return Ok(());
-        }
-
-        // The case of `None`: no account is available for sending
-        debug::error!("No local account available");
-        Err(<Error<T>>::NoLocalAcctForSigning)
+        return send_signed::<T>(
+            signer,
+            Call::cast_ballot(vote_id.clone(), ballot.clone()),
+        );
     }
 
     pub fn block_number_to_u64(input: T::BlockNumber) -> Option<u64> {
         TryInto::<u64>::try_into(input).ok()
     }
 
-    pub fn offchain_shuffle_and_proof(
+    pub fn do_work_in_offchain_worker(
         block_number: T::BlockNumber,
     ) -> Result<(), Error<T>> {
         if sp_io::offchain::is_validator() {
@@ -94,53 +83,104 @@ impl<T: Trait> Module<T> {
                 debug::info!("boss move");
             }
 
-            // get all vote_ids
-            let vote_ids: Vec<VoteId> = VoteIds::get();
-
-            for vote_id in vote_ids {
-                // ensure_vote_exists::<T>(&vote_id)?;
-                debug::info!("vote_id: {:#?}", vote_id);
-            }
-
             // check who's turn it is
             let n: T::BlockNumber = (sealers.len() as u32).into();
             let index = block_number % n;
-            // let sealer: T::AccountId = sealers[index];
-            debug::info!("it is sealer {:#?}'s turn", index);
 
             let test = Self::block_number_to_u64(index);
-            match test {
-                Some(val) => debug::info!("value: {:#?}", val),
-                None => debug::info!("couldn't convert BlockNumber to u64"),
-            }
+            let index_as_u64 = test.expect("Type conversion failed!");
+            let sealer: &T::AccountId = &sealers[index_as_u64 as usize];
+            debug::info!("it is sealer {:#?} (index: {:#?})", sealer, index);
 
             // get the signer for the voter
             let signer = Signer::<T, T::AuthorityId>::any_account();
 
-            // `result` is in the type of `Option<(Account<T>, Result<(), ()>)>`. It is:
-            //   - `None`: no account is available for sending transaction
-            //   - `Some((account, Ok(())))`: transaction is successfully sent
-            //   - `Some((account, Err(())))`: error occured when sending the transaction
-            let result = signer.send_signed_transaction(|_acct| Call::test(true));
+            // creat the shuffle
+            let result_ = Self::offchain_shuffle_and_proof()?;
 
-            // display error if the signed tx fails.
-            if let Some((acc, res)) = result {
-                if res.is_err() {
-                    debug::error!("failure: offchain_signed_tx: tx sent: {:#?}", acc.id);
-                    return Err(<Error<T>>::OffchainSignedTxError);
+            // call send + return its result
+            return send_signed::<T>(signer, Call::test(true));
+        }
+        Ok(())
+    }
+
+    fn offchain_shuffle_and_proof() -> Result<(), Error<T>> {
+        // get all vote_ids
+        let vote_ids: Vec<VoteId> = VoteIds::get();
+
+        for vote_id in vote_ids.iter() {
+            debug::info!("vote_id: {:#?}", vote_id);
+
+            // check vote state -> TALLYING
+            let vote: Vote<T::AccountId> = Votes::<T>::get(&vote_id);
+            let state: VotePhase = vote.phase;
+
+            if state == VotePhase::Tallying {
+                // get all topics
+                let topics: Vec<Topic> = Topics::get(vote_id);
+
+                // get public key
+                let pk: ElGamalPK = get_public_key::<T>(&vote_id)?.into();
+
+                for (topic_id, _) in topics.iter() {
+                    // for each topic_id & vote_id
+                    // shuffle the votes
+                    let (shuffled_encryptions, re_encryption_randoms, permutation): (
+                        Vec<BigCipher>,
+                        Vec<BigUint>,
+                        Vec<usize>,
+                    ) = Self::shuffle_ciphers(vote_id, topic_id)?;
+
+                    // fetch the original votes
+                    let encryptions: Vec<Cipher> = Ciphers::get(topic_id);
+                    // type conversion: Ballot (Vec<u8>) to BigCipher (BigUint)
+                    let encryptions: Vec<BigCipher> = Wrapper(encryptions).into();
+
+                    // generate the shuffle proof
+                    let proof = Self::generate_shuffle_proof(
+                        &topic_id,
+                        encryptions,
+                        shuffled_encryptions,
+                        re_encryption_randoms,
+                        &permutation,
+                        &pk,
+                    )?;
+
+                    // TODO: call extrinsic to verify shuffle proof
+                    // let response = send_signed::<T>(signer, Call::verify_shuffle_proof)
                 }
-                // Transaction is sent successfully
-                return Ok(());
             }
-
-            // The case of `None`: no account is available for sending
-            debug::error!("No local account available");
-            return Err(<Error<T>>::NoLocalAcctForSigning);
         }
         Ok(())
     }
 
     // TODO: implement shuffle_ciphers -> used by offchain worker
     // TODO: implement generate_shuffle_proof -> used by offchain worker
-    // TODO: implement creating a decrypted share + submitting it -> used by offchain worker
 }
+
+pub fn send_signed<T: Trait>(
+    signer: Signer<T, T::AuthorityId>,
+    call: Call<T>,
+) -> Result<(), Error<T>> {
+    // `result` is in the type of `Option<(Account<T>, Result<(), ()>)>`. It is:
+    //   - `None`: no account is available for sending transaction
+    //   - `Some((account, Ok(())))`: transaction is successfully sent
+    //   - `Some((account, Err(())))`: error occured when sending the transaction
+    let result = signer.send_signed_transaction(|_acct| call.clone());
+
+    // display error if the signed tx fails.
+    if let Some((acc, res)) = result {
+        if res.is_err() {
+            debug::error!("failure: offchain_signed_tx: tx sent: {:#?}", acc.id);
+            return Err(<Error<T>>::OffchainSignedTxError);
+        }
+        // Transaction is sent successfully
+        return Ok(());
+    }
+
+    // The case of `None`: no account is available for sending
+    debug::error!("No local account available");
+    return Err(<Error<T>>::NoLocalAcctForSigning);
+}
+
+// TODO: implement creating a decrypted share + submitting it -> used by offchain worker
