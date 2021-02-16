@@ -44,8 +44,8 @@ async fn main() -> Result<(), Error> {
     println!("create_vote_response: {:?}", create_vote_response);
 
     // update vote phase to Voting
-    let set_vote_phase_response = set_vote_phase(&client, vote_id.clone(), VotePhase::Voting).await;
-    println!("set_vote_phase_response: {:?}", set_vote_phase_response);
+    let vote_phase_voting = set_vote_phase(&client, vote_id.clone(), VotePhase::Voting).await;
+    println!("vote_phase_voting: {:?}", vote_phase_voting);
 
     // fetch all exisiting vote ids
     let vote_ids = get_vote_ids(&client).await?;
@@ -53,6 +53,8 @@ async fn main() -> Result<(), Error> {
     // fetch all existing ciphers
     let ciphers = get_ciphers(&client, topic_id.clone(), 0).await?;
 
+    // TODO: create a loop to submit multiple votes
+    // TODO: If possible make the number of moves configurable
     // submit some ballots
     // create cipher
     let message = BigUint::from(3u32);
@@ -70,7 +72,9 @@ async fn main() -> Result<(), Error> {
     // fetch all existing ciphers
     let ciphers = get_ciphers(&client, topic_id, 0).await?;
 
-    // TODO: update vote phase to Tallying
+    // update vote phase to Tallying
+    let vote_phase_tally = set_vote_phase(&client, vote_id.clone(), VotePhase::Tallying).await;
+    println!("vote_phase_tally: {:?}", vote_phase_tally);
 
     Ok(())
 }
