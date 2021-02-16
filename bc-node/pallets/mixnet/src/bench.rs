@@ -85,7 +85,18 @@ fn setup_vote<T: Trait>(
         params,
         topics,
     )?;
+    set_vote_phase::<T>(vote_id.clone(), VotePhase::Voting)?;
+
     Ok((vote_id, topic_id))
+}
+
+fn set_vote_phase<T: Trait>(
+    vote_id: VoteId,
+    vote_phase: VotePhase,
+) -> Result<(), &'static str> {
+    let voting_authority = get_voting_authority::<T>();
+    PalletMixnet::<T>::set_vote_phase(voting_authority.into(), vote_id, vote_phase)?;
+    Ok(())
 }
 
 fn generate_random_encryptions_encoded<T: Trait>(
@@ -149,6 +160,9 @@ fn setup_shuffle<T: Trait>(
     } else {
         ciphers = generate_random_encryptions::<T>(&pk, q, size)?;
     }
+
+    // ensure the vote phase is Voting -> otherwise Ballots cannot be submitted
+    set_vote_phase::<T>(vote_id.clone(), VotePhase::Voting)?;
 
     for cipher in ciphers {
         let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
@@ -290,18 +304,15 @@ fn setup_vote_with_distributed_keys<T: Trait>(
         ciphers = generate_random_encryptions::<T>(&system_pk, q, size)?;
     }
 
+    set_vote_phase::<T>(vote_id.clone(), VotePhase::Voting)?;
+
     for cipher in ciphers {
         let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
         let ballot: Ballot = Ballot { answers };
         PalletMixnet::<T>::cast_ballot(voter.clone().into(), vote_id.clone(), ballot)?;
     }
 
-    // change the VotePhase to Voting
-    PalletMixnet::<T>::set_vote_phase(
-        voting_authority.into(),
-        vote_id.clone(),
-        VotePhase::Tallying,
-    )?;
+    set_vote_phase::<T>(vote_id.clone(), VotePhase::Tallying)?;
 
     Ok((
         topic_id, vote_id, system_pk, bob_pk, bob_sk, charlie_pk, charlie_sk,

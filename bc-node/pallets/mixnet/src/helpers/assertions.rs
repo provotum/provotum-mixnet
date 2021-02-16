@@ -50,6 +50,15 @@ pub fn ensure_vote_exists<T: Trait>(vote_id: &VoteId) -> Result<(), Error<T>> {
     Ok(())
 }
 
+pub fn ensure_vote_does_not_exist<T: Trait>(vote_id: &VoteId) -> Result<(), Error<T>> {
+    // check that the vote_id exists
+    ensure!(
+        !Votes::<T>::contains_key(vote_id),
+        Error::<T>::VoteAlreadyExists
+    );
+    Ok(())
+}
+
 pub fn ensure_vote_phase<T: Trait>(
     vote_id: &VoteId,
     phase: VotePhase,

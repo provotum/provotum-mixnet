@@ -110,7 +110,17 @@ fn setup_vote(params: PublicParameters) -> (Vec<u8>, Vec<u8>) {
     let vote_created =
         OffchainModule::create_vote(who, vote_id.clone(), vote_title, params, topics);
     assert_ok!(vote_created);
+    set_vote_phase(vote_id.clone(), VotePhase::Voting);
     (vote_id, topic_id)
+}
+
+fn set_vote_phase(vote_id: VoteId, vote_phase: VotePhase) {
+    let voting_authority = get_voting_authority();
+    assert_ok!(OffchainModule::set_vote_phase(
+        voting_authority,
+        vote_id,
+        vote_phase
+    ));
 }
 
 fn setup_ciphers(vote_id: &VoteId, topic_id: &TopicId, pk: &ElGamalPK, encoded: bool) {
@@ -133,6 +143,9 @@ fn setup_ciphers(vote_id: &VoteId, topic_id: &TopicId, pk: &ElGamalPK, encoded: 
     // create the voter (i.e. the transaction signer)
     let account: <TestRuntime as frame_system::Trait>::AccountId = Default::default();
     let voter = Origin::signed(account);
+
+    // make sure that the votes can be submitted by changing to vote phase to voting
+    set_vote_phase(vote_id.clone(), VotePhase::Voting);
 
     for index in 0..messages.len() {
         let random = BigUint::parse_bytes(randoms[index], 10).unwrap();
@@ -810,6 +823,8 @@ fn store_small_dummy_vote_works_encoded() {
         // create the voter (i.e. the transaction signer)
         let account: <TestRuntime as frame_system::Trait>::AccountId = Default::default();
         let voter = Origin::signed(account);
+
+        // TODO: UPDATE VOTE PHASE in all failing tests
 
         let vote_submission_result = OffchainModule::cast_ballot(voter, vote_id, ballot);
         assert_ok!(vote_submission_result);
@@ -1613,21 +1628,14 @@ fn test_submit_decrypted_share_not_a_sealer() {
             response: Vec::new(),
         };
 
-        // create the submitter (i.e. the voting_authority)
-        // use Alice as VotingAuthority
-        let who = get_voting_authority();
-
-        // change the VotePhase to Voting
-        assert_ok!(OffchainModule::set_vote_phase(
-            who.clone(),
-            vote_id.clone(),
-            VotePhase::Tallying
-        ));
+        // change the VotePhase to Tallying
+        set_vote_phase(vote_id.clone(), VotePhase::Tallying);
 
         // check that the voting authority is not allowed
+        let voting_authority = get_voting_authority();
         assert_err!(
             OffchainModule::submit_decrypted_shares(
-                who,
+                voting_authority,
                 vote_id,
                 topic_id,
                 shares,
@@ -1690,16 +1698,8 @@ fn test_submit_decrypted_share() {
         // create encrypted votes - NOT ENCODED
         setup_ciphers(&vote_id, &topic_id, &system_pk.clone().into(), false);
 
-        // create the submitter (i.e. the voting_authority)
-        // use Alice as VotingAuthority
-        let authority = get_voting_authority();
-
-        // change the VotePhase to Voting
-        assert_ok!(OffchainModule::set_vote_phase(
-            authority,
-            vote_id.clone(),
-            VotePhase::Tallying
-        ));
+        // change the VotePhase to Tallying
+        set_vote_phase(vote_id.clone(), VotePhase::Tallying);
 
         // fetch the encrypted votes from chain
         let encryptions: Vec<BigCipher> =
@@ -1770,13 +1770,8 @@ fn test_combine_decrypted_shares_wrong_vote_phase() {
         let (params, _, _) = Helper::setup_md_system();
         let (vote_id, topic_id) = setup_vote(params.clone().into());
 
-        // change the VotePhase to Voting using the voting authority
-        let voting_authority = get_voting_authority();
-        assert_ok!(OffchainModule::set_vote_phase(
-            voting_authority,
-            vote_id.clone(),
-            VotePhase::Tallying
-        ));
+        // change the votephase to tallying
+        set_vote_phase(vote_id.clone(), VotePhase::Tallying);
 
         // use bob as a submitter
         let (bob, _, _) = get_sealer_bob();
@@ -1869,11 +1864,7 @@ fn test_combine_decrypted_shares() {
         setup_ciphers(&vote_id, &topic_id, &system_pk.clone().into(), false);
 
         // change the VotePhase to Voting using the voting authority
-        assert_ok!(OffchainModule::set_vote_phase(
-            voting_authority.clone(),
-            vote_id.clone(),
-            VotePhase::Tallying
-        ));
+        set_vote_phase(vote_id.clone(), VotePhase::Tallying);
 
         // fetch the encrypted votes from chain
         let encryptions: Vec<BigCipher> =
@@ -2001,12 +1992,7 @@ fn test_offchain_shuffle_and_proof() {
         setup_ciphers(&vote_id, &topic_id, &pk, encoded);
 
         // change the VotePhase to Voting using the voting authority
-        let voting_authority = get_voting_authority();
-        assert_ok!(OffchainModule::set_vote_phase(
-            voting_authority.clone(),
-            vote_id.clone(),
-            VotePhase::Tallying
-        ));
+        set_vote_phase(vote_id.clone(), VotePhase::Tallying);
 
         // Test
         let result = OffchainModule::offchain_shuffle_and_proof();
@@ -2042,12 +2028,7 @@ fn test_submit_shuffled_votes_and_proof() {
         assert!(big_ciphers_from_chain.len() > 0);
 
         // change the VotePhase to Voting using the voting authority
-        let voting_authority = get_voting_authority();
-        assert_ok!(OffchainModule::set_vote_phase(
-            voting_authority.clone(),
-            vote_id.clone(),
-            VotePhase::Tallying
-        ));
+        set_vote_phase(vote_id.clone(), VotePhase::Tallying);
 
         // shuffle the votes
         let shuffle_result =

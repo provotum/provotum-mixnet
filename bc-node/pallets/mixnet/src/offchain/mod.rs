@@ -111,13 +111,13 @@ impl<T: Trait> Module<T> {
         let vote_ids: Vec<VoteId> = VoteIds::get();
 
         for vote_id in vote_ids.iter() {
-            debug::info!("vote_id: {:#?}", vote_id);
-
             // check vote state -> TALLYING
             let vote: Vote<T::AccountId> = Votes::<T>::get(&vote_id);
             let state: VotePhase = vote.phase;
 
             if state == VotePhase::Tallying {
+                debug::info!("vote_id: {:#?}, state: VotePhase::Tallying", vote_id);
+
                 // get all topics
                 let topics: Vec<Topic> = Topics::get(vote_id);
 
@@ -174,6 +174,10 @@ impl<T: Trait> Module<T> {
                             current_nr_of_shuffles,
                         ),
                     )?;
+                    debug::info!(
+                        "successfully shuffled votes -> vote_id: {:#?}",
+                        vote_id
+                    );
                 }
             }
         }

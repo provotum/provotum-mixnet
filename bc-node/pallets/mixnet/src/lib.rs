@@ -36,8 +36,8 @@ use crate::dkg::{
 };
 use crate::helpers::{
     assertions::{
-        ensure_not_a_voting_authority, ensure_sealer, ensure_vote_exists,
-        ensure_vote_phase, ensure_voting_authority,
+        ensure_not_a_voting_authority, ensure_sealer, ensure_vote_does_not_exist,
+        ensure_vote_exists, ensure_vote_phase, ensure_voting_authority,
     },
     ballot::store_ballot,
     phase::set_phase,
@@ -55,7 +55,6 @@ use frame_system::{
     ensure_signed,
     offchain::{AppCrypto, CreateSignedTransaction},
 };
-use sp_runtime::offchain as rt_offchain;
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, str, vec::Vec};
 
 /// This is the pallet's configuration trait
@@ -207,6 +206,9 @@ decl_error! {
         // Error returned when vote_id does not exist yet
         VoteDoesNotExist,
 
+        // Error returned when vote_id already exists
+        VoteAlreadyExists,
+
         // Error returned when vote is in wrong phase
         WrongVotePhase,
 
@@ -255,6 +257,7 @@ decl_module! {
             set_phase::<T>(&who, &vote_id, phase.clone())?;
 
             // notify that the vote phase has been changed
+            debug::info!("successfully updated vote phase: {:#?}, {:#?}", vote_id, phase);
             Self::deposit_event(RawEvent::VotePhaseChanged(vote_id, phase));
             Ok(())
         }
@@ -270,6 +273,7 @@ decl_module! {
             PublicKey::insert(vote_id.clone(), pk.clone());
 
             // notify that the public key has been successfully stored
+            debug::info!("successfully stored public key: {:#?}", pk);
             Self::deposit_event(RawEvent::PublicKeyStored(who, vote_id, pk));
             Ok(())
         }
@@ -287,6 +291,7 @@ decl_module! {
             // and store public key share
             verify_proof_and_store_keygen_share::<T>(who, &vote_id, pk_share.clone())?;
 
+            debug::info!("successfully stored public key share: {:#?}", pk_share);
             Self::deposit_event(RawEvent::PublicKeyShareSubmitted(pk_share));
             Ok(())
         }
@@ -302,6 +307,7 @@ decl_module! {
             // create the system's public key
             let pk: SubstratePK = combine_shares::<T>(who, &vote_id)?;
 
+            debug::info!("successfully combined public key shares. pk: {:#?}", pk);
             Self::deposit_event(RawEvent::PublicKeyCreated(vote_id, pk));
             Ok(())
         }
@@ -313,6 +319,7 @@ decl_module! {
             let who: T::AccountId = ensure_signed(origin)?;
             ensure_voting_authority::<T>(&who)?;
 
+            // create new vote
             let vote = Vote::<T::AccountId> {
                 voting_authority: who.clone(),
                 title,
@@ -322,12 +329,15 @@ decl_module! {
 
             // store the vote_id, vote + topic information
             let mut vote_ids: Vec<VoteId> = VoteIds::get();
+            ensure_vote_does_not_exist::<T>(&vote_id)?;
+
             vote_ids.push(vote_id.clone());
             VoteIds::put(vote_ids);
-
             Votes::<T>::insert(&vote_id, vote);
             Topics::insert(&vote_id, topics);
 
+            // log success + emit event
+            debug::info!("successfully created vote: {:#?}", vote_id);
             Self::deposit_event(RawEvent::VoteCreatedWithPublicParameters(vote_id, who, params));
             Ok(())
         }
@@ -344,9 +354,8 @@ decl_module! {
             topics.push(topic.clone());
             Topics::insert(&vote_id, topics);
 
+            debug::info!("successfully stored question: {:#?}", topic);
             Self::deposit_event(RawEvent::VoteTopicQuestionStored(vote_id, topic));
-
-            // Return a successful DispatchResult
             Ok(())
         }
 
@@ -354,6 +363,7 @@ decl_module! {
         pub fn cast_ballot(origin, vote_id: VoteId, ballot: Ballot) -> DispatchResult {
           let who = ensure_signed(origin)?;
           ensure_vote_exists::<T>(&vote_id)?;
+          ensure_vote_phase::<T>(&vote_id, VotePhase::Voting)?;
 
           // TODO: ensure that it is a legit voter
           // TODO: in some other project where identity management is considered
@@ -362,9 +372,8 @@ decl_module! {
           store_ballot::<T>(&who, &vote_id, ballot.clone());
 
           // notify that the ballot has been submitted and successfully stored
+          debug::info!("successfully cast ballot: {:#?}, {:#?}", vote_id, ballot);
           Self::deposit_event(RawEvent::BallotSubmitted(who, vote_id, ballot));
-
-          // Return a successful DispatchResult
           Ok(())
         }
 
@@ -377,10 +386,11 @@ decl_module! {
             // TODO: discuss if shuffling should be allowed earlier
             ensure_vote_phase::<T>(&vote_id, VotePhase::Tallying)?;
 
-            Self::verify_proof_store_shuffled_ciphers(&vote_id, &topic_id, proof, shuffled_encryptions, nr_of_shuffles)?;
+            Self::verify_proof_store_shuffled_ciphers(&vote_id, &topic_id, proof.clone(), shuffled_encryptions, nr_of_shuffles)?;
 
             // notify that the decrypted share has been:
             // submitted, the proof verified and successfully stored
+            debug::info!("successfully verified shuffle proof: {:#?}", proof);
             Self::deposit_event(RawEvent::ShuffleProofSubmitted(topic_id, who));
             Ok(())
         }
@@ -396,10 +406,11 @@ decl_module! {
 
             // verify the decrypted share proof
             // and store the decrypted shares if proof verification is successfull
-            verify_proof_and_store_decrypted_share::<T>(who.clone(), &vote_id, &topic_id, shares, proof, &nr_of_shuffles)?;
+            verify_proof_and_store_decrypted_share::<T>(who.clone(), &vote_id, &topic_id, shares, proof.clone(), &nr_of_shuffles)?;
 
             // notify that the decrypted share has been:
             // submitted, the proof verified and successfully stored
+            debug::info!("successfully verified decrypted share proof: {:#?}, share stored!", proof);
             Self::deposit_event(RawEvent::DecryptedShareSubmitted(topic_id, who));
             Ok(())
         }
@@ -415,10 +426,11 @@ decl_module! {
 
             // combine the decrypted shares
             // tally the topic
-            combine_shares_and_tally_topic::<T>(&vote_id, &topic_id, encoded, &nr_of_shuffles)?;
+            let results = combine_shares_and_tally_topic::<T>(&vote_id, &topic_id, encoded, &nr_of_shuffles)?;
 
             // notify that the decrypted shares have been successfully combined
             // and that the result has been tallied!
+            debug::info!("successfully combined decrypted shares and tallied vote: {:#?}", results);
             Self::deposit_event(RawEvent::TopicTallied(topic_id));
             Ok(())
         }
@@ -441,7 +453,7 @@ decl_module! {
     }
 }
 
-impl<T: Trait> rt_offchain::storage_lock::BlockNumberProvider for Module<T> {
+impl<T: Trait> sp_runtime::offchain::storage_lock::BlockNumberProvider for Module<T> {
     type BlockNumber = T::BlockNumber;
     fn current_block_number() -> Self::BlockNumber {
         <frame_system::Module<T>>::block_number()

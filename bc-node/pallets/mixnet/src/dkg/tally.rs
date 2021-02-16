@@ -21,7 +21,7 @@ pub fn combine_shares_and_tally_topic<T: Trait>(
     topic_id: &TopicId,
     encoded: bool,
     nr_of_shuffles: &NrOfShuffles,
-) -> Result<(), Error<T>> {
+) -> Result<BTreeMap<Plaintext, Count>, Error<T>> {
     // get the public parameters and the system public key
     let params: PublicParameters = get_public_params::<T>(vote_id)?;
     let big_p: BigUint = BigUint::from_bytes_be(&params.p);
@@ -97,6 +97,6 @@ pub fn combine_shares_and_tally_topic<T: Trait>(
     }
 
     // store the results on chain
-    Tally::insert::<&TopicId, BTreeMap<Plaintext, Count>>(topic_id, results);
-    Ok(())
+    Tally::insert::<&TopicId, BTreeMap<Plaintext, Count>>(topic_id, results.clone());
+    Ok(results)
 }
