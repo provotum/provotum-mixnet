@@ -174,7 +174,6 @@ impl ShuffleProof {
             // hash(h,i_) mod 2^T
             // Verifiable Re-Encryption Mixnets (Haenni, Locher, Koenig, Dubuis) uses c_i ∈ Z_q
             // therefore, we use mod q
-            // TODO: verify that this is correct!
             c_i %= q;
             challenges.push(c_i);
         }

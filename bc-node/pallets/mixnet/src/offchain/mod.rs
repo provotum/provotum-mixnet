@@ -106,7 +106,7 @@ impl<T: Trait> Module<T> {
         Ok(())
     }
 
-    fn offchain_shuffle_and_proof() -> Result<(), Error<T>> {
+    pub fn offchain_shuffle_and_proof() -> Result<(), Error<T>> {
         // get all vote_ids
         let vote_ids: Vec<VoteId> = VoteIds::get();
 
@@ -166,7 +166,7 @@ impl<T: Trait> Module<T> {
                     // submit the shuffle proof and the shuffled ciphers
                     send_signed::<T>(
                         signer,
-                        Call::submit_shuffle_proof(
+                        Call::submit_shuffled_votes_and_proof(
                             vote_id.to_vec(),
                             topic_id.to_vec(),
                             proof_as_bytes,

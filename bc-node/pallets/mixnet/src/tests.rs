@@ -1,7 +1,7 @@
 use crate::mock::*;
 use crate::types::{
     Ballot, Cipher, PublicKey as SubstratePK, PublicParameters, ShuffleProof as Proof,
-    VotePhase, Wrapper,
+    ShuffleProofAsBytes, VotePhase, Wrapper,
 };
 use crate::*;
 use codec::Decode;
@@ -1990,26 +1990,47 @@ fn test_combine_decrypted_shares() {
 fn test_offchain_shuffle_and_proof() {
     let (mut t, pool_state, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        // // Test
-        // let result = OffchainModule::offchain_shuffle_and_proof().unwrap();
+        // Setup
+        let (params, _, pk) = Helper::setup_sm_system();
+        let (vote_id, topic_id) = setup_vote(params.into());
+        let encoded: bool = false;
+        let nr_of_shuffles: u8 = NR_OF_SHUFFLES;
 
-        // // Verify
-        // let tx = pool_state.write().transactions.pop().unwrap();
-        // assert!(pool_state.read().transactions.is_empty());
-        // let tx = TestExtrinsic::decode(&mut &*tx).unwrap();
-        // // assert_eq!(tx.signature.unwrap().0, 0);
-        // assert_eq!(tx.call, Call::offchain_shuffle_and_proof());
-        // TODO: implement this test
+        // store created public key and public parameters
+        setup_public_key(vote_id.clone(), pk.clone().into());
+        setup_ciphers(&vote_id, &topic_id, &pk, encoded);
+
+        // change the VotePhase to Voting using the voting authority
+        let voting_authority = get_voting_authority();
+        assert_ok!(OffchainModule::set_vote_phase(
+            voting_authority.clone(),
+            vote_id.clone(),
+            VotePhase::Tallying
+        ));
+
+        // Test
+        let result = OffchainModule::offchain_shuffle_and_proof();
+        assert_ok!(result);
+
+        // Verify
+        let tx = pool_state.write().transactions.pop().unwrap();
+        assert!(pool_state.read().transactions.is_empty());
+        let tx = TestExtrinsic::decode(&mut &*tx).unwrap();
+        assert_eq!(tx.signature.unwrap().0, 0);
+
+        // TODO: find a way to compare Call signature without having to provide values
+        // assert_eq!(tx.call, Call::submit_shuffled_votes_and_proof);
     });
 }
 
 #[test]
-fn test_submit_shuffle_proof() {
+fn test_submit_shuffled_votes_and_proof() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        let (params, _, pk) = Helper::setup_tiny_system();
+        let (params, _, pk) = Helper::setup_sm_system();
         let (vote_id, topic_id) = setup_vote(params.into());
         let encoded: bool = false;
+        let nr_of_shuffles: u8 = NR_OF_SHUFFLES;
 
         // store created public key and public parameters
         setup_public_key(vote_id.clone(), pk.clone().into());
@@ -2017,41 +2038,81 @@ fn test_submit_shuffle_proof() {
 
         // get the encrypted votes
         let big_ciphers_from_chain: Vec<BigCipher> =
-            Wrapper(OffchainModule::ciphers(&topic_id, NR_OF_SHUFFLES)).into();
+            Wrapper(OffchainModule::ciphers(&topic_id, nr_of_shuffles)).into();
         assert!(big_ciphers_from_chain.len() > 0);
+
+        // change the VotePhase to Voting using the voting authority
+        let voting_authority = get_voting_authority();
+        assert_ok!(OffchainModule::set_vote_phase(
+            voting_authority.clone(),
+            vote_id.clone(),
+            VotePhase::Tallying
+        ));
 
         // shuffle the votes
         let shuffle_result =
-            OffchainModule::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
+            OffchainModule::shuffle_ciphers(&vote_id, &topic_id, nr_of_shuffles);
         let shuffled: (Vec<BigCipher>, Vec<BigUint>, Vec<usize>) =
             shuffle_result.unwrap();
-        let shuffled_ciphers = shuffled.0;
-        let re_encryption_randoms = shuffled.1;
-        let permutation = &shuffled.2;
+        let shuffled_ciphers: Vec<BigCipher> = shuffled.0;
+        let re_encryption_randoms: Vec<BigUint> = shuffled.1;
+        let permutation: Vec<usize> = shuffled.2;
 
-        // TODO: implment test to call extrinsic -> submit_shuffle_proof
+        // generate the shuffle proof
+        let result = OffchainModule::generate_shuffle_proof(
+            &topic_id,
+            big_ciphers_from_chain.clone(),
+            shuffled_ciphers.clone(),
+            re_encryption_randoms,
+            &permutation,
+            &pk,
+        );
+        let proof: Proof = result.unwrap();
 
-        // // TEST
-        // // GENERATE PROOF
-        // let result = OffchainModule::generate_shuffle_proof(
-        //     &topic_id,
-        //     big_ciphers_from_chain.clone(),
-        //     shuffled_ciphers.clone(),
-        //     re_encryption_randoms,
-        //     permutation,
-        //     &pk,
-        // );
-        // let proof: Proof = result.unwrap();
+        // type conversions
+        let proof_as_bytes: ShuffleProofAsBytes = proof.into();
+        let shuffled_encryptions_as_bytes: Vec<Cipher> = Wrapper(shuffled_ciphers).into();
 
-        // // VERIFY PROOF
-        // let verification = OffchainModule::verify_shuffle_proof(
-        //     &topic_id,
-        //     proof,
-        //     big_ciphers_from_chain,
-        //     shuffled_ciphers,
-        //     &pk,
-        // );
-        // let is_proof_valid = verification.unwrap();
-        // assert!(is_proof_valid);
+        // get any sealer that is allowed to submit the votes
+        let (bob, _, _) = get_sealer_bob();
+
+        // submit the proof and the shuffled votes
+        let response = OffchainModule::submit_shuffled_votes_and_proof(
+            bob,
+            vote_id,
+            topic_id.clone(),
+            proof_as_bytes,
+            shuffled_encryptions_as_bytes,
+            nr_of_shuffles,
+        );
+        assert_ok!(response);
+
+        // verify that the shuffled votes have been stored
+        // at the new index: nr_of_shuffles + 1
+        let new_nr_of_shuffles = nr_of_shuffles + 1;
+        let shuffled_from_chain: Vec<Cipher> =
+            Ciphers::get(&topic_id, new_nr_of_shuffles);
+        assert!(!shuffled_from_chain.is_empty());
+        assert_eq!(shuffled_from_chain.len(), big_ciphers_from_chain.len());
+    });
+}
+
+#[test]
+fn test_setup_ciphers_nr_of_shuffles_not_correct() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let (params, _, pk) = Helper::setup_sm_system();
+        let (vote_id, topic_id) = setup_vote(params.into());
+        let encoded: bool = false;
+        let nr_of_shuffles: u8 = 0;
+
+        // store created public key and public parameters
+        setup_public_key(vote_id.clone(), pk.clone().into());
+        setup_ciphers(&vote_id, &topic_id, &pk, encoded);
+
+        // get the encrypted votes from chain @ nr_of_shuffles + 1
+        let new_nr_of_shuffles = nr_of_shuffles + 1;
+        let from_chain: Vec<Cipher> = Ciphers::get(&topic_id, new_nr_of_shuffles);
+        assert!(from_chain.is_empty());
     });
 }

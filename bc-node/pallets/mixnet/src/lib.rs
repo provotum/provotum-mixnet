@@ -355,7 +355,8 @@ decl_module! {
           let who = ensure_signed(origin)?;
           ensure_vote_exists::<T>(&vote_id)?;
 
-          // TODO: ensure that it is a legit voter -> TODO in some other project
+          // TODO: ensure that it is a legit voter
+          // TODO: in some other project where identity management is considered
 
           // store the ballot
           store_ballot::<T>(&who, &vote_id, ballot.clone());
@@ -369,11 +370,12 @@ decl_module! {
 
         /// Test function to check signer.
         #[weight = (10_000, Pays::No)]
-        fn submit_shuffle_proof(origin, vote_id: VoteId, topic_id: TopicId, proof: ShuffleProofAsBytes, shuffled_encryptions: Vec<Cipher>, nr_of_shuffles: NrOfShuffles) -> DispatchResult {
+        fn submit_shuffled_votes_and_proof(origin, vote_id: VoteId, topic_id: TopicId, proof: ShuffleProofAsBytes, shuffled_encryptions: Vec<Cipher>, nr_of_shuffles: NrOfShuffles) -> DispatchResult {
             let who: T::AccountId = ensure_signed(origin)?;
-            ensure_vote_exists::<T>(&vote_id)?;
-            ensure_vote_phase::<T>(&vote_id, VotePhase::Tallying)?;
             ensure_sealer::<T>(&who)?;
+            ensure_vote_exists::<T>(&vote_id)?;
+            // TODO: discuss if shuffling should be allowed earlier
+            ensure_vote_phase::<T>(&vote_id, VotePhase::Tallying)?;
 
             Self::verify_proof_store_shuffled_ciphers(&vote_id, &topic_id, proof, shuffled_encryptions, nr_of_shuffles)?;
 
