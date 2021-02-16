@@ -53,11 +53,3 @@ jobs:
       - name: Perform Benchmark Tests
         run: cargo +nightly-2021-01-20 test -p pallet-mixnet --features runtime-benchmarks --verbose -- --nocapture
         working-directory: ${{ github.workspace }}/bc-node/node
-
-      # this step uploads the built dev binary as an artifact (output)
-      - name: Upload Dev Binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: provotum-dev-${{ github.sha }}-${{ github.run_id }}
-          path: ${{ github.workspace }}/bc-node/target/debug/provotum
-          retention-days: 2
