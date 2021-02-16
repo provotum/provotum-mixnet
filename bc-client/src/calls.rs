@@ -15,7 +15,9 @@ pub struct CreateVote {
 impl Call<NodeTemplateRuntime> for CreateVote {
     const MODULE: &'static str = "PalletMixnet";
     const FUNCTION: &'static str = "create_vote";
-    fn events_decoder(_decoder: &mut EventsDecoder<NodeTemplateRuntime>) {}
+    fn events_decoder(_decoder: &mut EventsDecoder<NodeTemplateRuntime>) {
+        // println!("events: {:#?}", _decoder);
+    }
 }
 
 #[derive(Encode)]
