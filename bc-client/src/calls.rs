@@ -16,7 +16,10 @@ impl Call<NodeTemplateRuntime> for CreateVote {
     const MODULE: &'static str = "PalletMixnet";
     const FUNCTION: &'static str = "create_vote";
     fn events_decoder(_decoder: &mut EventsDecoder<NodeTemplateRuntime>) {
-        // println!("events: {:#?}", _decoder);
+        _decoder.register_type_size::<VoteId>("VoteId");
+        _decoder.register_type_size::<Title>("Title");
+        _decoder.register_type_size::<PublicParameters>("PublicParameters");
+        _decoder.register_type_size::<Vec<Topic>>("Vec<Topic>");
     }
 }
 
@@ -29,7 +32,10 @@ pub struct StorePublicKey {
 impl Call<NodeTemplateRuntime> for StorePublicKey {
     const MODULE: &'static str = "PalletMixnet";
     const FUNCTION: &'static str = "store_public_key";
-    fn events_decoder(_decoder: &mut EventsDecoder<NodeTemplateRuntime>) {}
+    fn events_decoder(_decoder: &mut EventsDecoder<NodeTemplateRuntime>) {
+        _decoder.register_type_size::<VoteId>("VoteId");
+        _decoder.register_type_size::<SubstratePK>("SubstratePK");
+    }
 }
 
 #[derive(Encode)]
@@ -41,7 +47,10 @@ pub struct SetVotePhase {
 impl Call<NodeTemplateRuntime> for SetVotePhase {
     const MODULE: &'static str = "PalletMixnet";
     const FUNCTION: &'static str = "set_vote_phase";
-    fn events_decoder(_decoder: &mut EventsDecoder<NodeTemplateRuntime>) {}
+    fn events_decoder(_decoder: &mut EventsDecoder<NodeTemplateRuntime>) {
+        _decoder.register_type_size::<VoteId>("VoteId");
+        _decoder.register_type_size::<VotePhase>("VotePhase");
+    }
 }
 
 #[derive(Encode)]
@@ -53,5 +62,8 @@ pub struct CastBallot {
 impl Call<NodeTemplateRuntime> for CastBallot {
     const MODULE: &'static str = "PalletMixnet";
     const FUNCTION: &'static str = "cast_ballot";
-    fn events_decoder(_decoder: &mut EventsDecoder<NodeTemplateRuntime>) {}
+    fn events_decoder(_decoder: &mut EventsDecoder<NodeTemplateRuntime>) {
+        _decoder.register_type_size::<VoteId>("VoteId");
+        _decoder.register_type_size::<Ballot>("Ballot");
+    }
 }

@@ -1,14 +1,14 @@
 mod calls;
 mod stores;
 
-use crate::calls::{CreateVote, SetVotePhase};
+use crate::calls::{CreateVote, SetVotePhase, StorePublicKey};
 use crate::stores::{CiphersStore, VotesStore};
 use calls::CastBallot;
 use crypto::{encryption::ElGamal, helper::Helper, types::Cipher as BigCipher};
 use num_bigint::BigUint;
-use num_traits::One;
 use pallet_mixnet::types::{
-    Ballot, Cipher, NrOfShuffles, PublicParameters, Title, Topic, TopicId, VoteId, VotePhase,
+    Ballot, Cipher, NrOfShuffles, PublicKey as SubstratePK, PublicParameters, Title, Topic,
+    TopicId, VoteId, VotePhase,
 };
 use sp_keyring::{sr25519::sr25519::Pair, AccountKeyring};
 use std::str::from_utf8;
@@ -35,12 +35,14 @@ async fn main() -> Result<(), Error> {
     let topic: Topic = (topic_id.clone(), topic_question);
     let topics = vec![topic];
 
-    // let block_number = 1;
-    // let block_hash_response = get_block_hash(&client, block_number).await;
-
+    // create vote
     let create_vote_response =
         create_vote(&client, params.into(), vote_title, vote_id.clone(), topics).await;
     println!("create_vote_response: {:?}", create_vote_response);
+
+    // setup the public key
+    let public_key_response = store_public_key(&client, vote_id.clone(), pk.clone().into()).await;
+    println!("public_key_response: {:?}", public_key_response);
 
     // update vote phase to Voting
     let vote_phase_voting = set_vote_phase(&client, vote_id.clone(), VotePhase::Voting).await;
@@ -49,24 +51,23 @@ async fn main() -> Result<(), Error> {
     // fetch all exisiting vote ids
     let vote_ids = get_vote_ids(&client).await?;
 
-    // fetch all existing ciphers
-    let ciphers = get_ciphers(&client, topic_id.clone(), 0).await?;
-
     // TODO: create a loop to submit multiple votes
     // TODO: If possible make the number of moves configurable
     // submit some ballots
-    // create cipher
-    let message = BigUint::from(3u32);
-    let random = BigUint::from(1u32);
-    let cipher: BigCipher = ElGamal::encrypt(&message, &random, &pk);
-    let cipher_as_bytes: Cipher = cipher.into();
-    let ballot: Ballot = Ballot {
-        answers: vec![(topic_id.clone(), cipher_as_bytes)],
-    };
+    for _i in 0..3 {
+        // create cipher
+        let message = BigUint::from(3u32);
+        let random = BigUint::from(1u32);
+        let cipher: BigCipher = ElGamal::encrypt(&message, &random, &pk);
+        let cipher_as_bytes: Cipher = cipher.into();
+        let ballot: Ballot = Ballot {
+            answers: vec![(topic_id.clone(), cipher_as_bytes)],
+        };
 
-    // submit ballot
-    let cast_ballot_response = cast_ballot(&client, vote_id.clone(), ballot).await;
-    println!("cast_ballot_response: {:?}", cast_ballot_response);
+        // submit ballot
+        let cast_ballot_response = cast_ballot(&client, vote_id.clone(), ballot).await;
+        println!("cast_ballot_response: {:?}", cast_ballot_response);
+    }
 
     // fetch all existing ciphers
     let ciphers = get_ciphers(&client, topic_id, 0).await?;
@@ -78,23 +79,44 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn get_block_hash(
+pub async fn get_vote_ids(client: &Client<NodeTemplateRuntime>) -> Result<Vec<String>, Error> {
+    let store = VotesStore {};
+    let mut vote_ids_as_bytes = client
+        .fetch(&store, None)
+        .await?
+        .ok_or("failed to fetch vote_ids!")?;
+    let vote_ids = vote_ids_as_bytes
+        .iter()
+        .map(|v| {
+            std::str::from_utf8(v)
+                .expect("cannot convert &[u8] to str")
+                .to_owned()
+        })
+        .collect::<Vec<String>>();
+    println!("vote_ids: {:?}", vote_ids);
+    Ok(vote_ids)
+}
+
+pub async fn get_ciphers(
     client: &Client<NodeTemplateRuntime>,
-    block_number: u32,
-) -> Result<(), Error> {
-    let block_hash = client.block_hash(Some(block_number.into())).await?;
-
-    if let Some(hash) = block_hash {
-        println!("Block hash for block number {}: {}", block_number, hash);
-    } else {
-        println!("Block number {} not found.", block_number);
-    }
-
-    let mut iter = client.account_iter(None).await?;
-    while let Some((key, account)) = iter.next().await? {
-        println!("{:?}: {:#?}", key, account);
-    }
-    Ok(())
+    topic_id: TopicId,
+    nr_of_shuffles: NrOfShuffles,
+) -> Result<Vec<Vec<u8>>, Error> {
+    let store = CiphersStore {
+        topic_id,
+        nr_of_shuffles,
+    };
+    let mut ciphers_as_bytes = client
+        .fetch(&store, None)
+        .await?
+        .ok_or("failed to fetch ciphers!")?;
+    println!("ciphers_as_bytes: {:?}", ciphers_as_bytes);
+    // let ciphers = ciphers_as_bytes
+    //     .iter()
+    //     .map(|v| std::str::from_utf8(v).expect("cannot convert &[u8] to str"))
+    //     .collect::<Vec<&str>>();
+    // println!("ciphers: {:#?}", ciphers);
+    Ok(Vec::new())
 }
 
 pub async fn create_vote(
@@ -105,54 +127,13 @@ pub async fn create_vote(
     topics: Vec<Topic>,
 ) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
     let signer = PairSigner::<NodeTemplateRuntime, Pair>::new(AccountKeyring::Alice.pair());
-    let create_vote_call = CreateVote {
+    let call = CreateVote {
         params,
         title,
         vote_id,
         topics,
     };
-    return submit(&signer, client, create_vote_call).await;
-}
-
-pub async fn get_vote_ids(client: &Client<NodeTemplateRuntime>) -> Result<Vec<String>, Error> {
-    let signer = PairSigner::<NodeTemplateRuntime, Pair>::new(AccountKeyring::Alice.pair());
-    let store = VotesStore {};
-    let mut vote_ids_as_bytes = client
-        .fetch(&store, None)
-        .await?
-        .ok_or_else(|| "failed to fetch vote_ids!")?;
-    let vote_ids = vote_ids_as_bytes
-        .iter()
-        .map(|v| {
-            std::str::from_utf8(v)
-                .expect("cannot convert &[u8] to str")
-                .to_owned()
-        })
-        .collect::<Vec<String>>();
-    println!("vote_ids: {:#?}", vote_ids);
-    Ok(vote_ids.clone())
-}
-
-pub async fn get_ciphers(
-    client: &Client<NodeTemplateRuntime>,
-    topic_id: TopicId,
-    nr_of_shuffles: NrOfShuffles,
-) -> Result<Vec<Vec<u8>>, Error> {
-    let signer = PairSigner::<NodeTemplateRuntime, Pair>::new(AccountKeyring::Alice.pair());
-    let store = CiphersStore {
-        topic_id,
-        nr_of_shuffles,
-    };
-    let mut ciphers_as_bytes = client.fetch(&store, None).await?;
-
-    // .ok_or_else(|| "failed to fetch ciphers!")?;
-    println!("ciphers_as_bytes: {:#?}", ciphers_as_bytes);
-    // let ciphers = ciphers_as_bytes
-    //     .iter()
-    //     .map(|v| std::str::from_utf8(v).expect("cannot convert &[u8] to str"))
-    //     .collect::<Vec<&str>>();
-    // println!("ciphers: {:#?}", ciphers);
-    Ok(Vec::new())
+    return submit(&signer, client, call).await;
 }
 
 pub async fn cast_ballot(
@@ -161,8 +142,18 @@ pub async fn cast_ballot(
     ballot: Ballot,
 ) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
     let signer = PairSigner::<NodeTemplateRuntime, Pair>::new(AccountKeyring::Alice.pair());
-    let cast_ballot = CastBallot { vote_id, ballot };
-    return submit(&signer, client, cast_ballot).await;
+    let call = CastBallot { vote_id, ballot };
+    return submit(&signer, client, call).await;
+}
+
+pub async fn store_public_key(
+    client: &Client<NodeTemplateRuntime>,
+    vote_id: VoteId,
+    pk: SubstratePK,
+) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
+    let signer = PairSigner::<NodeTemplateRuntime, Pair>::new(AccountKeyring::Alice.pair());
+    let call = StorePublicKey { vote_id, pk };
+    return submit(&signer, client, call).await;
 }
 
 pub async fn set_vote_phase(
@@ -171,11 +162,11 @@ pub async fn set_vote_phase(
     vote_phase: VotePhase,
 ) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
     let signer = PairSigner::<NodeTemplateRuntime, Pair>::new(AccountKeyring::Alice.pair());
-    let set_vote_phase = SetVotePhase {
+    let call = SetVotePhase {
         vote_id,
         vote_phase,
     };
-    return submit(&signer, client, set_vote_phase).await;
+    return submit(&signer, client, call).await;
 }
 
 async fn submit<C: Call<NodeTemplateRuntime> + Send + Sync>(
