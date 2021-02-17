@@ -12,7 +12,7 @@ use crate::{
 use crate::{Ciphers, Error, Module, Trait};
 use alloc::vec::Vec;
 use crypto::types::{Cipher as BigCipher, PublicKey as ElGamalPK};
-use frame_support::{ensure, storage::StorageDoubleMap};
+use frame_support::{debug, ensure, storage::StorageDoubleMap};
 
 impl<T: Trait> Module<T> {
     pub fn verify_proof_store_shuffled_ciphers(
@@ -53,8 +53,16 @@ impl<T: Trait> Module<T> {
         )?;
         ensure!(is_proof_valid, Error::<T>::ShuffleProofVerifcationFailed);
 
-        // store the shuffle ciphers with the new increased number of shuffles
+        // check that no shuffle already exists for the increased number
         let new_nr_of_shuffles = nr_of_shuffles + 1;
+        let already_shuffled: Vec<Cipher> = Ciphers::get(topic_id, new_nr_of_shuffles);
+        debug::info!(
+            "have the ciphers already been shuffled and stored? {:?}",
+            res.is_empty()
+        );
+        ensure!(res.is_empty(), Error::<T>::ShuffleAlreadyPerformed);
+
+        // store the shuffle ciphers with the new increased number of shuffles
         Ciphers::insert(&topic_id, new_nr_of_shuffles, shuffled_encryptions);
 
         Ok(())

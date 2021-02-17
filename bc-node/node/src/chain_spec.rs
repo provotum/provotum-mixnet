@@ -48,9 +48,9 @@ pub fn development_config() -> Result<ChainSpec, String> {
             testnet_genesis(
                 wasm_binary,
                 // Initial PoA authorities
-                vec![authority_keys_from_seed("Alice")],
+                vec![authority_keys_from_seed("Bob")],
                 // Sudo account
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                get_account_id_from_seed::<sr25519::Public>("Bob"),
                 // Pre-funded accounts
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -64,7 +64,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
                 // Sealers
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie"),
+                    // get_account_id_from_seed::<sr25519::Public>("Charlie"),
                     // get_account_id_from_seed::<sr25519::Public>("Dave"),
                 ],
             )
@@ -107,7 +107,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
                     get_account_id_from_seed::<sr25519::Public>("Charlie"),
-                    // get_account_id_from_seed::<sr25519::Public>("Dave"),
+                    get_account_id_from_seed::<sr25519::Public>("Dave"),
                     // get_account_id_from_seed::<sr25519::Public>("Eve"),
                     // get_account_id_from_seed::<sr25519::Public>("Ferdie"),
                 ],

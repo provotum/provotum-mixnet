@@ -37,15 +37,15 @@ async fn main() -> Result<(), Error> {
 
     // create vote
     let create_vote_response =
-        create_vote(&client, params.into(), vote_title, vote_id.clone(), topics).await;
+        create_vote(&client, params.into(), vote_title, vote_id.clone(), topics).await?;
     println!("create_vote_response: {:?}", create_vote_response);
 
     // setup the public key
-    let public_key_response = store_public_key(&client, vote_id.clone(), pk.clone().into()).await;
+    let public_key_response = store_public_key(&client, vote_id.clone(), pk.clone().into()).await?;
     println!("public_key_response: {:?}", public_key_response);
 
     // update vote phase to Voting
-    let vote_phase_voting = set_vote_phase(&client, vote_id.clone(), VotePhase::Voting).await;
+    let vote_phase_voting = set_vote_phase(&client, vote_id.clone(), VotePhase::Voting).await?;
     println!("vote_phase_voting: {:?}", vote_phase_voting);
 
     // fetch all exisiting vote ids
@@ -65,16 +65,19 @@ async fn main() -> Result<(), Error> {
         };
 
         // submit ballot
-        let cast_ballot_response = cast_ballot(&client, vote_id.clone(), ballot).await;
+        let cast_ballot_response = cast_ballot(&client, vote_id.clone(), ballot).await?;
         println!("cast_ballot_response: {:?}", cast_ballot_response);
     }
 
     // fetch all existing ciphers
-    let ciphers = get_ciphers(&client, topic_id, 0).await?;
+    get_ciphers(&client, topic_id.clone(), 0).await?;
 
     // update vote phase to Tallying
-    let vote_phase_tally = set_vote_phase(&client, vote_id, VotePhase::Tallying).await;
+    let vote_phase_tally = set_vote_phase(&client, vote_id, VotePhase::Tallying).await?;
     println!("vote_phase_tally: {:?}", vote_phase_tally);
+
+    // fetch all new ciphers (after the shuffle)
+    get_ciphers(&client, topic_id, 1).await?;
 
     Ok(())
 }
@@ -111,11 +114,7 @@ pub async fn get_ciphers(
         .await?
         .ok_or("failed to fetch ciphers!")?;
     println!("ciphers_as_bytes: {:?}", ciphers_as_bytes);
-    // let ciphers = ciphers_as_bytes
-    //     .iter()
-    //     .map(|v| std::str::from_utf8(v).expect("cannot convert &[u8] to str"))
-    //     .collect::<Vec<&str>>();
-    // println!("ciphers: {:#?}", ciphers);
+    // TODO: add parsing of Vec<u8> into Cipher
     Ok(Vec::new())
 }
 

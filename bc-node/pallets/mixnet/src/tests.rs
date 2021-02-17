@@ -2057,12 +2057,12 @@ fn test_submit_shuffled_votes_and_proof() {
 
         // submit the proof and the shuffled votes
         let response = OffchainModule::submit_shuffled_votes_and_proof(
-            bob,
-            vote_id,
+            bob.clone(),
+            vote_id.clone(),
             topic_id.clone(),
-            proof_as_bytes,
-            shuffled_encryptions_as_bytes,
-            nr_of_shuffles,
+            proof_as_bytes.clone(),
+            shuffled_encryptions_as_bytes.clone(),
+            nr_of_shuffles.clone(),
         );
         assert_ok!(response);
 
@@ -2073,6 +2073,20 @@ fn test_submit_shuffled_votes_and_proof() {
             Ciphers::get(&topic_id, new_nr_of_shuffles);
         assert!(!shuffled_from_chain.is_empty());
         assert_eq!(shuffled_from_chain.len(), big_ciphers_from_chain.len());
+
+        // re-submit the proof and the shuffled votes
+        // make sure that the 2nd time the request fails
+        assert_err!(
+            OffchainModule::submit_shuffled_votes_and_proof(
+                bob,
+                vote_id,
+                topic_id.clone(),
+                proof_as_bytes,
+                shuffled_encryptions_as_bytes,
+                nr_of_shuffles,
+            ),
+            Error::<TestRuntime>::ShuffleAlreadyPerformed
+        );
     });
 }
 

@@ -184,7 +184,6 @@ decl_error! {
         // Error returned when permutation size is zero
         PermutationSizeZeroError,
 
-
         // Error returned when public key doesn't exist
         PublicKeyNotExistsError,
 
@@ -223,6 +222,9 @@ decl_error! {
 
         // Error returned when a shuffle proof verification fails
         ShuffleProofVerifcationFailed,
+
+        // Error returned when a shuffle has already been performed for a set of ciphers
+        ShuffleAlreadyPerformed,
 
         // Error returned when ballots are empty when trying to shuffle them
         ShuffleCiphersSizeZeroError,
