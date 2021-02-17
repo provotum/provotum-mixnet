@@ -1,15 +1,22 @@
-name: substrate production
+name: build-test-benchmark release binary
 
 on:
   release:
     types: [created]
+  pull_request:
+    branches:
+      - master
+    types:
+      - "closed"
   workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-test:
+  build-test-benchmark:
+    # this job will only run if the PR has been merged
+    if: github.event.pull_request.merged == true
     strategy:
       fail-fast: false
       matrix:
@@ -18,7 +25,7 @@ jobs:
     defaults:
       run:
         working-directory: ${{ github.workspace }}/bc-node
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v2
       - name: Cache Dependencies

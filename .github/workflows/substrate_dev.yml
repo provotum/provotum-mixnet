@@ -1,4 +1,4 @@
-name: substrate dev
+name: build-test debug binary
 
 on:
   pull_request:
@@ -49,7 +49,3 @@ jobs:
 
       - name: Test Dev Binary
         run: cargo +nightly-2021-01-20 test --verbose -- --nocapture
-
-      - name: Perform Benchmark Tests
-        run: cargo +nightly-2021-01-20 test -p pallet-mixnet --features runtime-benchmarks --verbose -- --nocapture
-        working-directory: ${{ github.workspace }}/bc-node/node
