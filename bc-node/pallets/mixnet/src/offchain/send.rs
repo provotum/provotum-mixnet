@@ -24,5 +24,5 @@ pub fn send_signed<T: Trait>(
 
     // The case of `None`: no account is available for sending
     debug::error!("No local account available");
-    return Err(<Error<T>>::NoLocalAcctForSigning);
+    Err(<Error<T>>::NoLocalAcctForSigning)
 }

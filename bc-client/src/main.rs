@@ -27,7 +27,6 @@ async fn main() -> Result<(), Error> {
 
     // create the vote
     let (params, sk, pk) = Helper::setup_sm_system();
-    let q = &params.q();
     let vote_id = "20201212".as_bytes().to_vec();
     let vote_title = "Popular Vote of 12.12.2020".as_bytes().to_vec();
 
@@ -66,14 +65,14 @@ async fn main() -> Result<(), Error> {
     };
 
     // submit ballot
-    let cast_ballot_response = cast_ballot(&client, vote_id, ballot).await;
+    let cast_ballot_response = cast_ballot(&client, vote_id.clone(), ballot).await;
     println!("cast_ballot_response: {:?}", cast_ballot_response);
 
     // fetch all existing ciphers
     let ciphers = get_ciphers(&client, topic_id, 0).await?;
 
     // update vote phase to Tallying
-    let vote_phase_tally = set_vote_phase(&client, vote_id.clone(), VotePhase::Tallying).await;
+    let vote_phase_tally = set_vote_phase(&client, vote_id, VotePhase::Tallying).await;
     println!("vote_phase_tally: {:?}", vote_phase_tally);
 
     Ok(())

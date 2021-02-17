@@ -1,10 +1,7 @@
 use codec::Encode;
-use pallet_mixnet::types::{Cipher, NrOfShuffles, TopicId, VoteId};
-use pallet_mixnet::Trait;
-use std::marker::PhantomData;
+use pallet_mixnet::types::{NrOfShuffles, TopicId, VoteId};
 use substrate_subxt::{
-    sp_core::storage::StorageKey, system::System, Metadata, MetadataError, NodeTemplateRuntime,
-    Store,
+    sp_core::storage::StorageKey, Metadata, MetadataError, NodeTemplateRuntime, Store,
 };
 
 #[derive(Clone, Debug, Eq, Encode, PartialEq)]
@@ -34,10 +31,10 @@ impl Store<NodeTemplateRuntime> for VotesStore {
     }
     /// Returns the default value.
     fn default(&self, metadata: &Metadata) -> Result<Self::Returns, MetadataError> {
-        Ok(metadata
+        metadata
             .module(Self::MODULE)?
             .storage(Self::FIELD)?
-            .default()?)
+            .default()
     }
 }
 
@@ -69,9 +66,9 @@ impl Store<NodeTemplateRuntime> for CiphersStore {
     }
     /// Returns the default value.
     fn default(&self, metadata: &Metadata) -> Result<Self::Returns, MetadataError> {
-        Ok(metadata
+        metadata
             .module(Self::MODULE)?
             .storage(Self::FIELD)?
-            .default()?)
+            .default()
     }
 }
