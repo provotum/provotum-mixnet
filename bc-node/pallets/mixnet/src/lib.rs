@@ -257,7 +257,7 @@ decl_module! {
             set_phase::<T>(&who, &vote_id, phase.clone())?;
 
             // notify that the vote phase has been changed
-            debug::info!("successfully updated vote phase: {:#?}, {:#?}", vote_id, phase);
+            debug::info!("successfully updated vote phase: {:?}, {:?}", vote_id, phase);
             Self::deposit_event(RawEvent::VotePhaseChanged(vote_id, phase));
             Ok(())
         }
@@ -273,7 +273,7 @@ decl_module! {
             PublicKey::insert(vote_id.clone(), pk.clone());
 
             // notify that the public key has been successfully stored
-            debug::info!("successfully stored public key: {:#?}", pk);
+            debug::info!("successfully stored public key: {:?}", pk);
             Self::deposit_event(RawEvent::PublicKeyStored(who, vote_id, pk));
             Ok(())
         }
@@ -291,7 +291,7 @@ decl_module! {
             // and store public key share
             verify_proof_and_store_keygen_share::<T>(who, &vote_id, pk_share.clone())?;
 
-            debug::info!("successfully stored public key share: {:#?}", pk_share);
+            debug::info!("successfully stored public key share: {:?}", pk_share);
             Self::deposit_event(RawEvent::PublicKeyShareSubmitted(pk_share));
             Ok(())
         }
@@ -307,7 +307,7 @@ decl_module! {
             // create the system's public key
             let pk: SubstratePK = combine_shares::<T>(who, &vote_id)?;
 
-            debug::info!("successfully combined public key shares. pk: {:#?}", pk);
+            debug::info!("successfully combined public key shares. pk: {:?}", pk);
             Self::deposit_event(RawEvent::PublicKeyCreated(vote_id, pk));
             Ok(())
         }
@@ -337,7 +337,7 @@ decl_module! {
             Topics::insert(&vote_id, topics);
 
             // log success + emit event
-            debug::info!("successfully created vote: {:#?}", vote_id);
+            debug::info!("successfully created vote: {:?}", vote_id);
             Self::deposit_event(RawEvent::VoteCreatedWithPublicParameters(vote_id, who, params));
             Ok(())
         }
@@ -354,7 +354,7 @@ decl_module! {
             topics.push(topic.clone());
             Topics::insert(&vote_id, topics);
 
-            debug::info!("successfully stored question: {:#?}", topic);
+            debug::info!("successfully stored question: {:?}", topic);
             Self::deposit_event(RawEvent::VoteTopicQuestionStored(vote_id, topic));
             Ok(())
         }
@@ -372,7 +372,7 @@ decl_module! {
           store_ballot::<T>(&who, &vote_id, ballot.clone());
 
           // notify that the ballot has been submitted and successfully stored
-          debug::info!("successfully cast ballot: {:#?}, {:#?}", vote_id, ballot);
+          debug::info!("successfully cast ballot: {:?}, vote_id: {:?}", ballot, vote_id);
           Self::deposit_event(RawEvent::BallotSubmitted(who, vote_id, ballot));
           Ok(())
         }
@@ -383,6 +383,7 @@ decl_module! {
             let who: T::AccountId = ensure_signed(origin)?;
             ensure_sealer::<T>(&who)?;
             ensure_vote_exists::<T>(&vote_id)?;
+
             // TODO: discuss if shuffling should be allowed earlier
             ensure_vote_phase::<T>(&vote_id, VotePhase::Tallying)?;
 
@@ -390,7 +391,7 @@ decl_module! {
 
             // notify that the decrypted share has been:
             // submitted, the proof verified and successfully stored
-            debug::info!("successfully verified shuffle proof: {:#?}", proof);
+            debug::info!("successfully verified shuffle proof: {:?}", proof);
             Self::deposit_event(RawEvent::ShuffleProofSubmitted(topic_id, who));
             Ok(())
         }
@@ -410,7 +411,7 @@ decl_module! {
 
             // notify that the decrypted share has been:
             // submitted, the proof verified and successfully stored
-            debug::info!("successfully verified decrypted share proof: {:#?}, share stored!", proof);
+            debug::info!("successfully verified decrypted share proof: {:?}, share stored!", proof);
             Self::deposit_event(RawEvent::DecryptedShareSubmitted(topic_id, who));
             Ok(())
         }
@@ -430,7 +431,7 @@ decl_module! {
 
             // notify that the decrypted shares have been successfully combined
             // and that the result has been tallied!
-            debug::info!("successfully combined decrypted shares and tallied vote: {:#?}", results);
+            debug::info!("successfully combined decrypted shares and tallied vote: {:?}", results);
             Self::deposit_event(RawEvent::TopicTallied(topic_id));
             Ok(())
         }
@@ -446,7 +447,17 @@ decl_module! {
         fn offchain_worker(block_number: T::BlockNumber) {
             debug::info!("off-chain worker: entering...");
 
-            Self::do_work_in_offchain_worker(block_number);
+            let result = Self::do_work_in_offchain_worker(block_number);
+            match result {
+               _ => (),
+                Err(err) => debug::error!("error while performing work in offchain worker: {:?}", err),
+            }
+
+            let offchain_shuffle_and_proof_result = Self::offchain_shuffle_and_proof();
+            match offchain_shuffle_and_proof_result {
+                _ => (),
+                 Err(err) => debug::error!("error while shuffling in offchain worker: {:?}", err),
+             }
 
             debug::info!("off-chain worker: done...");
         }

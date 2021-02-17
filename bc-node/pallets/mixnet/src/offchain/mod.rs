@@ -3,8 +3,8 @@ mod send;
 use crate::{
     helpers::{assertions::ensure_vote_exists, params::get_public_key},
     types::{
-        Ballot, Cipher, ShuffleProof, ShuffleProofAsBytes, Topic, TopicId, Vote, VoteId,
-        VotePhase, Wrapper,
+        Ballot, Cipher, PublicKey as SubstratePK, ShuffleProof, ShuffleProofAsBytes,
+        Topic, TopicId, Vote, VoteId, VotePhase, Wrapper,
     },
 };
 use crate::{
@@ -64,49 +64,53 @@ impl<T: Trait> Module<T> {
     pub fn do_work_in_offchain_worker(
         block_number: T::BlockNumber,
     ) -> Result<(), Error<T>> {
-        if sp_io::offchain::is_validator() {
-            debug::info!("hi there i'm a validator");
-
-            let duration = T::BlockDuration::get();
-            let zero: T::BlockNumber = T::BlockNumber::from(0u32);
-            debug::info!("block duration: {:#?}", duration);
-
-            let timestamp = sp_io::offchain::timestamp();
-            debug::info!("timestamp: {:#?}", timestamp);
-
-            let sealers: Vec<T::AccountId> = Sealers::<T>::get();
-            debug::info!("sealers: {:#?}", sealers);
-
-            let voting_authorities: Vec<T::AccountId> = VotingAuthorities::<T>::get();
-            debug::info!("voting_authorities: {:#?}", voting_authorities);
-
-            // shuffle votes + create a proof
-            if duration > zero && block_number % duration == zero {
-                debug::info!("boss move");
-            }
-
-            // check who's turn it is
-            let n: T::BlockNumber = (sealers.len() as u32).into();
-            let index = block_number % n;
-
-            let test = TryInto::<u64>::try_into(index).ok();
-            let index_as_u64 = test.expect("Type conversion failed!");
-            let sealer: &T::AccountId = &sealers[index_as_u64 as usize];
-            debug::info!("it is sealer {:#?} (index: {:#?})", sealer, index);
-
-            // creat the shuffle
-            let result_ = Self::offchain_shuffle_and_proof()?;
-
-            // get the signer for the transaction
-            let signer = Signer::<T, T::AuthorityId>::any_account();
-
-            // call send + return its result
-            return send_signed::<T>(signer, Call::test(true));
+        // if the offchain worker is not a validator, we don't shuffle the votes
+        if !sp_io::offchain::is_validator() {
+            return Ok(());
         }
-        Ok(())
+
+        debug::info!("hi there i'm a validator");
+
+        let duration = T::BlockDuration::get();
+        let zero: T::BlockNumber = T::BlockNumber::from(0u32);
+        debug::info!("block duration: {:?}", duration);
+
+        let timestamp = sp_io::offchain::timestamp();
+        debug::info!("timestamp: {:?}", timestamp);
+
+        let sealers: Vec<T::AccountId> = Sealers::<T>::get();
+        debug::info!("sealers: {:?}", sealers);
+
+        let voting_authorities: Vec<T::AccountId> = VotingAuthorities::<T>::get();
+        debug::info!("voting_authorities: {:?}", voting_authorities);
+
+        // shuffle votes + create a proof
+        if duration > zero && block_number % duration == zero {
+            debug::info!("boss move");
+        }
+
+        // check who's turn it is
+        let n: T::BlockNumber = (sealers.len() as u32).into();
+        let index = block_number % n;
+
+        let test = TryInto::<u64>::try_into(index).ok();
+        let index_as_u64 = test.expect("Type conversion failed!");
+        let sealer: &T::AccountId = &sealers[index_as_u64 as usize];
+        debug::info!("it is sealer {:?} (index: {:?})", sealer, index);
+
+        // get the signer for the transaction
+        let signer = Signer::<T, T::AuthorityId>::any_account();
+
+        // call send + return its result
+        send_signed::<T>(signer, Call::test(true))
     }
 
     pub fn offchain_shuffle_and_proof() -> Result<(), Error<T>> {
+        // if the offchain worker is not a validator, we don't shuffle the votes
+        if !sp_io::offchain::is_validator() {
+            return Ok(());
+        }
+
         // get all vote_ids
         let vote_ids: Vec<VoteId> = VoteIds::get();
 
@@ -116,13 +120,14 @@ impl<T: Trait> Module<T> {
             let state: VotePhase = vote.phase;
 
             if state == VotePhase::Tallying {
-                debug::info!("vote_id: {:#?}, state: VotePhase::Tallying", vote_id);
+                debug::info!("vote_id: {:?}, state: VotePhase::Tallying", vote_id);
 
                 // get all topics
                 let topics: Vec<Topic> = Topics::get(vote_id);
 
                 // get public key
-                let pk: ElGamalPK = get_public_key::<T>(&vote_id)?.into();
+                let pk: SubstratePK = get_public_key::<T>(&vote_id)?;
+                let pk: ElGamalPK = pk.into();
 
                 // TODO: figure out a way on how to decide what the current number of shuffles is
                 let current_nr_of_shuffles: u8 = 0;
@@ -131,6 +136,7 @@ impl<T: Trait> Module<T> {
                     // get all encrypted votes (ciphers)
                     // for the topic with id: topic_id and the # of shuffles (current_nr_of_shuffles)
                     // TODO: implement a function to retrieve the most recent number of shuffles...
+                    debug::info!("vote_id: {:?}, topic_id: {:?}", vote_id, topic_id);
                     let ciphers: Vec<Cipher> =
                         Ciphers::get(&topic_id, current_nr_of_shuffles);
 
@@ -175,7 +181,7 @@ impl<T: Trait> Module<T> {
                         ),
                     )?;
                     debug::info!(
-                        "successfully shuffled votes -> vote_id: {:#?}",
+                        "votes shuffled in offchain worker -> vote_id: {:?}",
                         vote_id
                     );
                 }

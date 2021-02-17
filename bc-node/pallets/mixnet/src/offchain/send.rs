@@ -15,7 +15,7 @@ pub fn send_signed<T: Trait>(
     // display error if the signed tx fails.
     if let Some((acc, res)) = result {
         if res.is_err() {
-            debug::error!("failure: offchain_signed_tx: tx sent: {:#?}", acc.id);
+            debug::error!("failure: offchain_signed_tx: tx sent: {:?}", acc.id);
             return Err(<Error<T>>::OffchainSignedTxError);
         }
         // Transaction is sent successfully

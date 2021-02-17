@@ -824,8 +824,6 @@ fn store_small_dummy_vote_works_encoded() {
         let account: <TestRuntime as frame_system::Trait>::AccountId = Default::default();
         let voter = Origin::signed(account);
 
-        // TODO: UPDATE VOTE PHASE in all failing tests
-
         let vote_submission_result = OffchainModule::cast_ballot(voter, vote_id, ballot);
         assert_ok!(vote_submission_result);
 
