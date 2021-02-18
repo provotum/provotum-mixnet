@@ -58,9 +58,9 @@ impl<T: Trait> Module<T> {
         let already_shuffled: Vec<Cipher> = Ciphers::get(topic_id, new_nr_of_shuffles);
         debug::info!(
             "have the ciphers already been shuffled and stored? {:?}",
-            res.is_empty()
+            already_shuffled.is_empty()
         );
-        ensure!(res.is_empty(), Error::<T>::ShuffleAlreadyPerformed);
+        ensure!(already_shuffled.is_empty(), Error::<T>::ShuffleAlreadyPerformed);
 
         // store the shuffle ciphers with the new increased number of shuffles
         Ciphers::insert(&topic_id, new_nr_of_shuffles, shuffled_encryptions);
