@@ -22,7 +22,7 @@ use frame_support::{
 };
 use frame_system::offchain::Signer;
 use num_bigint::BigUint;
-use send::send_signed;
+use send::{send_signed, special};
 use sp_std::{vec, vec::Vec};
 
 impl<T: Trait> Module<T> {
@@ -100,6 +100,8 @@ impl<T: Trait> Module<T> {
 
         // get the signer for the transaction
         let signer = Signer::<T, T::AuthorityId>::any_account();
+
+        special::<T>(block_number, Call::test(true));
 
         // call send + return its result
         send_signed::<T>(signer, Call::test(true))
