@@ -1,4 +1,3 @@
-use crate::dkg::helper::get_public_keyshare;
 use crate::helpers::params::get_public_params;
 use crate::types::{
     Cipher, DecryptedShare, DecryptedShareProof, NrOfShuffles, PublicKeyShare,
@@ -16,6 +15,14 @@ use frame_support::{
 };
 use num_bigint::BigUint;
 use sp_std::vec::Vec;
+
+fn get_public_keyshare<T: Trait>(
+    vote_id: &VoteId,
+    sealer: &T::AccountId,
+) -> Result<PublicKeyShare, Error<T>> {
+    PublicKeyShareBySealer::<T>::get::<(&VoteId, &T::AccountId)>((vote_id, sealer))
+        .ok_or(Error::<T>::PublicKeyShareNotExistsError)
+}
 
 pub fn verify_proof_and_store_keygen_share<T: Trait>(
     who: T::AccountId,
