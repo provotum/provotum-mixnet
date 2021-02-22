@@ -186,7 +186,7 @@ fn shuffle_proof_test(
 
     // shuffle the votes
     let shuffle_result =
-        OffchainModule::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
+        OffchainModule::shuffle_ciphers(pk.clone(), big_ciphers_from_chain.clone());
     let shuffled: (Vec<BigCipher>, Vec<BigUint>, Vec<usize>) = shuffle_result.unwrap();
     let shuffled_ciphers = shuffled.0;
     let re_encryption_randoms = shuffled.1;
@@ -1005,6 +1005,7 @@ fn test_shuffle_ciphers_encoded() {
 
         // create the voter (i.e. the transaction signer)
         let account: <TestRuntime as frame_system::Trait>::AccountId = Default::default();
+        let mut ciphers: Vec<BigCipher> = Vec::new();
         let voter = Origin::signed(account);
 
         for index in 0..3 {
@@ -1012,8 +1013,10 @@ fn test_shuffle_ciphers_encoded() {
 
             // transform the ballot into a from that the blockchain can handle
             // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
-            let cipher: Cipher =
-                ElGamal::encrypt_encode(&messages[index], &random, &pk).into();
+            let cipher: BigCipher =
+                ElGamal::encrypt_encode(&messages[index], &random, &pk);
+            ciphers.push(cipher.clone());
+            let cipher: Cipher = cipher.into();
             let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
             let ballot: Ballot = Ballot { answers };
 
@@ -1023,8 +1026,7 @@ fn test_shuffle_ciphers_encoded() {
         }
 
         // shuffle the votes
-        let shuffle_result =
-            OffchainModule::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
+        let shuffle_result = OffchainModule::shuffle_ciphers(pk.clone(), ciphers);
         let shuffled_big_ciphers: Vec<BigCipher> = shuffle_result.unwrap().0;
         assert!(shuffled_big_ciphers.len() == 3);
 
@@ -1076,6 +1078,7 @@ fn test_shuffle_ciphers() {
 
         // create the voter (i.e. the transaction signer)
         let account: <TestRuntime as frame_system::Trait>::AccountId = Default::default();
+        let mut ciphers: Vec<BigCipher> = Vec::new();
         let voter = Origin::signed(account);
 
         for index in 0..3 {
@@ -1083,7 +1086,9 @@ fn test_shuffle_ciphers() {
 
             // transform the ballot into a from that the blockchain can handle
             // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
-            let cipher: Cipher = ElGamal::encrypt(&messages[index], &random, &pk).into();
+            let cipher: BigCipher = ElGamal::encrypt(&messages[index], &random, &pk);
+            ciphers.push(cipher.clone());
+            let cipher: Cipher = cipher.into();
             let answers: Vec<(TopicId, Cipher)> = vec![(topic_id.clone(), cipher)];
             let ballot: Ballot = Ballot { answers };
 
@@ -1093,8 +1098,7 @@ fn test_shuffle_ciphers() {
         }
 
         // shuffle the votes
-        let shuffle_result =
-            OffchainModule::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES);
+        let shuffle_result = OffchainModule::shuffle_ciphers(pk.clone(), ciphers);
         let shuffled_big_ciphers: Vec<BigCipher> = shuffle_result.unwrap().0;
         assert!(shuffled_big_ciphers.len() == 3);
 
@@ -1121,29 +1125,16 @@ fn test_shuffle_ciphers() {
 }
 
 #[test]
-fn test_shuffle_ciphers_pk_does_not_exist() {
-    let (mut t, _, _) = ExternalityBuilder::build();
-    t.execute_with(|| {
-        let topic_id = "Moritz for President?".as_bytes().to_vec();
-        let vote_id = "20201212".as_bytes().to_vec();
-        // try to shuffle the ballots -> public key doesn't exist yet
-        OffchainModule::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES).expect_err(
-            "The returned value should be: 'Error::<T>::PublicKeyNotExistsError'",
-        );
-    });
-}
-
-#[test]
 fn test_shuffle_ciphers_no_ballots() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        let topic_id = "Moritz for President?".as_bytes().to_vec();
         let vote_id = "20201212".as_bytes().to_vec();
         let (_, _, pk) = Helper::setup_sm_system();
+        let ciphers: Vec<BigCipher> = Vec::new();
         setup_public_key(vote_id.clone(), pk.clone().into());
 
         // try -> to shuffle the ballots (which don't exist)
-        OffchainModule::shuffle_ciphers(&vote_id, &topic_id, NR_OF_SHUFFLES).expect_err(
+        OffchainModule::shuffle_ciphers(pk.clone(), ciphers).expect_err(
             "The returned value should be: 'Error::<T>::ShuffleCiphersSizeZeroError'",
         );
     });
@@ -1746,7 +1737,6 @@ fn test_submit_decrypted_share() {
 fn test_combine_decrypted_shares_vote_does_not_exist() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
-        let (params, _, pk) = Helper::setup_md_system();
         let voting_authority = get_voting_authority();
         assert_err!(
             OffchainModule::combine_decrypted_shares(
@@ -1983,7 +1973,8 @@ fn test_offchain_shuffle_and_proof() {
         let (params, _, pk) = Helper::setup_sm_system();
         let (vote_id, topic_id) = setup_vote(params.into());
         let encoded: bool = false;
-        let nr_of_shuffles: u8 = NR_OF_SHUFFLES;
+        let block_number: <TestRuntime as frame_system::Trait>::BlockNumber =
+            (1u32).into();
 
         // store created public key and public parameters
         setup_public_key(vote_id.clone(), pk.clone().into());
@@ -1993,7 +1984,7 @@ fn test_offchain_shuffle_and_proof() {
         set_vote_phase(vote_id.clone(), VotePhase::Tallying);
 
         // Test
-        let result = OffchainModule::offchain_shuffle_and_proof();
+        let result = OffchainModule::offchain_shuffle_and_proof(block_number);
         assert_ok!(result);
 
         // Verify
@@ -2030,7 +2021,7 @@ fn test_submit_shuffled_votes_and_proof() {
 
         // shuffle the votes
         let shuffle_result =
-            OffchainModule::shuffle_ciphers(&vote_id, &topic_id, nr_of_shuffles);
+            OffchainModule::shuffle_ciphers(pk.clone(), big_ciphers_from_chain.clone());
         let shuffled: (Vec<BigCipher>, Vec<BigUint>, Vec<usize>) =
             shuffle_result.unwrap();
         let shuffled_ciphers: Vec<BigCipher> = shuffled.0;

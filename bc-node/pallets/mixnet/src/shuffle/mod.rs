@@ -53,14 +53,17 @@ impl<T: Trait> Module<T> {
         )?;
         ensure!(is_proof_valid, Error::<T>::ShuffleProofVerifcationFailed);
 
-        // check that no shuffle already exists for the increased number
+        // check that no shuffle votes already exist for the increased number
         let new_nr_of_shuffles = nr_of_shuffles + 1;
         let already_shuffled: Vec<Cipher> = Ciphers::get(topic_id, new_nr_of_shuffles);
         debug::info!(
             "have the ciphers already been shuffled and stored? {:?}",
-            already_shuffled.is_empty()
+            !already_shuffled.is_empty()
         );
-        ensure!(already_shuffled.is_empty(), Error::<T>::ShuffleAlreadyPerformed);
+        ensure!(
+            already_shuffled.is_empty(),
+            Error::<T>::ShuffleAlreadyPerformed
+        );
 
         // store the shuffle ciphers with the new increased number of shuffles
         Ciphers::insert(&topic_id, new_nr_of_shuffles, shuffled_encryptions);
