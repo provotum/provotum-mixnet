@@ -1,0 +1,283 @@
+
+running 85 tests
+test encryption::tests::it_should_add_many_and_result_equals_five ... ignored
+test encryption::tests::it_should_add_one_and_zero_encoded ... ignored
+test encryption::tests::it_should_add_two_ones_encoded ... ignored
+test encryption::tests::it_should_add_two_zeros_encoded ... ignored
+test encryption::tests::it_should_decode_25 ... ignored
+test encryption::tests::it_should_decode_one ... ignored
+test encryption::tests::it_should_decode_zero ... ignored
+test encryption::tests::it_should_encode_a_message ... ignored
+test encryption::tests::it_should_encrypt ... ignored
+test encryption::tests::it_should_encrypt_decrypt_decode_two ... ignored
+test encryption::tests::it_should_encrypt_decrypt_two ... ignored
+test encryption::tests::it_should_encrypt_encode ... ignored
+test encryption::tests::it_should_re_encrypt_five ... ignored
+test encryption::tests::it_should_re_encrypt_five_by_addition ... ignored
+test encryption::tests::it_should_re_encrypt_five_encoded ... ignored
+test encryption::tests::it_should_show_that_both_re_encryptions_are_equal_encoded ... ignored
+test encryption::tests::it_should_show_that_combined_partial_decryptions_work ... ignored
+test encryption::tests::it_should_show_that_partial_decryption_works ... ignored
+test encryption::tests::it_should_shuffle_a_list_of_encrypted_votes ... ignored
+test encryption::tests::it_should_shuffle_a_list_of_encrypted_votes_encoded ... ignored
+test encryption::tests::shuffle_vectors_encryptions_permutations_different_size_should_panic ... ignored
+test encryption::tests::shuffle_vectors_encryptions_randoms_different_size_should_panic ... ignored
+test encryption::tests::shuffle_vectors_size_zero_should_panic ... ignored
+test helper::tests::check_if_5_is_a_generator_of_p7_failure ... ignored
+test helper::tests::check_if_g_and_h_are_generators_success ... ignored
+test helper::tests::it_should_create_a_key_pair ... ignored
+test helper::tests::it_should_create_lg_system ... ignored
+test helper::tests::it_should_create_md_system ... ignored
+test helper::tests::it_should_create_sm_system ... ignored
+test helper::tests::it_should_create_tiny_system ... ignored
+test helper::tests::it_should_create_xl_system ... ignored
+test helper::tests::it_should_get_generators ... ignored
+test helper::tests::it_should_hash_and_return_biguint ... ignored
+test helper::tests::it_should_hash_bigunit ... ignored
+test helper::tests::it_should_hash_vec_biguints ... ignored
+test helper::tests::it_should_hash_vec_biguints_to_biguint ... ignored
+test helper::tests::it_should_hash_vec_ciphers ... ignored
+test proofs::decryption::tests::it_should_verify_decryption_proof ... ignored
+test proofs::decryption::tests::it_should_verify_decryption_proof_multiple_partial_decryptions ... ignored
+test proofs::decryption::tests::it_should_verify_decryption_proof_multiple_partial_decryptions_encoded ... ignored
+test proofs::keygen::tests::it_should_create_keygen_proof_tiny ... ignored
+test proofs::keygen::tests::it_should_verify_keygen_proof ... ignored
+test proofs::shuffle::tests::it_should_generate_permutation_commitment ... ignored
+test proofs::shuffle::tests::it_should_get_challenges ... ignored
+test proofs::shuffle::tests::it_should_get_challenges_encoded ... ignored
+test proofs::shuffle::tests::it_should_panic_generate_commitment_chain ... ignored
+test proofs::shuffle::tests::it_should_panic_generate_commitment_chain_different_size_challenges_randoms ... ignored
+test proofs::shuffle::tests::it_should_panic_generate_commitment_chain_empty_inputs ... ignored
+test proofs::shuffle::tests::it_should_panic_generate_permutation_commitment_different_size_permutations_generators ... ignored
+test proofs::shuffle::tests::it_should_panic_generate_permutation_commitment_different_size_permutations_randoms ... ignored
+test proofs::shuffle::tests::it_should_panic_generate_permutation_commitment_empty_inputs ... ignored
+test proofs::shuffle::tests::it_should_panic_get_challenges_different_sizes_encryptions_randoms ... ignored
+test proofs::shuffle::tests::it_should_panic_get_challenges_different_sizes_encryptions_shuffled_encryptions ... ignored
+test proofs::shuffle::tests::it_should_panic_get_challenges_empty_inputs ... ignored
+test proofs::shuffle::tests::it_should_panic_get_challenges_zero_challenges ... ignored
+test random::tests::check_that_11_is_prime ... ignored
+test random::tests::check_that_2_is_prime ... ignored
+test random::tests::check_that_84532559_is_prime ... ignored
+test random::tests::check_that_84532560_is_not_prime ... ignored
+test random::tests::it_should_generate_a_permutation_for_three_numbers ... ignored
+test random::tests::it_should_generate_a_random_prime ... ignored
+test random::tests::it_should_generate_random_number ... ignored
+test random::tests::permutation_size_zero_should_panic ... ignored
+test types::tests::check_that_q_is_correctly_computed ... ignored
+test types::tests::is_modulo_addition ... ignored
+test types::tests::is_modulo_division ... ignored
+test types::tests::is_modulo_multiplication ... ignored
+test types::tests::is_modulo_substration_a_greater_b ... ignored
+test types::tests::is_modulo_substration_a_smaller_b ... ignored
+test types::tests::it_combine_public_keys_bigunits ... ignored
+test types::tests::it_should_combine_public_keys ... ignored
+test types::tests::it_should_combine_public_keys_bigunits_not_same_params ... ignored
+test types::tests::it_should_combine_public_keys_no_keys ... ignored
+test types::tests::it_should_compute_inverse_modulo_17_invmod_23 ... ignored
+test types::tests::it_should_compute_inverse_modulo_2_invmod_7 ... ignored
+test types::tests::it_should_create_a_private_key ... ignored
+test types::tests::it_should_create_a_public_key ... ignored
+test types::tests::it_should_not_use_modulus_zero_addition ... ignored
+test types::tests::it_should_not_use_modulus_zero_division ... ignored
+test types::tests::it_should_not_use_modulus_zero_multiplication ... ignored
+test types::tests::it_should_not_use_modulus_zero_substraction ... ignored
+test types::tests::it_should_panic_modulus_is_smaller_than_dividend ... ignored
+test types::tests::it_should_panic_modulus_is_smaller_than_divisior ... ignored
+test types::tests::it_should_panic_modulus_is_smaller_than_number_invmod ... ignored
+test types::tests::it_should_panic_modulus_is_zero ... ignored
+
+test result: ok. 0 passed; 0 failed; 85 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+WARNING: HTML report generation will become a non-default optional feature in Criterion.rs 0.4.0.
+This feature is being moved to cargo-criterion (https://github.com/bheisler/cargo-criterion) and will be optional in a future version of Criterion.rs. To silence this warning, either switch to cargo-criterion or enable the 'html_reports' feature in your Cargo.toml.
+
+WARNING: In Criterion.rs 0.4.0, running criterion benchmarks outside of cargo-criterion will become a default optional feature.
+The statistical analysis and reporting is being moved to cargo-criterion (https://github.com/bheisler/cargo-criterion) and will be optional in a future version of Criterion.rs. To silence this warning, either switch to cargo-criterion or enable the 'cargo_bench_support' feature in your Cargo.toml.
+
+Gnuplot not found, using plotters backend
+Benchmarking elgamal/encryption_encoded
+Benchmarking elgamal/encryption_encoded: Warming up for 3.0000 s
+Benchmarking elgamal/encryption_encoded: Collecting 100 samples in estimated 5.3040 s (500 iterations)
+Benchmarking elgamal/encryption_encoded: Analyzing
+elgamal/encryption_encoded
+                        time:   [666.08 us 666.31 us 666.54 us]
+                        change: [+0.0670% +0.1281% +0.1860%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+Benchmarking elgamal/decryption_encoded
+Benchmarking elgamal/decryption_encoded: Warming up for 3.0000 s
+Benchmarking elgamal/decryption_encoded: Collecting 100 samples in estimated 5.5148 s (400 iterations)
+Benchmarking elgamal/decryption_encoded: Analyzing
+elgamal/decryption_encoded
+                        time:   [3.0688 ms 3.0703 ms 3.0719 ms]
+                        change: [+0.5168% +0.6011% +0.6840%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Benchmarking elgamal/encryption
+Benchmarking elgamal/encryption: Warming up for 3.0000 s
+Benchmarking elgamal/encryption: Collecting 100 samples in estimated 5.7016 s (400 iterations)
+Benchmarking elgamal/encryption: Analyzing
+elgamal/encryption      time:   [4.3553 ms 4.3699 ms 4.3877 ms]
+                        change: [-0.8577% -0.2073% +0.3964%] (p = 0.54 > 0.05)
+                        No change in performance detected.
+Found 6 outliers among 100 measurements (6.00%)
+  6 (6.00%) high severe
+Benchmarking elgamal/decryption
+Benchmarking elgamal/decryption: Warming up for 3.0000 s
+Benchmarking elgamal/decryption: Collecting 100 samples in estimated 5.1483 s (300 iterations)
+Benchmarking elgamal/decryption: Analyzing
+elgamal/decryption      time:   [2.8668 ms 2.8686 ms 2.8704 ms]
+                        change: [+0.4598% +0.5544% +0.6545%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Benchmarking elgamal/homomorphic addition
+Benchmarking elgamal/homomorphic addition: Warming up for 3.0000 s
+Benchmarking elgamal/homomorphic addition: Collecting 100 samples in estimated 5.4439 s (500 iterations)
+Benchmarking elgamal/homomorphic addition: Analyzing
+elgamal/homomorphic addition
+                        time:   [5.6416 us 5.6529 us 5.6654 us]
+                        change: [-2.5695% -2.3333% -2.1119%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 6 outliers among 100 measurements (6.00%)
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+Benchmarking elgamal/re_encryption_encoded
+Benchmarking elgamal/re_encryption_encoded: Warming up for 3.0000 s
+Benchmarking elgamal/re_encryption_encoded: Collecting 100 samples in estimated 5.5371 s (500 iterations)
+Benchmarking elgamal/re_encryption_encoded: Analyzing
+elgamal/re_encryption_encoded
+                        time:   [526.44 us 526.62 us 526.80 us]
+                        change: [+0.0494% +0.1037% +0.1608%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking elgamal/re_encryption
+Benchmarking elgamal/re_encryption: Warming up for 3.0000 s
+Benchmarking elgamal/re_encryption: Collecting 100 samples in estimated 5.9286 s (400 iterations)
+Benchmarking elgamal/re_encryption: Analyzing
+elgamal/re_encryption   time:   [528.24 us 528.45 us 528.66 us]
+                        change: [+0.3430% +0.4140% +0.4840%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Benchmarking elgamal/re_encryption by homomorphic addition zero (g^0)
+Benchmarking elgamal/re_encryption by homomorphic addition zero (g^0): Warming up for 3.0000 s
+Benchmarking elgamal/re_encryption by homomorphic addition zero (g^0): Collecting 100 samples in estimated 5.5555 s (500 iterations)
+Benchmarking elgamal/re_encryption by homomorphic addition zero (g^0): Analyzing
+elgamal/re_encryption by homomorphic addition zero (g^0)
+                        time:   [555.45 us 555.71 us 555.98 us]
+                        change: [+0.0745% +0.1393% +0.2032%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+
+Benchmarking proofs/keygen proof: generate proof
+Benchmarking proofs/keygen proof: generate proof: Warming up for 3.0000 s
+Benchmarking proofs/keygen proof: generate proof: Collecting 100 samples in estimated 5.0915 s (500 iterations)
+Benchmarking proofs/keygen proof: generate proof: Analyzing
+proofs/keygen proof: generate proof
+                        time:   [262.95 us 263.07 us 263.20 us]
+                        change: [-0.0869% -0.0152% +0.0581%] (p = 0.68 > 0.05)
+                        No change in performance detected.
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking proofs/keygen proof: verify proof
+Benchmarking proofs/keygen proof: verify proof: Warming up for 3.0000 s
+Benchmarking proofs/keygen proof: verify proof: Collecting 100 samples in estimated 5.9995 s (400 iterations)
+Benchmarking proofs/keygen proof: verify proof: Analyzing
+proofs/keygen proof: verify proof
+                        time:   [4.8196 ms 4.8208 ms 4.8221 ms]
+                        change: [+0.0186% +0.0765% +0.1357%] (p = 0.01 < 0.05)
+                        Change within noise threshold.
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+
+Benchmarking shuffling/3 votes
+Benchmarking shuffling/3 votes: Warming up for 3.0000 s
+Benchmarking shuffling/3 votes: Collecting 10 samples in estimated 6.0289 s (220 iterations)
+Benchmarking shuffling/3 votes: Analyzing
+shuffling/3 votes       time:   [8.0478 ms 8.0608 ms 8.0769 ms]
+                        change: [-0.3536% -0.2214% -0.0864%] (p = 0.01 < 0.05)
+                        Change within noise threshold.
+Benchmarking shuffling/10 votes
+Benchmarking shuffling/10 votes: Warming up for 3.0000 s
+Benchmarking shuffling/10 votes: Collecting 10 samples in estimated 9.2593 s (110 iterations)
+Benchmarking shuffling/10 votes: Analyzing
+shuffling/10 votes      time:   [62.064 ms 62.079 ms 62.100 ms]
+                        change: [+0.1907% +0.2567% +0.3160%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 3 outliers among 10 measurements (30.00%)
+  1 (10.00%) low severe
+  1 (10.00%) low mild
+  1 (10.00%) high mild
+Benchmarking shuffling/30 votes
+Benchmarking shuffling/30 votes: Warming up for 3.0000 s
+Benchmarking shuffling/30 votes: Collecting 10 samples in estimated 7.3943 s (30 iterations)
+Benchmarking shuffling/30 votes: Analyzing
+shuffling/30 votes      time:   [216.37 ms 216.54 ms 216.78 ms]
+                        change: [+0.2323% +0.3412% +0.4717%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking shuffling/100 votes
+Benchmarking shuffling/100 votes: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 8.1s.
+Benchmarking shuffling/100 votes: Collecting 10 samples in estimated 8.0671 s (10 iterations)
+Benchmarking shuffling/100 votes: Analyzing
+shuffling/100 votes     time:   [761.96 ms 765.84 ms 768.84 ms]
+                        change: [+4.7866% +5.3551% +5.7861%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low severe
+Benchmarking shuffling/1000 votes
+Benchmarking shuffling/1000 votes: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 83.3s.
+Benchmarking shuffling/1000 votes: Collecting 10 samples in estimated 83.262 s (10 iterations)
+Benchmarking shuffling/1000 votes: Analyzing
+shuffling/1000 votes    time:   [7.7725 s 7.8095 s 7.8510 s]
+                        change: [+4.7443% +5.3591% +6.0084%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Benchmarking shuffling/3 votes (encoded)
+Benchmarking shuffling/3 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling/3 votes (encoded): Collecting 10 samples in estimated 5.4872 s (275 iterations)
+Benchmarking shuffling/3 votes (encoded): Analyzing
+shuffling/3 votes (encoded)
+                        time:   [8.0494 ms 8.0569 ms 8.0655 ms]
+                        change: [+4.8599% +5.0198% +5.1555%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Benchmarking shuffling/10 votes (encoded)
+Benchmarking shuffling/10 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling/10 votes (encoded): Collecting 10 samples in estimated 8.4423 s (110 iterations)
+Benchmarking shuffling/10 votes (encoded): Analyzing
+shuffling/10 votes (encoded)
+                        time:   [62.070 ms 62.094 ms 62.135 ms]
+                        change: [-0.4376% -0.2879% -0.1721%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Benchmarking shuffling/30 votes (encoded)
+Benchmarking shuffling/30 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling/30 votes (encoded): Collecting 10 samples in estimated 7.1799 s (30 iterations)
+Benchmarking shuffling/30 votes (encoded): Analyzing
+shuffling/30 votes (encoded)
+                        time:   [216.98 ms 217.11 ms 217.22 ms]
+                        change: [-0.0317% +0.0405% +0.1088%] (p = 0.32 > 0.05)
+                        No change in performance detected.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking shuffling/100 votes (encoded)
+Benchmarking shuffling/100 votes (encoded): Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 8.2s.
+Benchmarking shuffling/100 votes (encoded): Collecting 10 samples in estimated 8.1940 s (10 iterations)
+Benchmarking shuffling/100 votes (encoded): Analyzing
+shuffling/100 votes (encoded)
+                        time:   [764.45 ms 766.66 ms 769.06 ms]
+                        change: [+0.4859% +0.8349% +1.1849%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Benchmarking shuffling/1000 votes (encoded)
+Benchmarking shuffling/1000 votes (encoded): Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 79.5s.
+Benchmarking shuffling/1000 votes (encoded): Collecting 10 samples in estimated 79.539 s (10 iterations)
+Benchmarking shuffling/1000 votes (encoded): Analyzing
+shuffling/1000 votes (encoded)
+                        time:   [7.6947 s 7.7616 s 7.8161 s]
+                        change: [-0.4007% +0.5369% +1.3907%] (p = 0.29 > 0.05)
+                        No change in performance detected.
+
