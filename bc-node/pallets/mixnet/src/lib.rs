@@ -49,7 +49,7 @@ use crate::types::{
 };
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
-    traits::Get, weights::Pays,
+    storage::StorageMap, storage::StorageValue, traits::Get, weights::Pays,
 };
 use frame_system::{
     ensure_signed,
@@ -77,6 +77,9 @@ decl_storage! {
     trait Store for Module<T: Trait> as OffchainModule {
         pub VotingAuthorities get(fn voting_authorities) config(): Vec<T::AccountId>;
         pub Sealers get(fn sealers) config(): Vec<T::AccountId>;
+
+        CountsBySealer get(fn count_by_sealer): map hasher(blake2_128_concat) T::AccountId => u32;
+        Counts get(fn count): u32;
 
         /// A vector containing the IDs of voters that have submitted their ballots
         Voters get(fn voters): Vec<T::AccountId>;
@@ -443,19 +446,24 @@ decl_module! {
         fn test(origin, test: bool) -> DispatchResult {
             let who: T::AccountId = ensure_signed(origin)?;
             debug::info!("who called the function: {:?}", who);
+            // let count_by_sealer: u32 = CountsBySealer::<T>::get::<T::AccountId>(who.clone());
+            // let count: u32 = Counts::get();
+            // debug::info!("count: {:?}, count_by_sealer: {:?}", count, count_by_sealer);
+            // CountsBySealer::<T>::insert::<T::AccountId, u32>(who, count_by_sealer + 1);
+            // Counts::put(count + 1);
             Ok(())
         }
 
         fn offchain_worker(block_number: T::BlockNumber) {
             debug::info!("off-chain worker: entering...");
 
-            let result = Self::do_work_in_offchain_worker(block_number);
-            match result {
-               _ => (),
-                Err(err) => debug::error!("error while performing work in offchain worker: {:?}", err),
-            }
+            // let result = Self::do_work_in_offchain_worker(block_number.clone());
+            // match result {
+            //    _ => (),
+            //     Err(err) => debug::error!("error while performing work in offchain worker: {:?}", err),
+            // }
 
-            let offchain_shuffle_and_proof_result = Self::offchain_shuffle_and_proof();
+            let offchain_shuffle_and_proof_result = Self::offchain_shuffle_and_proof(block_number);
             match offchain_shuffle_and_proof_result {
                 _ => (),
                  Err(err) => debug::error!("error while shuffling in offchain worker: {:?}", err),

@@ -20,9 +20,9 @@ use frame_support::{
     storage::{StorageDoubleMap, StorageMap, StorageValue},
     traits::Get,
 };
-use frame_system::offchain::Signer;
+use frame_system::offchain::{SendSignedTransaction, Signer};
 use num_bigint::BigUint;
-use send::{send_signed, special};
+use send::send_signed;
 use sp_std::{vec, vec::Vec};
 
 impl<T: Trait> Module<T> {
@@ -75,19 +75,16 @@ impl<T: Trait> Module<T> {
         let zero: T::BlockNumber = T::BlockNumber::from(0u32);
         debug::info!("block duration: {:?}", duration);
 
-        let timestamp = sp_io::offchain::timestamp();
-        debug::info!("timestamp: {:?}", timestamp);
-
         let sealers: Vec<T::AccountId> = Sealers::<T>::get();
         debug::info!("sealers: {:?}", sealers);
 
         let voting_authorities: Vec<T::AccountId> = VotingAuthorities::<T>::get();
         debug::info!("voting_authorities: {:?}", voting_authorities);
 
-        // shuffle votes + create a proof
-        if duration > zero && block_number % duration == zero {
-            debug::info!("boss move");
-        }
+        // // shuffle votes + create a proof
+        // if duration > zero && block_number % duration == zero {
+        //     debug::info!("boss move");
+        // }
 
         // check who's turn it is
         let n: T::BlockNumber = (sealers.len() as u32).into();
@@ -101,15 +98,22 @@ impl<T: Trait> Module<T> {
         // get the signer for the transaction
         let signer = Signer::<T, T::AuthorityId>::any_account();
 
-        special::<T>(block_number, Call::test(true));
-
         // call send + return its result
         send_signed::<T>(signer, Call::test(true))
     }
 
-    pub fn offchain_shuffle_and_proof() -> Result<(), Error<T>> {
+    pub fn offchain_shuffle_and_proof(
+        block_number: T::BlockNumber,
+    ) -> Result<(), Error<T>> {
         // if the offchain worker is not a validator, we don't shuffle the votes
         if !sp_io::offchain::is_validator() {
+            return Ok(());
+        }
+
+        // only perform operation every 2 block
+        let duration = T::BlockDuration::get();
+        let zero: T::BlockNumber = T::BlockNumber::from(0u32);
+        if duration > zero && block_number % duration != zero {
             return Ok(());
         }
 
@@ -121,79 +125,126 @@ impl<T: Trait> Module<T> {
             let vote: Vote<T::AccountId> = Votes::<T>::get(&vote_id);
             let state: VotePhase = vote.phase;
 
-            if state == VotePhase::Tallying {
-                debug::info!("vote_id: {:?}, state: VotePhase::Tallying", vote_id);
+            // early return if the vote is not in
+            if state != VotePhase::Tallying {
+                continue;
+            }
 
-                // get all topics
-                let topics: Vec<Topic> = Topics::get(vote_id);
+            debug::info!("vote_id: {:?}, state: VotePhase::Tallying", vote_id);
 
-                // get public key
-                let pk: SubstratePK = get_public_key::<T>(&vote_id)?;
-                let pk: ElGamalPK = pk.into();
+            // get all topics
+            let topics: Vec<Topic> = Topics::get(vote_id);
 
-                // TODO: figure out a way on how to decide what the current number of shuffles is
-                let current_nr_of_shuffles: u8 = 0;
+            // get public key
+            let pk: SubstratePK = get_public_key::<T>(&vote_id)?;
+            let pk: ElGamalPK = pk.into();
 
-                for (topic_id, _) in topics.iter() {
-                    // get all encrypted votes (ciphers)
-                    // for the topic with id: topic_id and the # of shuffles (current_nr_of_shuffles)
-                    // TODO: implement a function to retrieve the most recent number of shuffles...
-                    debug::info!("vote_id: {:?}, topic_id: {:?}", vote_id, topic_id);
-                    let ciphers: Vec<Cipher> =
-                        Ciphers::get(&topic_id, current_nr_of_shuffles);
+            // TODO: figure out a way on how to decide what the current number of shuffles is
+            let current_nr_of_shuffles: u8 = 0;
 
-                    // type conversion: Cipher (Vec<u8>) to BigCipher (BigUint)
-                    let encryptions: Vec<BigCipher> = Wrapper(ciphers).into();
+            for (topic_id, _) in topics.iter() {
+                // get all encrypted votes (ciphers)
+                // for the topic with id: topic_id and the # of shuffles (current_nr_of_shuffles)
+                // TODO: implement a function to retrieve the most recent number of shuffles...
+                debug::info!("vote_id: {:?}, topic_id: {:?}", vote_id, topic_id);
+                let ciphers: Vec<Cipher> =
+                    Ciphers::get(&topic_id, current_nr_of_shuffles);
 
-                    // for each topic_id & vote_id
-                    // shuffle the votes
-                    let (shuffled_encryptions, re_encryption_randoms, permutation): (
-                        Vec<BigCipher>,
-                        Vec<BigUint>,
-                        Vec<usize>,
-                    ) = Self::shuffle_ciphers(vote_id, topic_id, current_nr_of_shuffles)?;
+                // type conversion: Cipher (Vec<u8>) to BigCipher (BigUint)
+                let encryptions: Vec<BigCipher> = Wrapper(ciphers).into();
 
-                    // generate the shuffle proof
-                    let proof: ShuffleProof = Self::generate_shuffle_proof(
-                        &topic_id,
-                        encryptions,
-                        shuffled_encryptions.clone(),
-                        re_encryption_randoms,
-                        &permutation,
-                        &pk,
-                    )?;
+                // for each topic_id & vote_id
+                // shuffle the votes
+                let (shuffled_encryptions, re_encryption_randoms, permutation): (
+                    Vec<BigCipher>,
+                    Vec<BigUint>,
+                    Vec<usize>,
+                ) = Self::shuffle_ciphers(pk.clone(), encryptions.clone())?;
 
-                    // type conversions
-                    let shuffled_encryptions_as_bytes: Vec<Cipher> =
-                        Wrapper(shuffled_encryptions).into();
-                    let proof_as_bytes: ShuffleProofAsBytes = proof.into();
+                // generate the shuffle proof
+                let proof: ShuffleProof = Self::generate_shuffle_proof(
+                    &topic_id,
+                    encryptions,
+                    shuffled_encryptions.clone(),
+                    re_encryption_randoms,
+                    &permutation,
+                    &pk,
+                )?;
 
-                    // get the signer for the transaction
-                    let signer = Signer::<T, T::AuthorityId>::any_account();
+                // type conversions
+                let shuffled_encryptions_as_bytes: Vec<Cipher> =
+                    Wrapper(shuffled_encryptions).into();
+                let proof_as_bytes: ShuffleProofAsBytes = proof.into();
 
-                    // submit the shuffle proof and the shuffled ciphers
-                    send_signed::<T>(
-                        signer,
+                // get the signer for the transaction
+                let signer = Signer::<T, T::AuthorityId>::any_account();
+
+                // check who's turn it is
+                let sealers: Vec<T::AccountId> = Sealers::<T>::get();
+                let n: T::BlockNumber = (sealers.len() as u32).into();
+                let index = block_number % n;
+                let index_as_u64 = TryInto::<u64>::try_into(index)
+                    .ok()
+                    .expect("Type conversion failed!");
+                let sealer: &T::AccountId = &sealers[index_as_u64 as usize];
+                debug::info!("it is sealer {:?} (index: {:?})", sealer, index);
+
+                // submit the shuffle proof and the shuffled ciphers
+                let result = signer.send_signed_transaction(|_acct| {
+                    debug::info!("account: {:?}", _acct.id);
+
+                    let sealers: Vec<T::AccountId> = Sealers::<T>::get();
+                    debug::info!("sealers: {:?}", sealers);
+
+                    debug::info!(
+                        "sealers contains addresss: {:?}",
+                        sealers.contains(&_acct.id)
+                    );
+
+                    debug::info!(
+                        "is it the current sealer's turn: {:?}",
+                        sealer.eq(&_acct.id)
+                    );
+
+                    if sealer.eq(&_acct.id) {
                         Call::submit_shuffled_votes_and_proof(
                             vote_id.to_vec(),
                             topic_id.to_vec(),
-                            proof_as_bytes,
-                            shuffled_encryptions_as_bytes,
+                            proof_as_bytes.clone(),
+                            shuffled_encryptions_as_bytes.clone(),
                             current_nr_of_shuffles,
-                        ),
-                    )?;
-                    debug::info!(
-                        "votes shuffled in offchain worker -> vote_id: {:?}",
-                        vote_id
-                    );
+                        )
+                    } else {
+                        Call::test(true)
+                    }
+                });
+
+                // display error if the signed tx fails.
+                if let Some((acc, res)) = result {
+                    if res.is_err() {
+                        debug::error!(
+                            "failure: offchain_signed_tx: tx sent: {:?}",
+                            acc.id
+                        );
+                        return Err(<Error<T>>::OffchainSignedTxError);
+                    }
+                    // Transaction is sent successfully
+                    if sealer.eq(&acc.id) {
+                        debug::info!(
+                            "votes shuffled in offchain worker -> vote_id: {:?}",
+                            vote_id
+                        );
+                    }
+                    return Ok(());
                 }
+
+                // The case of `None`: no account is available for sending
+                debug::error!("No local account available");
+                return Err(<Error<T>>::NoLocalAcctForSigning);
             }
         }
         Ok(())
     }
-
-    // TODO: implement shuffle_ciphers -> used by offchain worker
-    // TODO: implement generate_shuffle_proof -> used by offchain worker
 }
 
 // TODO: implement creating a decrypted share + submitting it -> used by offchain worker
