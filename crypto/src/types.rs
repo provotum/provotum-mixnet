@@ -143,11 +143,9 @@ impl ModuloOperations for BigUint {
             "modulus must be greater than the divisor!"
         );
         assert!(self < modulus, "modulus must be greater than the dividend!");
-        let inverse_divisor = divisor.invmod(modulus);
-        match inverse_divisor {
-            Some(value) => Some(self.mul(&value) % modulus),
-            None => None,
-        }
+        divisor
+            .invmod(modulus)
+            .map(|value| self.mul(&value) % modulus)
     }
 
     fn modadd(&self, other: &Self, modulus: &Self) -> Self {

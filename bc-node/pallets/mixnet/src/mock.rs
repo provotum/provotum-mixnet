@@ -128,11 +128,15 @@ pub type System = frame_system::Module<TestRuntime>;
 
 ////////////////////////////////////////
 /// Mock Implementation of pallet_mixnet
+parameter_types! {
+    pub const TestBlockDuration: u64 = 1;
+}
+
 impl pallet_mixnet::Trait for TestRuntime {
     type Call = Call<TestRuntime>;
     type Event = TestEvent;
     type AuthorityId = pallet_mixnet::keys::TestAuthId;
-    type BlockDuration = ();
+    type BlockDuration = TestBlockDuration;
 }
 
 pub type OffchainModule = pallet_mixnet::Module<TestRuntime>;
