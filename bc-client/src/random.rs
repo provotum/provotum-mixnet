@@ -1,11 +1,10 @@
-use core::ops::{AddAssign, Sub};
+use core::ops::Sub;
 use crypto::{
     encryption::ElGamal,
     types::{Cipher as BigCipher, PublicKey as ElGamalPK},
 };
 use num_bigint::{BigUint, RandBigInt};
 use num_traits::{One, Zero};
-use rand::Rng;
 use std::panic;
 use std::vec::Vec;
 
@@ -20,9 +19,9 @@ impl Random {
         encoded: bool,
     ) -> Vec<BigCipher> {
         if encoded {
-            return generate_random_encryptions_encoded(pk, q, number);
+            return Self::gen_rand_encryptions_encoded(pk, q, number);
         } else {
-            return generate_random_encryptions(pk, q, number);
+            return Self::gen_rand_encryptions(pk, q, number);
         }
     }
 

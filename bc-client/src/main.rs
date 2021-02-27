@@ -5,16 +5,14 @@ mod stores;
 use crate::calls::{CreateVote, SetVotePhase, StorePublicKey};
 use crate::stores::{CiphersStore, VotesStore};
 use calls::CastBallot;
-use crypto::{encryption::ElGamal, helper::Helper, types::Cipher as BigCipher};
-use num_bigint::BigUint;
+use crypto::helper::Helper;
 use pallet_mixnet::types::{
-    Ballot, Cipher, NrOfShuffles, PublicKey as SubstratePK, PublicParameters, Title, Topic,
-    TopicId, VoteId, VotePhase,
+    Ballot, NrOfShuffles, PublicKey as SubstratePK, PublicParameters, Title, Topic, TopicId,
+    VoteId, VotePhase,
 };
 use sp_keyring::{sr25519::sr25519::Pair, AccountKeyring};
-use std::str::from_utf8;
 use std::{thread, time};
-use substrate_subxt::{system::AccountStoreExt, Call, Client, ExtrinsicSuccess};
+use substrate_subxt::{Call, Client, ExtrinsicSuccess};
 use substrate_subxt::{ClientBuilder, Error, NodeTemplateRuntime, PairSigner};
 
 #[async_std::main]
@@ -28,12 +26,12 @@ async fn main() -> Result<(), Error> {
         .await?;
 
     // create the vote
-    let (params, sk, pk) = Helper::setup_sm_system();
+    let (params, _, pk) = Helper::setup_sm_system();
     let q = &params.q();
-    let vote_id = "20201212".as_bytes().to_vec();
+    let vote_id = "2020-12-12".as_bytes().to_vec();
     let vote_title = "Popular Vote of 12.12.2020".as_bytes().to_vec();
 
-    let topic_id = "20201212-01".as_bytes().to_vec();
+    let topic_id = "2020-12-12-vote01".as_bytes().to_vec();
     let topic_question = "Moritz for President?".as_bytes().to_vec();
     let topic: Topic = (topic_id.clone(), topic_question);
     let topics = vec![topic];
