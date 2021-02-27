@@ -1,7 +1,7 @@
 use crate::mock::*;
 use crate::types::{
-    Ballot, Cipher, PublicKey as SubstratePK, PublicParameters, ShuffleProof as Proof,
-    ShuffleProofAsBytes, VotePhase, Wrapper,
+    Ballot, Cipher, PublicKey as SubstratePK, PublicParameters, ShufflePayload,
+    ShuffleProof as Proof, ShuffleProofAsBytes, VotePhase, Wrapper,
 };
 use crate::*;
 use codec::Decode;
@@ -2047,13 +2047,16 @@ fn test_submit_shuffled_votes_and_proof() {
         let (bob, _, _) = get_sealer_bob();
 
         // submit the proof and the shuffled votes
+        let payload = ShufflePayload {
+            ciphers: shuffled_encryptions_as_bytes,
+            proof: proof_as_bytes,
+            iteration: nr_of_shuffles.clone(),
+        };
         let response = OffchainModule::submit_shuffled_votes_and_proof(
             bob.clone(),
             vote_id.clone(),
             topic_id.clone(),
-            proof_as_bytes.clone(),
-            shuffled_encryptions_as_bytes.clone(),
-            nr_of_shuffles.clone(),
+            payload.clone(),
         );
         assert_ok!(response);
 
@@ -2072,9 +2075,7 @@ fn test_submit_shuffled_votes_and_proof() {
                 bob,
                 vote_id,
                 topic_id.clone(),
-                proof_as_bytes,
-                shuffled_encryptions_as_bytes,
-                nr_of_shuffles,
+                payload
             ),
             Error::<TestRuntime>::ShuffleAlreadyPerformed
         );

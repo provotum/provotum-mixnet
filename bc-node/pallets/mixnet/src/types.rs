@@ -258,6 +258,15 @@ impl Into<ShuffleProofAsBytes> for ShuffleProof {
     }
 }
 
+// the payload submitted after performing a shuffle proof in an offchain worker
+// contains the shuffle proof and the shuffle_votes
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
+pub struct ShufflePayload {
+    pub iteration: u8,
+    pub ciphers: Vec<Cipher>,
+    pub proof: ShuffleProofAsBytes,
+}
+
 pub type VoteId = Vec<u8>;
 pub type Title = Vec<u8>;
 

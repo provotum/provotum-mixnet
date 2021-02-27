@@ -44,8 +44,8 @@ use crate::helpers::{
 };
 use crate::types::{
     Ballot, Cipher, Count, DecryptedShare, DecryptedShareProof, NrOfShuffles, Plaintext,
-    PublicKey as SubstratePK, PublicKeyShare, PublicParameters, ShuffleProofAsBytes,
-    Title, Topic, TopicId, Vote, VoteId, VotePhase,
+    PublicKey as SubstratePK, PublicKeyShare, PublicParameters, ShufflePayload, Title,
+    Topic, TopicId, Vote, VoteId, VotePhase,
 };
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
@@ -98,6 +98,9 @@ decl_storage! {
 
         /// Maps a topicId (question) to a list of Ciphers and how many times each Cipher has been shuffled
         Ciphers get(fn ciphers): double_map hasher(blake2_128_concat) TopicId, hasher(blake2_128_concat) NrOfShuffles => Vec<Cipher>;
+
+        /// Maps a voteId and topicId to a list of shuffle proofs (iteration, ciphers, proof)
+        ShuffleProofs: map hasher(blake2_128_concat) (VoteId, TopicId) => Vec<ShufflePayload>;
 
         /// Maps a topic to a map of results. [topic_id -> {message/vote: count}]
         Tally get(fn tally): map hasher(blake2_128_concat) TopicId => Option<BTreeMap<Plaintext, Count>>;
@@ -262,12 +265,13 @@ decl_module! {
             set_phase::<T>(&who, &vote_id, phase.clone())?;
 
             // notify that the vote phase has been changed
-            debug::info!("successfully updated vote phase: {:?}, {:?}", vote_id, phase);
+            debug::info!("updated vote phase: {:?}, {:?}", vote_id, phase);
             Self::deposit_event(RawEvent::VotePhaseChanged(vote_id, phase));
             Ok(())
         }
 
-        // DEV ONLY
+        /// DEV ONLY
+        /// NEEDS TO BE DISABLE IN PRODUCTION
         #[weight = (10000, Pays::No)]
         pub fn store_public_key(origin, vote_id: VoteId, pk: SubstratePK) -> DispatchResult {
             // only the voting_authority should be able to store the key
@@ -277,8 +281,8 @@ decl_module! {
             // store the public key
             PublicKey::insert(vote_id.clone(), pk.clone());
 
-            // notify that the public key has been successfully stored
-            debug::info!("successfully stored public key: {:?}", pk);
+            // notify that the public key has been stored
+            debug::info!("stored public key for vote: {:?}", vote_id);
             Self::deposit_event(RawEvent::PublicKeyStored(who, vote_id, pk));
             Ok(())
         }
@@ -294,9 +298,9 @@ decl_module! {
 
             // verify key generatin proof
             // and store public key share
-            verify_proof_and_store_keygen_share::<T>(who, &vote_id, pk_share.clone())?;
+            verify_proof_and_store_keygen_share::<T>(who.clone(), &vote_id, pk_share.clone())?;
 
-            debug::info!("successfully stored public key share: {:?}", pk_share);
+            debug::info!("stored public key share for vote: {:?} (by sealer: {:?})", vote_id, who.clone());
             Self::deposit_event(RawEvent::PublicKeyShareSubmitted(pk_share));
             Ok(())
         }
@@ -312,7 +316,7 @@ decl_module! {
             // create the system's public key
             let pk: SubstratePK = combine_shares::<T>(who, &vote_id)?;
 
-            debug::info!("successfully combined public key shares. pk: {:?}", pk);
+            debug::info!("combined public key shares for vote: {:?}", vote_id);
             Self::deposit_event(RawEvent::PublicKeyCreated(vote_id, pk));
             Ok(())
         }
@@ -342,7 +346,7 @@ decl_module! {
             Topics::insert(&vote_id, topics);
 
             // log success + emit event
-            debug::info!("successfully created vote: {:?}", vote_id);
+            debug::info!("created vote: {:?}", vote_id);
             Self::deposit_event(RawEvent::VoteCreatedWithPublicParameters(vote_id, who, params));
             Ok(())
         }
@@ -359,7 +363,7 @@ decl_module! {
             topics.push(topic.clone());
             Topics::insert(&vote_id, topics);
 
-            debug::info!("successfully stored question: {:?}", topic);
+            debug::info!("added question: {:?} to vote: {:?}", topic, vote_id);
             Self::deposit_event(RawEvent::VoteTopicQuestionStored(vote_id, topic));
             Ok(())
         }
@@ -376,15 +380,15 @@ decl_module! {
           // store the ballot
           store_ballot::<T>(&who, &vote_id, ballot.clone());
 
-          // notify that the ballot has been submitted and successfully stored
-          debug::info!("successfully cast ballot: {:?}, vote_id: {:?}", ballot, vote_id);
+          // notify that the ballot has been submitted and stored
+          debug::info!("stored ballot for vote_id: {:?}", vote_id);
           Self::deposit_event(RawEvent::BallotSubmitted(who, vote_id, ballot));
           Ok(())
         }
 
         /// Test function to check signer.
         #[weight = (10_000, Pays::No)]
-        fn submit_shuffled_votes_and_proof(origin, vote_id: VoteId, topic_id: TopicId, proof: ShuffleProofAsBytes, shuffled_encryptions: Vec<Cipher>, nr_of_shuffles: NrOfShuffles) -> DispatchResult {
+        fn submit_shuffled_votes_and_proof(origin, vote_id: VoteId, topic_id: TopicId, payload: ShufflePayload) -> DispatchResult {
             let who: T::AccountId = ensure_signed(origin)?;
             ensure_sealer::<T>(&who)?;
             ensure_vote_exists::<T>(&vote_id)?;
@@ -392,11 +396,11 @@ decl_module! {
             // TODO: discuss if shuffling should be allowed earlier
             ensure_vote_phase::<T>(&vote_id, VotePhase::Tallying)?;
 
-            Self::verify_proof_store_shuffled_ciphers(&vote_id, &topic_id, proof.clone(), shuffled_encryptions, nr_of_shuffles)?;
+            Self::verify_proof_store_shuffled_ciphers(&vote_id, &topic_id, payload)?;
 
             // notify that the decrypted share has been:
-            // submitted, the proof verified and successfully stored
-            debug::info!("successfully verified shuffle proof: {:?}", proof);
+            // submitted, the proof verified and stored
+            debug::info!("verified shuffle proof for vote_id: {:?}, topic_id: {:?}", vote_id, topic_id);
             Self::deposit_event(RawEvent::ShuffleProofSubmitted(topic_id, who));
             Ok(())
         }
@@ -415,8 +419,8 @@ decl_module! {
             verify_proof_and_store_decrypted_share::<T>(who.clone(), &vote_id, &topic_id, shares, proof.clone(), &nr_of_shuffles)?;
 
             // notify that the decrypted share has been:
-            // submitted, the proof verified and successfully stored
-            debug::info!("successfully verified decrypted share proof: {:?}, share stored!", proof);
+            // submitted, the proof verified and stored
+            debug::info!("stored decrypted share for vote: {:?} and topic: {:?}, by sealer: {:?}", vote_id, topic_id, who.clone());
             Self::deposit_event(RawEvent::DecryptedShareSubmitted(topic_id, who));
             Ok(())
         }
@@ -434,16 +438,17 @@ decl_module! {
             // tally the topic
             let results = combine_shares_and_tally_topic::<T>(&vote_id, &topic_id, encoded, &nr_of_shuffles)?;
 
-            // notify that the decrypted shares have been successfully combined
+            // notify that the decrypted shares have been combined
             // and that the result has been tallied!
-            debug::info!("successfully combined decrypted shares and tallied vote: {:?}", results);
+            debug::info!("results for vote: {:?} and topic: {:?} are: {:?}", vote_id, topic_id, results);
             Self::deposit_event(RawEvent::TopicTallied(topic_id));
             Ok(())
         }
 
-        /// Test function to check signer.
+        /// Empty function that does nothing but needs to be called by an offchain worker
+        /// when it's not the offchain worker's turn to shuffle the votes.
         #[weight = (10_000, Pays::No)]
-        fn test(origin, test: bool) -> DispatchResult {
+        fn do_nothing_when_its_not_your_turn(origin) -> DispatchResult {
             let who: T::AccountId = ensure_signed(origin)?;
             debug::info!("who called the function: {:?}", who);
             // let count_by_sealer: u32 = CountsBySealer::<T>::get::<T::AccountId>(who.clone());
@@ -465,8 +470,8 @@ decl_module! {
 
             let offchain_shuffle_and_proof_result = Self::offchain_shuffle_and_proof(block_number);
             match offchain_shuffle_and_proof_result {
-                _ => (),
-                 Err(err) => debug::error!("error while shuffling in offchain worker: {:?}", err),
+                Ok(_) => (),
+                Err(err) => debug::error!("error while shuffling in offchain worker: {:?}", err),
              }
 
             debug::info!("off-chain worker: done...");

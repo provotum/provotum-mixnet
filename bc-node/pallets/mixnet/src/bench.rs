@@ -2,7 +2,7 @@
 
 use crate::types::{
     Ballot, Cipher, PublicKey as SubstratePK, PublicKeyShare, PublicParameters,
-    QAsBigUint, ShuffleProof as Proof, Topic, TopicId, Vote, VoteId, VotePhase, Wrapper,
+    ShuffleProof as Proof, Topic, TopicId, Vote, VoteId, VotePhase, Wrapper,
 };
 use crate::{Ballots, Module, Trait};
 use alloc::vec::Vec;

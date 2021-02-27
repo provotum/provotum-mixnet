@@ -3,8 +3,8 @@ mod send;
 use crate::{
     helpers::{assertions::ensure_vote_exists, params::get_public_key},
     types::{
-        Ballot, Cipher, PublicKey as SubstratePK, ShuffleProof, ShuffleProofAsBytes,
-        Topic, TopicId, Vote, VoteId, VotePhase, Wrapper,
+        Ballot, Cipher, PublicKey as SubstratePK, ShufflePayload, ShuffleProof,
+        ShuffleProofAsBytes, Topic, TopicId, Vote, VoteId, VotePhase, Wrapper,
     },
 };
 use crate::{
@@ -71,20 +71,11 @@ impl<T: Trait> Module<T> {
 
         debug::info!("hi there i'm a validator");
 
-        let duration = T::BlockDuration::get();
-        let zero: T::BlockNumber = T::BlockNumber::from(0u32);
-        debug::info!("block duration: {:?}", duration);
-
         let sealers: Vec<T::AccountId> = Sealers::<T>::get();
         debug::info!("sealers: {:?}", sealers);
 
         let voting_authorities: Vec<T::AccountId> = VotingAuthorities::<T>::get();
         debug::info!("voting_authorities: {:?}", voting_authorities);
-
-        // // shuffle votes + create a proof
-        // if duration > zero && block_number % duration == zero {
-        //     debug::info!("boss move");
-        // }
 
         // check who's turn it is
         let n: T::BlockNumber = (sealers.len() as u32).into();
@@ -99,7 +90,7 @@ impl<T: Trait> Module<T> {
         let signer = Signer::<T, T::AuthorityId>::any_account();
 
         // call send + return its result
-        send_signed::<T>(signer, Call::test(true))
+        send_signed::<T>(signer, Call::do_nothing_when_its_not_your_turn())
     }
 
     pub fn offchain_shuffle_and_proof(
@@ -208,16 +199,20 @@ impl<T: Trait> Module<T> {
                         sealer.eq(&_acct.id)
                     );
 
+                    let payload = ShufflePayload {
+                        ciphers: shuffled_encryptions_as_bytes.clone(),
+                        proof: proof_as_bytes.clone(),
+                        iteration: current_nr_of_shuffles,
+                    };
+
                     if sealer.eq(&_acct.id) {
                         Call::submit_shuffled_votes_and_proof(
                             vote_id.to_vec(),
                             topic_id.to_vec(),
-                            proof_as_bytes.clone(),
-                            shuffled_encryptions_as_bytes.clone(),
-                            current_nr_of_shuffles,
+                            payload,
                         )
                     } else {
-                        Call::test(true)
+                        Call::do_nothing_when_its_not_your_turn()
                     }
                 });
 
