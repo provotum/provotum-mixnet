@@ -15,3 +15,7 @@ To start the test network (initial setup):
 To start the test network: 
 1. run `./scripts/zh/zh.sh`, to startup the node **zh**.
 2. do the same step for the other nodes but provide the peer node identity for the bootnode (i.e. zh): `./scripts/ag/ag.sh --boodenode=[peerNodeIdentity]`
+
+## Notes
+
+It is important to use `--execution Native` otherwise larger extrinsics will not work i.e. cannot be verified and are rejected.

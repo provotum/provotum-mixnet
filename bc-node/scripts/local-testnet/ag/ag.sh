@@ -59,6 +59,7 @@ $projectDir/target/$mode/provotum \
   --name Node-AG \
   --base-path /tmp/node-ag \
   --rpc-methods=Unsafe \
+  --execution Native \
   --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/$bootnode_ip &
 
 process_pid=$!

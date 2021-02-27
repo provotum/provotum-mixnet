@@ -50,6 +50,7 @@ $projectDir/target/$mode/provotum \
   --rpc-port 9933 \
   --name Node-ZH \
   --base-path /tmp/node-zh \
+  --execution Native \
   --rpc-methods=Unsafe &
 
 process_pid=$!

@@ -107,7 +107,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     transaction_version: 1,
 };
 
-pub const MILLISECS_PER_BLOCK: u64 = 3000;
+pub const MILLISECS_PER_BLOCK: u64 = 6000;
 
 pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
@@ -128,7 +128,7 @@ pub fn native_version() -> NativeVersion {
 parameter_types! {
     pub const BlockHashCount: BlockNumber = 2400;
     /// We allow for 2 seconds of compute with a 6 second average block time.
-    pub const MaximumBlockWeight: Weight = 2 * WEIGHT_PER_SECOND;
+    pub const MaximumBlockWeight: Weight = 4 * WEIGHT_PER_SECOND;
     pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
     /// Assume 10% of weight for average on_initialize calls.
     pub MaximumExtrinsicWeight: Weight = AvailableBlockRatio::get()
@@ -271,7 +271,7 @@ impl pallet_sudo::Trait for Runtime {
 // off-chain worker (mixnet) pallet configuation
 
 parameter_types! {
-    pub const BlockDuration: BlockNumber = 5u64;
+    pub const BlockDuration: BlockNumber = 3u64;
 }
 
 impl pallet_mixnet::Trait for Runtime {
