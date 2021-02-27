@@ -308,6 +308,7 @@ dependencies = [
  "num-traits",
  "pallet-mixnet",
  "parity-scale-codec",
+ "rand 0.7.3",
  "sp-keyring",
  "substrate-subxt",
 ]

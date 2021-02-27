@@ -1,4 +1,5 @@
 mod calls;
+mod random;
 mod stores;
 
 use crate::calls::{CreateVote, SetVotePhase, StorePublicKey};
@@ -12,6 +13,7 @@ use pallet_mixnet::types::{
 };
 use sp_keyring::{sr25519::sr25519::Pair, AccountKeyring};
 use std::str::from_utf8;
+use std::{thread, time};
 use substrate_subxt::{system::AccountStoreExt, Call, Client, ExtrinsicSuccess};
 use substrate_subxt::{ClientBuilder, Error, NodeTemplateRuntime, PairSigner};
 
@@ -27,6 +29,7 @@ async fn main() -> Result<(), Error> {
 
     // create the vote
     let (params, sk, pk) = Helper::setup_sm_system();
+    let q = &params.q();
     let vote_id = "20201212".as_bytes().to_vec();
     let vote_title = "Popular Vote of 12.12.2020".as_bytes().to_vec();
 
@@ -38,35 +41,44 @@ async fn main() -> Result<(), Error> {
     // create vote
     let create_vote_response =
         create_vote(&client, params.into(), vote_title, vote_id.clone(), topics).await?;
-    println!("create_vote_response: {:?}", create_vote_response);
+    println!(
+        "create_vote_response: {:?}",
+        create_vote_response.events[0].variant
+    );
 
     // setup the public key
     let public_key_response = store_public_key(&client, vote_id.clone(), pk.clone().into()).await?;
-    println!("public_key_response: {:?}", public_key_response);
+    println!(
+        "public_key_response: {:?}",
+        public_key_response.events[0].variant
+    );
 
     // update vote phase to Voting
     let vote_phase_voting = set_vote_phase(&client, vote_id.clone(), VotePhase::Voting).await?;
-    println!("vote_phase_voting: {:?}", vote_phase_voting);
+    println!(
+        "vote_phase_voting: {:?}",
+        vote_phase_voting.events[0].variant
+    );
 
     // fetch all exisiting vote ids
-    let vote_ids = get_vote_ids(&client).await?;
+    get_vote_ids(&client).await?;
 
-    // TODO: create a loop to submit multiple votes
     // TODO: If possible make the number of moves configurable
+    let encryptions = random::Random::get_random_encryptions(&pk, q, 6, false);
+
     // submit some ballots
-    for _i in 0..3 {
-        // create cipher
-        let message = BigUint::from(3u32);
-        let random = BigUint::from(1u32);
-        let cipher: BigCipher = ElGamal::encrypt(&message, &random, &pk);
-        let cipher_as_bytes: Cipher = cipher.into();
+    for cipher in encryptions.into_iter() {
+        // create ballot
         let ballot: Ballot = Ballot {
-            answers: vec![(topic_id.clone(), cipher_as_bytes)],
+            answers: vec![(topic_id.clone(), cipher.into())],
         };
 
         // submit ballot
         let cast_ballot_response = cast_ballot(&client, vote_id.clone(), ballot).await?;
-        println!("cast_ballot_response: {:?}", cast_ballot_response);
+        println!(
+            "cast_ballot_response: {:?}",
+            cast_ballot_response.events[0].variant
+        );
     }
 
     // fetch all existing ciphers
@@ -74,7 +86,11 @@ async fn main() -> Result<(), Error> {
 
     // update vote phase to Tallying
     let vote_phase_tally = set_vote_phase(&client, vote_id, VotePhase::Tallying).await?;
-    println!("vote_phase_tally: {:?}", vote_phase_tally);
+    println!("vote_phase_tally: {:?}", vote_phase_tally.events[0].variant);
+
+    // wait for the shuffle to be performed and submitted
+    let timeout = time::Duration::from_secs(20);
+    thread::sleep(timeout);
 
     // fetch all new ciphers (after the shuffle)
     get_ciphers(&client, topic_id, 1).await?;
@@ -84,7 +100,7 @@ async fn main() -> Result<(), Error> {
 
 pub async fn get_vote_ids(client: &Client<NodeTemplateRuntime>) -> Result<Vec<String>, Error> {
     let store = VotesStore {};
-    let mut vote_ids_as_bytes = client
+    let vote_ids_as_bytes = client
         .fetch(&store, None)
         .await?
         .ok_or("failed to fetch vote_ids!")?;
@@ -104,18 +120,17 @@ pub async fn get_ciphers(
     client: &Client<NodeTemplateRuntime>,
     topic_id: TopicId,
     nr_of_shuffles: NrOfShuffles,
-) -> Result<Vec<Vec<u8>>, Error> {
+) -> Result<(), Error> {
     let store = CiphersStore {
         topic_id,
         nr_of_shuffles,
     };
-    let mut ciphers_as_bytes = client
+    let ciphers_as_bytes = client
         .fetch(&store, None)
         .await?
         .ok_or("failed to fetch ciphers!")?;
-    println!("ciphers_as_bytes: {:?}", ciphers_as_bytes);
-    // TODO: add parsing of Vec<u8> into Cipher
-    Ok(Vec::new())
+    println!("# of ciphers: {:?}", ciphers_as_bytes.len());
+    Ok(())
 }
 
 pub async fn create_vote(
