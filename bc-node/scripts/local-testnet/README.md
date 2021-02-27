@@ -19,3 +19,4 @@ To start the test network:
 ## Notes
 
 It is important to use `--execution Native` otherwise larger extrinsics will not work i.e. cannot be verified and are rejected.
+See here: https://github.com/paritytech/substrate/issues/3174
