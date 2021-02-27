@@ -110,15 +110,17 @@ impl<T: Trait> Module<T> {
             return Ok(());
         }
 
-        // only perform operation every 2 block
+        // Only attempt to shuffle votes
+        // every #BlockDuration of blocks
         let duration = T::BlockDuration::get();
         let zero: T::BlockNumber = T::BlockNumber::from(0u32);
-        if duration > zero && block_number % duration != zero {
+        if block_number % duration != zero {
             return Ok(());
         }
 
         // get all vote_ids
         let vote_ids: Vec<VoteId> = VoteIds::get();
+        debug::info!("vote_ids: {:?}", vote_ids);
 
         for vote_id in vote_ids.iter() {
             // check vote state -> TALLYING
@@ -146,7 +148,7 @@ impl<T: Trait> Module<T> {
                 // get all encrypted votes (ciphers)
                 // for the topic with id: topic_id and the # of shuffles (current_nr_of_shuffles)
                 // TODO: implement a function to retrieve the most recent number of shuffles...
-                debug::info!("vote_id: {:?}, topic_id: {:?}", vote_id, topic_id);
+                debug::info!("topic_id: {:?}", topic_id);
                 let ciphers: Vec<Cipher> =
                     Ciphers::get(&topic_id, current_nr_of_shuffles);
 
@@ -219,14 +221,15 @@ impl<T: Trait> Module<T> {
                     }
                 });
 
-                // display error if the signed tx fails.
+                // handle the response
                 if let Some((acc, res)) = result {
+                    // display error if the signed tx fails.
                     if res.is_err() {
                         debug::error!(
-                            "failure: offchain_signed_tx: tx sent: {:?}",
-                            acc.id
+                            "failure in offchain tx, acc: {:?}, res: {:?}",
+                            acc.id,
+                            res
                         );
-                        return Err(<Error<T>>::OffchainSignedTxError);
                     }
                     // Transaction is sent successfully
                     if sealer.eq(&acc.id) {
@@ -235,12 +238,11 @@ impl<T: Trait> Module<T> {
                             vote_id
                         );
                     }
-                    return Ok(());
+                } else {
+                    // The case of `None`: no account is available for sending
+                    debug::error!("No local account available");
+                    return Err(<Error<T>>::NoLocalAcctForSigning);
                 }
-
-                // The case of `None`: no account is available for sending
-                debug::error!("No local account available");
-                return Err(<Error<T>>::NoLocalAcctForSigning);
             }
         }
         Ok(())

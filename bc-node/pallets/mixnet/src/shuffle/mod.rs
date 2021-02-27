@@ -22,9 +22,6 @@ impl<T: Trait> Module<T> {
         shuffled_encryptions: Vec<Cipher>,
         nr_of_shuffles: NrOfShuffles,
     ) -> Result<(), Error<T>> {
-        // get the public key for the vote
-        let pk: SubstratePK = get_public_key::<T>(vote_id)?;
-
         // get all encrypted votes (encryptions)
         // for the topic with id: topic_id and the # of shuffles (nr_of_shuffles)
         let encryptions: Vec<Cipher> = Ciphers::get(topic_id, nr_of_shuffles);
@@ -33,6 +30,25 @@ impl<T: Trait> Module<T> {
         if encryptions.is_empty() {
             return Err(Error::<T>::NrOfShufflesDoesNotExist);
         }
+
+        // check that the encryptions have not already been shuffled
+        // i.e. no votes exist for the increased nr_of_shuffles
+        let new_nr_of_shuffles = nr_of_shuffles + 1;
+        let shuffled: Vec<Cipher> = Ciphers::get(topic_id, new_nr_of_shuffles);
+        debug::info!(
+            "vote_id: {:?}, topic_id: {:?}, ciphers shuffled & stored? {:?}",
+            vote_id,
+            topic_id,
+            !shuffled.is_empty()
+        );
+        ensure!(shuffled.is_empty(), Error::<T>::ShuffleAlreadyPerformed);
+
+        //
+        // State: The votes exist and have not been shuffled yet!
+        //
+
+        // get the public key for the vote
+        let pk: SubstratePK = get_public_key::<T>(vote_id)?;
 
         // type conversion: Vec<Cipher> (Vec<Vec<u8>>) to Vec<BigCipher> (Vec<BigUint>)
         let big_ciphers: Vec<BigCipher> = Wrapper(encryptions).into();
@@ -52,18 +68,6 @@ impl<T: Trait> Module<T> {
             &pk,
         )?;
         ensure!(is_proof_valid, Error::<T>::ShuffleProofVerifcationFailed);
-
-        // check that no shuffle votes already exist for the increased number
-        let new_nr_of_shuffles = nr_of_shuffles + 1;
-        let already_shuffled: Vec<Cipher> = Ciphers::get(topic_id, new_nr_of_shuffles);
-        debug::info!(
-            "have the ciphers already been shuffled and stored? {:?}",
-            !already_shuffled.is_empty()
-        );
-        ensure!(
-            already_shuffled.is_empty(),
-            Error::<T>::ShuffleAlreadyPerformed
-        );
 
         // store the shuffle ciphers with the new increased number of shuffles
         Ciphers::insert(&topic_id, new_nr_of_shuffles, shuffled_encryptions);

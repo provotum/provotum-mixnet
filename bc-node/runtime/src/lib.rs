@@ -107,7 +107,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     transaction_version: 1,
 };
 
-pub const MILLISECS_PER_BLOCK: u64 = 6000;
+pub const MILLISECS_PER_BLOCK: u64 = 3000;
 
 pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
@@ -271,7 +271,7 @@ impl pallet_sudo::Trait for Runtime {
 // off-chain worker (mixnet) pallet configuation
 
 parameter_types! {
-    pub const BlockDuration: BlockNumber = 1u64;
+    pub const BlockDuration: BlockNumber = 5u64;
 }
 
 impl pallet_mixnet::Trait for Runtime {
