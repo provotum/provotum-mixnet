@@ -237,6 +237,9 @@ decl_error! {
 
         // Error returned when no encryptions exists for given nr_of_shuffles
         NrOfShufflesDoesNotExist,
+
+        /// Error returned in offchain worker when computing shuffle start position fails
+        CouldNotComputeShuffleStartPosition
     }
 }
 
@@ -450,23 +453,12 @@ decl_module! {
         #[weight = (10_000, Pays::No)]
         fn do_nothing_when_its_not_your_turn(origin) -> DispatchResult {
             let who: T::AccountId = ensure_signed(origin)?;
-            debug::info!("who called the function: {:?}", who);
-            // let count_by_sealer: u32 = CountsBySealer::<T>::get::<T::AccountId>(who.clone());
-            // let count: u32 = Counts::get();
-            // debug::info!("count: {:?}, count_by_sealer: {:?}", count, count_by_sealer);
-            // CountsBySealer::<T>::insert::<T::AccountId, u32>(who, count_by_sealer + 1);
-            // Counts::put(count + 1);
+            debug::info!("offchain fn call when not shuffling, who: {:?}", who);
             Ok(())
         }
 
         fn offchain_worker(block_number: T::BlockNumber) {
             debug::info!("off-chain worker: entering...");
-
-            // let result = Self::do_work_in_offchain_worker(block_number.clone());
-            // match result {
-            //    _ => (),
-            //     Err(err) => debug::error!("error while performing work in offchain worker: {:?}", err),
-            // }
 
             let offchain_shuffle_and_proof_result = Self::offchain_shuffle_and_proof(block_number);
             match offchain_shuffle_and_proof_result {

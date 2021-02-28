@@ -271,7 +271,7 @@ impl pallet_sudo::Trait for Runtime {
 // off-chain worker (mixnet) pallet configuation
 
 parameter_types! {
-    pub const BlockDuration: BlockNumber = 3u64;
+    pub const BlockDuration: BlockNumber = 1u64;
 }
 
 impl pallet_mixnet::Trait for Runtime {

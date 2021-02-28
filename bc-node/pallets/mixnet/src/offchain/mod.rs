@@ -7,10 +7,7 @@ use crate::{
         ShuffleProofAsBytes, Topic, TopicId, Vote, VoteId, VotePhase, Wrapper,
     },
 };
-use crate::{
-    Call, Ciphers, Error, Module, Sealers, Topics, Trait, VoteIds, Votes,
-    VotingAuthorities,
-};
+use crate::{Call, Ciphers, Error, Module, Sealers, Topics, Trait, VoteIds, Votes};
 use core::convert::TryInto;
 use crypto::{
     encryption::ElGamal, types::Cipher as BigCipher, types::PublicKey as ElGamalPK,
@@ -23,6 +20,7 @@ use frame_support::{
 use frame_system::offchain::{SendSignedTransaction, Signer};
 use num_bigint::BigUint;
 use send::send_signed;
+use sp_runtime::offchain::storage::StorageValueRef;
 use sp_std::{vec, vec::Vec};
 
 impl<T: Trait> Module<T> {
@@ -59,38 +57,6 @@ impl<T: Trait> Module<T> {
             signer,
             Call::cast_ballot(vote_id.clone(), ballot.clone()),
         );
-    }
-
-    pub fn do_work_in_offchain_worker(
-        block_number: T::BlockNumber,
-    ) -> Result<(), Error<T>> {
-        // if the offchain worker is not a validator, we don't shuffle the votes
-        if !sp_io::offchain::is_validator() {
-            return Ok(());
-        }
-
-        debug::info!("hi there i'm a validator");
-
-        let sealers: Vec<T::AccountId> = Sealers::<T>::get();
-        debug::info!("sealers: {:?}", sealers);
-
-        let voting_authorities: Vec<T::AccountId> = VotingAuthorities::<T>::get();
-        debug::info!("voting_authorities: {:?}", voting_authorities);
-
-        // check who's turn it is
-        let n: T::BlockNumber = (sealers.len() as u32).into();
-        let index = block_number % n;
-
-        let test = TryInto::<u64>::try_into(index).ok();
-        let index_as_u64 = test.expect("Type conversion failed!");
-        let sealer: &T::AccountId = &sealers[index_as_u64 as usize];
-        debug::info!("it is sealer {:?} (index: {:?})", sealer, index);
-
-        // get the signer for the transaction
-        let signer = Signer::<T, T::AuthorityId>::any_account();
-
-        // call send + return its result
-        send_signed::<T>(signer, Call::do_nothing_when_its_not_your_turn())
     }
 
     pub fn offchain_shuffle_and_proof(
@@ -174,38 +140,29 @@ impl<T: Trait> Module<T> {
 
                 // check who's turn it is
                 let sealers: Vec<T::AccountId> = Sealers::<T>::get();
-                let n: T::BlockNumber = (sealers.len() as u32).into();
-                let index = block_number % n;
-                let index_as_u64 = TryInto::<u64>::try_into(index)
-                    .ok()
-                    .expect("Type conversion failed!");
-                let sealer: &T::AccountId = &sealers[index_as_u64 as usize];
-                debug::info!("it is sealer {:?} (index: {:?})", sealer, index);
+                let nr_sealer: u64 = sealers.len() as u64;
+                let (current_sealer, index) =
+                    Self::get_current_sealer(block_number, sealers);
 
                 // submit the shuffle proof and the shuffled ciphers
                 let result = signer.send_signed_transaction(|_acct| {
-                    debug::info!("account: {:?}", _acct.id);
-
-                    let sealers: Vec<T::AccountId> = Sealers::<T>::get();
-                    debug::info!("sealers: {:?}", sealers);
-
-                    debug::info!(
-                        "sealers contains addresss: {:?}",
-                        sealers.contains(&_acct.id)
-                    );
-
-                    debug::info!(
-                        "is it the current sealer's turn: {:?}",
-                        sealer.eq(&_acct.id)
-                    );
-
+                    let local_address = &_acct.id;
                     let payload = ShufflePayload {
                         ciphers: shuffled_encryptions_as_bytes.clone(),
                         proof: proof_as_bytes.clone(),
                         iteration: current_nr_of_shuffles,
                     };
 
-                    if sealer.eq(&_acct.id) {
+                    // experiment with storing shuffle information
+                    let result = Self::get_shuffle_start_position(index, nr_sealer, 2u64);
+                    if result.is_ok() && current_sealer.eq(local_address) {
+                        let start_position = result.unwrap();
+                        debug::info!(
+                            "start position for sealer: {:?} is: {:?}",
+                            current_sealer,
+                            start_position
+                        );
+
                         Call::submit_shuffled_votes_and_proof(
                             vote_id.to_vec(),
                             topic_id.to_vec(),
@@ -227,7 +184,7 @@ impl<T: Trait> Module<T> {
                         );
                     }
                     // Transaction is sent successfully
-                    if sealer.eq(&acc.id) {
+                    if current_sealer.eq(&acc.id) {
                         debug::info!(
                             "votes shuffled in offchain worker -> vote_id: {:?}",
                             vote_id
@@ -242,6 +199,80 @@ impl<T: Trait> Module<T> {
         }
         Ok(())
     }
-}
 
-// TODO: implement creating a decrypted share + submitting it -> used by offchain worker
+    fn get_shuffle_start_position(
+        sealer_index: u64,
+        nr_sealers: u64,
+        batch_size: u64,
+    ) -> Result<u64, Error<T>> {
+        let store =
+            StorageValueRef::persistent(b"pallet_mixnet_ocw::shuffle::current_round");
+        let result = store.mutate(|round: Option<Option<u64>>| {
+            // We match on the value decoded from the storage. The first `Option` indicates if the value was present in the storage at all, the second (inner) `Option` indicates if the value was succesfuly decoded to expected type (`u64`).
+            match round {
+                // If we already have a value in storage, we increment it by 1.
+                Some(Some(value)) => {
+                    debug::info!("previous round read: {:?}", value);
+                    Ok(value + 1)
+                }
+
+                Some(None) => {
+                    debug::info!("error could not persist round value.");
+                    Err(())
+                }
+
+                // Initially, we start with round 0.
+                _ => {
+                    debug::info!("round init: 0");
+                    Ok(0)
+                }
+            }
+        });
+
+        match result {
+            Ok(Ok(round_number)) => {
+                debug::info!("current round number: {:?}", round_number);
+                let start_position =
+                    Self::get_batch(sealer_index, round_number, nr_sealers, batch_size);
+                Ok(start_position)
+            }
+            _ => {
+                debug::error!("error computing shuffle start position: {:?}", result);
+                Err(<Error<T>>::CouldNotComputeShuffleStartPosition)
+            }
+        }
+    }
+
+    /// computes the total number of rounds required to shuffle all ciphers
+    /// round_size = # of sealers * batch_size
+    /// total # of rounds = # of ciphers / round_size
+    fn get_total_rounds(nr_ciphers: u64, nr_sealers: u64, batch_size: u64) -> u64 {
+        let round_size = nr_sealers * batch_size;
+        nr_ciphers / round_size
+    }
+
+    /// computes the shuffle batch starting point for each sealer
+    /// round_size = # of sealers * batch_size
+    /// start_point = sealer_index * batch_size + round_size * round
+    fn get_batch(index: u64, round: u64, nr_sealers: u64, batch_size: u64) -> u64 {
+        let round_size = nr_sealers * batch_size;
+        let batch_position = index * batch_size;
+        let round_position = round_size * round;
+        batch_position + round_position
+    }
+
+    /// retrieves the current sealer, depends on the block number
+    fn get_current_sealer(
+        block_number: T::BlockNumber,
+        sealers: Vec<T::AccountId>,
+    ) -> (T::AccountId, u64) {
+        let n: T::BlockNumber = (sealers.len() as u32).into();
+        let index = block_number % n;
+        let index_as_u64 = TryInto::<u64>::try_into(index)
+            .ok()
+            .expect("BockNumber to u64 type conversion failed!");
+        let sealer: T::AccountId = sealers[index_as_u64 as usize].clone();
+        debug::info!("it is sealer {:?} (index: {:?})", sealer, index);
+        (sealer, index_as_u64)
+    }
+}
