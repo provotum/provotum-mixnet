@@ -198,7 +198,7 @@ fn setup_shuffle_proof<T: Trait>(
     ensure!(e.len() == size, "# of votes on chain is not correct");
 
     // shuffle the votes
-    let result = PalletMixnet::<T>::shuffle_ciphers(pk.clone(), e.clone());
+    let result = PalletMixnet::<T>::shuffle_ciphers(&pk, e.clone());
     let s: (Vec<BigCipher>, Vec<BigUint>, Vec<usize>) = result.unwrap();
     let e_hat = s.0; // the shuffled votes
     let r = s.1; // the re-encryption randoms
@@ -584,61 +584,61 @@ benchmarks! {
     shuffle_ciphers_3 {
         let (_, pk, e) = setup_shuffle::<T>(3, false)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(pk, e);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&pk, e);
     }
 
     shuffle_ciphers_10 {
         let (_, pk, e) = setup_shuffle::<T>(10, false)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(pk, e);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&pk, e);
     }
 
     shuffle_ciphers_30 {
         let (_, pk, e) = setup_shuffle::<T>(30, false)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(pk, e);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&pk, e);
     }
 
     shuffle_ciphers_100 {
         let (_, pk, e) = setup_shuffle::<T>(100, false)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(pk, e);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&pk, e);
     }
 
     shuffle_ciphers_1000 {
         let (_, pk, e) = setup_shuffle::<T>(1000, false)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(pk, e);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&pk, e);
     }
 
     shuffle_ciphers_3_encoded {
         let (_, pk, e) = setup_shuffle::<T>(3, true)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(pk, e);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&pk, e);
     }
 
     shuffle_ciphers_10_encoded {
         let (_, pk, e) = setup_shuffle::<T>(10, true)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(pk, e);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&pk, e);
     }
 
     shuffle_ciphers_30_encoded {
         let (_, pk, e) = setup_shuffle::<T>(30, true)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(pk, e);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&pk, e);
     }
 
     shuffle_ciphers_100_encoded {
         let (_, pk, e) = setup_shuffle::<T>(100, true)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(pk, e);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&pk, e);
     }
 
     shuffle_ciphers_1000_encoded {
         let (_, pk, e) = setup_shuffle::<T>(1000, true)?;
     }: {
-        let _result = PalletMixnet::<T>::shuffle_ciphers(pk, e);
+        let _result = PalletMixnet::<T>::shuffle_ciphers(&pk, e);
     }
 
     shuffle_proof_3 {

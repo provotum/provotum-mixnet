@@ -1,13 +1,16 @@
 mod send;
 
 use crate::{
-    helpers::{assertions::ensure_vote_exists, params::get_public_key},
+    helpers::{array::get_slice, assertions::ensure_vote_exists, params::get_public_key},
     types::{
         Ballot, Cipher, PublicKey as SubstratePK, ShufflePayload, ShuffleProof,
-        ShuffleProofAsBytes, Topic, TopicId, Vote, VoteId, VotePhase, Wrapper,
+        ShuffleState, Topic, TopicId, Vote, VoteId, VotePhase, Wrapper,
     },
 };
-use crate::{Call, Ciphers, Error, Module, Sealers, Topics, Trait, VoteIds, Votes};
+use crate::{
+    Call, Ciphers, Error, Module, Sealers, ShuffleStateStore, Topics, Trait, VoteIds,
+    Votes,
+};
 use core::convert::TryInto;
 use crypto::{
     encryption::ElGamal, types::Cipher as BigCipher, types::PublicKey as ElGamalPK,
@@ -17,10 +20,9 @@ use frame_support::{
     storage::{StorageDoubleMap, StorageMap, StorageValue},
     traits::Get,
 };
-use frame_system::offchain::{SendSignedTransaction, Signer};
+use frame_system::offchain::{Account, SendSignedTransaction, Signer};
 use num_bigint::BigUint;
 use send::send_signed;
-use sp_runtime::offchain::storage::StorageValueRef;
 use sp_std::{vec, vec::Vec};
 
 impl<T: Trait> Module<T> {
@@ -59,9 +61,7 @@ impl<T: Trait> Module<T> {
         );
     }
 
-    pub fn offchain_shuffle_and_proof(
-        block_number: T::BlockNumber,
-    ) -> Result<(), Error<T>> {
+    pub fn offchain_shuffling(block_number: T::BlockNumber) -> Result<(), Error<T>> {
         // if the offchain worker is not a validator, we don't shuffle the votes
         if !sp_io::offchain::is_validator() {
             return Ok(());
@@ -98,181 +98,153 @@ impl<T: Trait> Module<T> {
             let pk: SubstratePK = get_public_key::<T>(&vote_id)?;
             let pk: ElGamalPK = pk.into();
 
-            // TODO: figure out a way on how to decide what the current number of shuffles is
-            let current_nr_of_shuffles: u8 = 0;
-
             for (topic_id, _) in topics.iter() {
-                // get all encrypted votes (ciphers)
-                // for the topic with id: topic_id and the # of shuffles (current_nr_of_shuffles)
-                // TODO: implement a function to retrieve the most recent number of shuffles...
-                debug::info!("topic_id: {:?}", topic_id);
-                let ciphers: Vec<Cipher> =
-                    Ciphers::get(&topic_id, current_nr_of_shuffles);
+                // get shuffle state
+                let shuffle_state: ShuffleState = ShuffleStateStore::get((
+                    vote_id, topic_id,
+                ))
+                .expect("shuffle state should exist for all existing votes & topics!");
+                debug::info!("shuffle_state: {:?}", shuffle_state);
 
-                // type conversion: Cipher (Vec<u8>) to BigCipher (BigUint)
-                let encryptions: Vec<BigCipher> = Wrapper(ciphers).into();
+                // if the shuffling has been completed -> skip to next topic
+                if shuffle_state.done {
+                    continue;
+                }
 
-                // for each topic_id & vote_id
-                // shuffle the votes
-                let (shuffled_encryptions, re_encryption_randoms, permutation): (
-                    Vec<BigCipher>,
-                    Vec<BigUint>,
-                    Vec<usize>,
-                ) = Self::shuffle_ciphers(pk.clone(), encryptions.clone())?;
-
-                // generate the shuffle proof
-                let proof: ShuffleProof = Self::generate_shuffle_proof(
-                    &topic_id,
-                    encryptions,
-                    shuffled_encryptions.clone(),
-                    re_encryption_randoms,
-                    &permutation,
-                    &pk,
-                )?;
-
-                // type conversions
-                let shuffled_encryptions_as_bytes: Vec<Cipher> =
-                    Wrapper(shuffled_encryptions).into();
-                let proof_as_bytes: ShuffleProofAsBytes = proof.into();
+                // check who's turn it is
+                let sealers: Vec<T::AccountId> = Sealers::<T>::get();
+                let current_sealer = Self::get_current_sealer(block_number, sealers);
 
                 // get the signer for the transaction
                 let signer = Signer::<T, T::AuthorityId>::any_account();
 
-                // check who's turn it is
-                let sealers: Vec<T::AccountId> = Sealers::<T>::get();
-                let nr_sealer: u64 = sealers.len() as u64;
-                let (current_sealer, index) =
-                    Self::get_current_sealer(block_number, sealers);
-
-                // submit the shuffle proof and the shuffled ciphers
-                let result = signer.send_signed_transaction(|_acct| {
+                // if it's the current_sealer's turn, then shuffle + submit ciphers + proof
+                // else, submit empty transaction
+                let transaction_response = signer.send_signed_transaction(|_acct| {
                     let local_address = &_acct.id;
-                    let payload = ShufflePayload {
-                        ciphers: shuffled_encryptions_as_bytes.clone(),
-                        proof: proof_as_bytes.clone(),
-                        iteration: current_nr_of_shuffles,
-                    };
 
-                    // experiment with storing shuffle information
-                    let result = Self::get_shuffle_start_position(index, nr_sealer, 2u64);
-                    if result.is_ok() && current_sealer.eq(local_address) {
-                        let start_position = result.unwrap();
-                        debug::info!(
-                            "start position for sealer: {:?} is: {:?}",
-                            current_sealer,
-                            start_position
+                    if current_sealer.eq(local_address) {
+                        debug::info!("my turn!");
+                        // shuffle ciphers + create proof
+                        let payload_response = Self::offchain_shuffle_and_proof(
+                            &topic_id,
+                            shuffle_state.iteration,
+                            &pk,
+                            shuffle_state.start_position,
+                            shuffle_state.batch_size,
                         );
-
+                        let payload: ShufflePayload = payload_response.unwrap();
                         Call::submit_shuffled_votes_and_proof(
                             vote_id.to_vec(),
                             topic_id.to_vec(),
                             payload,
                         )
+                    // do nothing in case that it is not this sealer's turn
                     } else {
+                        debug::info!("not my turn!");
                         Call::do_nothing_when_its_not_your_turn()
                     }
                 });
-
-                // handle the response
-                if let Some((acc, res)) = result {
-                    // display error if the signed tx fails.
-                    if res.is_err() {
-                        debug::error!(
-                            "failure in offchain tx, acc: {:?}, res: {:?}",
-                            acc.id,
-                            res
-                        );
-                    }
-                    // Transaction is sent successfully
-                    if current_sealer.eq(&acc.id) {
-                        debug::info!(
-                            "votes shuffled in offchain worker -> vote_id: {:?}",
-                            vote_id
-                        );
-                    }
-                } else {
-                    // The case of `None`: no account is available for sending
-                    debug::error!("No local account available");
-                    return Err(<Error<T>>::NoLocalAcctForSigning);
-                }
+                Self::handle_transaction_response(
+                    &vote_id,
+                    &current_sealer,
+                    transaction_response,
+                )?;
             }
         }
         Ok(())
     }
 
-    fn get_shuffle_start_position(
-        sealer_index: u64,
-        nr_sealers: u64,
+    pub fn offchain_shuffle_and_proof(
+        topic_id: &TopicId,
+        iteration: u8,
+        pk: &ElGamalPK,
+        start_position: u64,
         batch_size: u64,
-    ) -> Result<u64, Error<T>> {
-        let store =
-            StorageValueRef::persistent(b"pallet_mixnet_ocw::shuffle::current_round");
-        let result = store.mutate(|round: Option<Option<u64>>| {
-            // We match on the value decoded from the storage. The first `Option` indicates if the value was present in the storage at all, the second (inner) `Option` indicates if the value was succesfuly decoded to expected type (`u64`).
-            match round {
-                // If we already have a value in storage, we increment it by 1.
-                Some(Some(value)) => {
-                    debug::info!("previous round read: {:?}", value);
-                    Ok(value + 1)
-                }
+    ) -> Result<ShufflePayload, Error<T>> {
+        // get all encrypted votes (ciphers)
+        // for the topic with id: topic_id and the # of shuffles (iteration)
+        debug::info!("topic_id: {:?}", topic_id);
+        let ciphers: Vec<Cipher> = Ciphers::get(&topic_id, iteration);
 
-                Some(None) => {
-                    debug::info!("error could not persist round value.");
-                    Err(())
-                }
+        // type conversion: Cipher (Vec<u8>) to BigCipher (BigUint)
+        let encryptions: Vec<BigCipher> = Wrapper(ciphers).into();
 
-                // Initially, we start with round 0.
-                _ => {
-                    debug::info!("round init: 0");
-                    Ok(0)
-                }
-            }
-        });
+        // retrieve the ciphers for the computed range
+        let slice =
+            get_slice::<T, BigCipher>(encryptions.clone(), start_position, batch_size);
 
-        match result {
-            Ok(Ok(round_number)) => {
-                debug::info!("current round number: {:?}", round_number);
-                let start_position =
-                    Self::get_batch(sealer_index, round_number, nr_sealers, batch_size);
-                Ok(start_position)
-            }
-            _ => {
-                debug::error!("error computing shuffle start position: {:?}", result);
-                Err(<Error<T>>::CouldNotComputeShuffleStartPosition)
-            }
-        }
-    }
+        // for each topic_id & vote_id
+        // shuffle the votes
+        let (shuffled_slice, re_encryption_randoms, permutation): (
+            Vec<BigCipher>,
+            Vec<BigUint>,
+            Vec<usize>,
+        ) = Self::shuffle_ciphers(&pk, slice.to_vec())?;
 
-    /// computes the total number of rounds required to shuffle all ciphers
-    /// round_size = # of sealers * batch_size
-    /// total # of rounds = # of ciphers / round_size
-    fn get_total_rounds(nr_ciphers: u64, nr_sealers: u64, batch_size: u64) -> u64 {
-        let round_size = nr_sealers * batch_size;
-        nr_ciphers / round_size
-    }
+        // generate the shuffle proof
+        let proof: ShuffleProof = Self::generate_shuffle_proof(
+            &topic_id,
+            slice,
+            shuffled_slice.clone(),
+            re_encryption_randoms,
+            &permutation,
+            &pk,
+        )?;
 
-    /// computes the shuffle batch starting point for each sealer
-    /// round_size = # of sealers * batch_size
-    /// start_point = sealer_index * batch_size + round_size * round
-    fn get_batch(index: u64, round: u64, nr_sealers: u64, batch_size: u64) -> u64 {
-        let round_size = nr_sealers * batch_size;
-        let batch_position = index * batch_size;
-        let round_position = round_size * round;
-        batch_position + round_position
+        // create transaction payload
+        let payload = ShufflePayload {
+            ciphers: Wrapper(shuffled_slice).into(),
+            proof: proof.into(),
+            iteration,
+            start_position,
+            batch_size,
+        };
+        Ok(payload)
     }
 
     /// retrieves the current sealer, depends on the block number
     fn get_current_sealer(
         block_number: T::BlockNumber,
         sealers: Vec<T::AccountId>,
-    ) -> (T::AccountId, u64) {
+    ) -> T::AccountId {
         let n: T::BlockNumber = (sealers.len() as u32).into();
         let index = block_number % n;
         let index_as_u64 = TryInto::<u64>::try_into(index)
             .ok()
             .expect("BockNumber to u64 type conversion failed!");
         let sealer: T::AccountId = sealers[index_as_u64 as usize].clone();
-        debug::info!("it is sealer {:?} (index: {:?})", sealer, index);
-        (sealer, index_as_u64)
+        debug::info!("current turn: sealer {:?} (index: {:?})", sealer, index);
+        sealer
+    }
+
+    fn handle_transaction_response(
+        vote_id: &VoteId,
+        current_sealer: &T::AccountId,
+        transaction_response: Option<(Account<T>, Result<(), ()>)>,
+    ) -> Result<(), Error<T>> {
+        // handle the response
+        if let Some((acc, res)) = transaction_response {
+            // display error if the signed tx fails.
+            if res.is_err() {
+                debug::error!(
+                    "failure in offchain tx, acc: {:?}, res: {:?}",
+                    acc.id,
+                    res
+                );
+            }
+            // transaction is sent successfully
+            if current_sealer.eq(&acc.id) {
+                debug::info!(
+                    "votes shuffled in offchain worker -> vote_id: {:?}",
+                    vote_id
+                );
+            }
+            Ok(())
+        } else {
+            // the case of `None`: no account is available for sending
+            debug::error!("No local account available");
+            return Err(<Error<T>>::NoLocalAcctForSigning);
+        }
     }
 }

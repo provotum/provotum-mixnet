@@ -44,8 +44,8 @@ use crate::helpers::{
 };
 use crate::types::{
     Ballot, Cipher, Count, DecryptedShare, DecryptedShareProof, NrOfShuffles, Plaintext,
-    PublicKey as SubstratePK, PublicKeyShare, PublicParameters, ShufflePayload, Title,
-    Topic, TopicId, Vote, VoteId, VotePhase,
+    PublicKey as SubstratePK, PublicKeyShare, PublicParameters, ShufflePayload,
+    ShuffleState, Title, Topic, TopicId, Vote, VoteId, VotePhase,
 };
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
@@ -101,6 +101,9 @@ decl_storage! {
 
         /// Maps a voteId and topicId to a list of shuffle proofs (iteration, ciphers, proof)
         ShuffleProofs: map hasher(blake2_128_concat) (VoteId, TopicId) => Vec<ShufflePayload>;
+
+        /// Maps a voteId and topicid to a shuffle status
+        ShuffleStateStore: map hasher(blake2_128_concat) (VoteId, TopicId) => Option<ShuffleState>;
 
         /// Maps a topic to a map of results. [topic_id -> {message/vote: count}]
         Tally get(fn tally): map hasher(blake2_128_concat) TopicId => Option<BTreeMap<Plaintext, Count>>;
@@ -239,7 +242,13 @@ decl_error! {
         NrOfShufflesDoesNotExist,
 
         /// Error returned in offchain worker when computing shuffle start position fails
-        CouldNotComputeShuffleStartPosition
+        CouldNotComputeShuffleStartPosition,
+
+        /// Error returned when shuffle state information mismatch occurrs in extrinsic
+        ShuffleStateIncorrect,
+
+        /// Error returned when shuffle is submitted for (vote_id, topic_id) which is already completed
+        ShuffleAlreadyCompleted
     }
 }
 
@@ -346,6 +355,19 @@ decl_module! {
             vote_ids.push(vote_id.clone());
             VoteIds::put(vote_ids);
             Votes::<T>::insert(&vote_id, vote);
+
+            // create an empty shuffle state for each topic
+            for topic in topics.iter() {
+                let (topic_id, _) = topic;
+                ShuffleStateStore::insert((&vote_id, &topic_id), ShuffleState {
+                    iteration: 0,
+                    start_position: 0,
+                    batch_size: 2,
+                    done: false
+                });
+            }
+
+            // store all topics (topic_id, question)
             Topics::insert(&vote_id, topics);
 
             // log success + emit event
@@ -362,8 +384,19 @@ decl_module! {
             ensure_voting_authority::<T>(&who)?;
             ensure_vote_exists::<T>(&vote_id)?;
 
+            let topic_id = &topic.0;
             let mut topics: Vec<Topic> = Topics::get(&vote_id);
             topics.push(topic.clone());
+
+            // create an empty shuffle state for the topic
+            ShuffleStateStore::insert((&vote_id, topic_id), ShuffleState {
+                iteration: 0,
+                start_position: 0,
+                batch_size: 2,
+                done: false,
+            });
+
+            // store the topic
             Topics::insert(&vote_id, topics);
 
             debug::info!("added question: {:?} to vote: {:?}", topic, vote_id);
@@ -460,8 +493,8 @@ decl_module! {
         fn offchain_worker(block_number: T::BlockNumber) {
             debug::info!("off-chain worker: entering...");
 
-            let offchain_shuffle_and_proof_result = Self::offchain_shuffle_and_proof(block_number);
-            match offchain_shuffle_and_proof_result {
+            let offchain_shuffle_result = Self::offchain_shuffling(block_number);
+            match offchain_shuffle_result {
                 Ok(_) => (),
                 Err(err) => debug::error!("error while shuffling in offchain worker: {:?}", err),
              }

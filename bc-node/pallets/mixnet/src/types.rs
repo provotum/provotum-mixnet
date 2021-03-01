@@ -265,6 +265,17 @@ pub struct ShufflePayload {
     pub iteration: u8,
     pub ciphers: Vec<Cipher>,
     pub proof: ShuffleProofAsBytes,
+    pub start_position: u64,
+    pub batch_size: u64,
+}
+
+// a data type to store information about the current status of the shuffle operations
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
+pub struct ShuffleState {
+    pub iteration: u8,
+    pub start_position: u64,
+    pub batch_size: u64,
+    pub done: bool,
 }
 
 pub type VoteId = Vec<u8>;

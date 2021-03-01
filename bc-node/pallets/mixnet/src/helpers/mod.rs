@@ -1,3 +1,4 @@
+pub mod array;
 pub mod assertions;
 pub mod ballot;
 pub mod math;

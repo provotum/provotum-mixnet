@@ -7,7 +7,7 @@ use sp_std::vec::Vec;
 /// all functions related to ballot operations in the offchain worker
 impl<T: Trait> Module<T> {
     pub fn shuffle_ciphers(
-        pk: ElGamalPK,
+        pk: &ElGamalPK,
         ciphers: Vec<BigCipher>,
     ) -> Result<(Vec<BigCipher>, Vec<BigUint>, Vec<usize>), Error<T>> {
         let q = pk.params.q();

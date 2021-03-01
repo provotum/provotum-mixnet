@@ -127,7 +127,7 @@ where
 pub type System = frame_system::Module<TestRuntime>;
 
 ////////////////////////////////////////
-/// Mock Implementation of pallet_mixnet
+// Mock Implementation of pallet_mixnet
 parameter_types! {
     pub const TestBlockDuration: u64 = 1;
 }

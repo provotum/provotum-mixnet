@@ -1,7 +1,7 @@
 use crate::mock::*;
 use crate::types::{
     Ballot, Cipher, PublicKey as SubstratePK, PublicParameters, ShufflePayload,
-    ShuffleProof as Proof, ShuffleProofAsBytes, VotePhase, Wrapper,
+    ShuffleProof as Proof, VotePhase, Wrapper,
 };
 use crate::*;
 use codec::Decode;
@@ -186,7 +186,7 @@ fn shuffle_proof_test(
 
     // shuffle the votes
     let shuffle_result =
-        OffchainModule::shuffle_ciphers(pk.clone(), big_ciphers_from_chain.clone());
+        OffchainModule::shuffle_ciphers(&pk, big_ciphers_from_chain.clone());
     let shuffled: (Vec<BigCipher>, Vec<BigUint>, Vec<usize>) = shuffle_result.unwrap();
     let shuffled_ciphers = shuffled.0;
     let re_encryption_randoms = shuffled.1;
@@ -1026,7 +1026,7 @@ fn test_shuffle_ciphers_encoded() {
         }
 
         // shuffle the votes
-        let shuffle_result = OffchainModule::shuffle_ciphers(pk.clone(), ciphers);
+        let shuffle_result = OffchainModule::shuffle_ciphers(&pk, ciphers);
         let shuffled_big_ciphers: Vec<BigCipher> = shuffle_result.unwrap().0;
         assert!(shuffled_big_ciphers.len() == 3);
 
@@ -1098,7 +1098,7 @@ fn test_shuffle_ciphers() {
         }
 
         // shuffle the votes
-        let shuffle_result = OffchainModule::shuffle_ciphers(pk.clone(), ciphers);
+        let shuffle_result = OffchainModule::shuffle_ciphers(&pk, ciphers);
         let shuffled_big_ciphers: Vec<BigCipher> = shuffle_result.unwrap().0;
         assert!(shuffled_big_ciphers.len() == 3);
 
@@ -1134,7 +1134,7 @@ fn test_shuffle_ciphers_no_ballots() {
         setup_public_key(vote_id.clone(), pk.clone().into());
 
         // try -> to shuffle the ballots (which don't exist)
-        OffchainModule::shuffle_ciphers(pk.clone(), ciphers).expect_err(
+        OffchainModule::shuffle_ciphers(&pk, ciphers).expect_err(
             "The returned value should be: 'Error::<T>::ShuffleCiphersSizeZeroError'",
         );
     });
@@ -1966,7 +1966,7 @@ fn test_combine_decrypted_shares() {
 }
 
 #[test]
-fn test_offchain_shuffle_and_proof() {
+fn test_offchain_shuffling() {
     let (mut t, pool_state, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         // Setup
@@ -1984,7 +1984,7 @@ fn test_offchain_shuffle_and_proof() {
         set_vote_phase(vote_id.clone(), VotePhase::Tallying);
 
         // Test
-        let result = OffchainModule::offchain_shuffle_and_proof(block_number);
+        let result = OffchainModule::offchain_shuffling(block_number);
         assert_ok!(result);
 
         // Verify
@@ -2019,39 +2019,30 @@ fn test_submit_shuffled_votes_and_proof() {
         // change the VotePhase to Voting using the voting authority
         set_vote_phase(vote_id.clone(), VotePhase::Tallying);
 
-        // shuffle the votes
-        let shuffle_result =
-            OffchainModule::shuffle_ciphers(pk.clone(), big_ciphers_from_chain.clone());
-        let shuffled: (Vec<BigCipher>, Vec<BigUint>, Vec<usize>) =
-            shuffle_result.unwrap();
-        let shuffled_ciphers: Vec<BigCipher> = shuffled.0;
-        let re_encryption_randoms: Vec<BigUint> = shuffled.1;
-        let permutation: Vec<usize> = shuffled.2;
-
-        // generate the shuffle proof
-        let result = OffchainModule::generate_shuffle_proof(
-            &topic_id,
-            big_ciphers_from_chain.clone(),
-            shuffled_ciphers.clone(),
-            re_encryption_randoms,
-            &permutation,
-            &pk,
-        );
-        let proof: Proof = result.unwrap();
-
-        // type conversions
-        let proof_as_bytes: ShuffleProofAsBytes = proof.into();
-        let shuffled_encryptions_as_bytes: Vec<Cipher> = Wrapper(shuffled_ciphers).into();
-
         // get any sealer that is allowed to submit the votes
         let (bob, _, _) = get_sealer_bob();
 
+        //
+        // State: No Ciphers Shuffled Yet
+        //
+
+        // get shuffle state
+        let shuffle_state: ShuffleState = ShuffleStateStore::get((&vote_id, &topic_id))
+            .expect("shuffle state should exist for all existing votes & topics!");
+        assert_eq!(shuffle_state.batch_size, 2);
+        assert_eq!(shuffle_state.start_position, 0);
+        assert_eq!(shuffle_state.iteration, 0);
+
+        // shuffle the votes + create proof
+        let payload: ShufflePayload = OffchainModule::offchain_shuffle_and_proof(
+            &topic_id,
+            shuffle_state.iteration,
+            &pk,
+            shuffle_state.start_position,
+            shuffle_state.batch_size,
+        )
+        .unwrap();
         // submit the proof and the shuffled votes
-        let payload = ShufflePayload {
-            ciphers: shuffled_encryptions_as_bytes,
-            proof: proof_as_bytes,
-            iteration: nr_of_shuffles.clone(),
-        };
         let response = OffchainModule::submit_shuffled_votes_and_proof(
             bob.clone(),
             vote_id.clone(),
@@ -2061,24 +2052,111 @@ fn test_submit_shuffled_votes_and_proof() {
         assert_ok!(response);
 
         // verify that the shuffled votes have been stored
-        // at the new index: nr_of_shuffles + 1
-        let new_nr_of_shuffles = nr_of_shuffles + 1;
+        // at the new index: shuffle_state.iteration + 1
         let shuffled_from_chain: Vec<Cipher> =
-            Ciphers::get(&topic_id, new_nr_of_shuffles);
+            Ciphers::get(&topic_id, shuffle_state.iteration + 1);
         assert!(!shuffled_from_chain.is_empty());
-        assert_eq!(shuffled_from_chain.len(), big_ciphers_from_chain.len());
+        assert_eq!(shuffled_from_chain.len(), payload.ciphers.len());
+
+        //
+        // State: 2/6 Ciphers Shuffled
+        //
 
         // re-submit the proof and the shuffled votes
         // make sure that the 2nd time the request fails
         assert_err!(
             OffchainModule::submit_shuffled_votes_and_proof(
-                bob,
-                vote_id,
+                bob.clone(),
+                vote_id.clone(),
                 topic_id.clone(),
                 payload
             ),
-            Error::<TestRuntime>::ShuffleAlreadyPerformed
+            Error::<TestRuntime>::ShuffleStateIncorrect
         );
+
+        // perform the next shuffle
+        // get the new shuffle state
+        let shuffle_state: ShuffleState = ShuffleStateStore::get((&vote_id, &topic_id))
+            .expect("shuffle state should exist for all existing votes & topics!");
+        // check that the shuffle state computation is correct
+        assert_eq!(shuffle_state.start_position, 2);
+        assert_eq!(shuffle_state.batch_size, 2);
+        assert_eq!(shuffle_state.iteration, 0);
+
+        // shuffle the votes + create proof
+        let payload: ShufflePayload = OffchainModule::offchain_shuffle_and_proof(
+            &topic_id,
+            shuffle_state.iteration,
+            &pk,
+            shuffle_state.start_position,
+            shuffle_state.batch_size,
+        )
+        .unwrap();
+        // submit the proof and the shuffled votes
+        let response = OffchainModule::submit_shuffled_votes_and_proof(
+            bob.clone(),
+            vote_id.clone(),
+            topic_id.clone(),
+            payload.clone(),
+        );
+        assert_ok!(response);
+
+        // verify that the shuffled votes have been stored
+        // at the new index: shuffle_state.iteration + 1
+        let shuffled_from_chain: Vec<Cipher> =
+            Ciphers::get(&topic_id, shuffle_state.iteration + 1);
+        assert!(!shuffled_from_chain.is_empty());
+        assert_eq!(shuffled_from_chain.len(), 2 * payload.ciphers.len());
+
+        //
+        // State: 4/6 Ciphers Shuffled
+        //
+
+        // perform the next shuffle
+        // get the new shuffle state
+        let shuffle_state: ShuffleState = ShuffleStateStore::get((&vote_id, &topic_id))
+            .expect("shuffle state should exist for all existing votes & topics!");
+        // check that the shuffle state computation is correct
+        assert_eq!(shuffle_state.start_position, 4);
+        assert_eq!(shuffle_state.batch_size, 2);
+        assert_eq!(shuffle_state.iteration, 0);
+
+        // shuffle the votes + create proof
+        let payload: ShufflePayload = OffchainModule::offchain_shuffle_and_proof(
+            &topic_id,
+            shuffle_state.iteration,
+            &pk,
+            shuffle_state.start_position,
+            shuffle_state.batch_size,
+        )
+        .unwrap();
+        // submit the proof and the shuffled votes
+        let response = OffchainModule::submit_shuffled_votes_and_proof(
+            bob.clone(),
+            vote_id.clone(),
+            topic_id.clone(),
+            payload.clone(),
+        );
+        assert_ok!(response);
+
+        // verify that the shuffled votes have been stored
+        // at the new index: shuffle_state.iteration + 1
+        let shuffled_from_chain: Vec<Cipher> =
+            Ciphers::get(&topic_id, shuffle_state.iteration + 1);
+        assert!(!shuffled_from_chain.is_empty());
+        assert_eq!(shuffled_from_chain.len(), big_ciphers_from_chain.len());
+
+        //
+        // State: 6/6 Ciphers Shuffled, 2nd Shuffle Iteration Starts
+        //
+
+        // get the new shuffle state
+        let shuffle_state: ShuffleState = ShuffleStateStore::get((&vote_id, &topic_id))
+            .expect("shuffle state should exist for all existing votes & topics!");
+        // check that the shuffle state computation is correct
+        assert_eq!(shuffle_state.start_position, 0);
+        assert_eq!(shuffle_state.batch_size, 2);
+        assert_eq!(shuffle_state.iteration, 1);
     });
 }
 
