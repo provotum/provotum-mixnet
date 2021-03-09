@@ -84,15 +84,15 @@ echo $CR_PAT | docker login ghcr.io -u $GITHUB_USER --password-stdin
 
 #### Build Image (Local)
 
-The command needs to be execute from the parent folder of: `/bc-node` and `/crypto` (in this case called: `provotum-mixnet`) since both folders are required inside the Docker context during the build.
+The command needs to be execute from the parent folder of: `/node` and `/crypto` (in this case called: `provotum-mixnet`) since both folders are required inside the Docker context during the build.
 
 ```bash
-~/.../provotum-mixnet: DOCKER_BUILDKIT=1 docker build . -f ./bc-node/Dockerfile
+~/.../provotum-mixnet: DOCKER_BUILDKIT=1 docker build . -f ./node/Dockerfile
 ```
 
 ##### Note.
 
-Once the project has been published and is publicy available. The path requirement for the `crypto` crate inside `bc-node/pallets/mixnet/Cargo.toml` can be replaced with a reference to the Github project in which the `crypto` crate is hosted.
+Once the project has been published and is publicy available. The path requirement for the `crypto` crate inside `node/pallets/mixnet/Cargo.toml` can be replaced with a reference to the Github project in which the `crypto` crate is hosted.
 
 #### Build Image (Github Action)
 
@@ -114,7 +114,7 @@ cargo +nightly-2021-01-20 test -p pallet-mixnet --features runtime-benchmarks
 
 ### Benchmarks
 
-Navigate into the folder: `bc-node/node` and run the following command to check that all benchmarks are working correctly. _Note: This executes the tests._
+Navigate into the folder: `node/node` and run the following command to check that all benchmarks are working correctly. _Note: This executes the tests._
 
 ```bash
 cargo +nightly-2021-01-20 test -p pallet-mixnet --features runtime-benchmarks
@@ -128,7 +128,7 @@ cargo +nightly-2021-01-20 build --features runtime-benchmarks
 
 **Note:** To produce results that closely resemble the production environment, make sure to use the flag `--release`. Please, be aware that this will increase the compilation time. Also, the binary will end up inside `./target/release` and not `./target/debug`.
 
-Navigate back to the folder: `bc-node`.
+Navigate back to the folder: `node`.
 
 1. To list all existing commands of the `pallet-mixnet` crate run the following command:
 

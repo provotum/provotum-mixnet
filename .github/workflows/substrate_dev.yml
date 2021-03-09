@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [master]
     paths:
-      - "bc-node/**"
+      - "node/**"
       - "!**.md"
   workflow_dispatch:
 
@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: ${{ github.workspace }}/bc-node
+        working-directory: ${{ github.workspace }}/node
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v2
@@ -45,7 +45,7 @@ jobs:
 
       - name: Build Dev Binary
         run: cargo +nightly-2021-01-20 build --features runtime-benchmarks --verbose
-        working-directory: ${{ github.workspace }}/bc-node/node
+        working-directory: ${{ github.workspace }}/node/node
 
       - name: Test Dev Binary
         run: cargo +nightly-2021-01-20 test --verbose -- --nocapture

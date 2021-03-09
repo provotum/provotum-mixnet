@@ -30,15 +30,15 @@ ENV CXX g++
 # explicitly. This lets us cache build results while iterating on scripts.
 # Currently, the docker image can only be built from the root folder because the crypto crate needs to be copied manually.
 # TODO: remove as soon as project is public + change the way dependency is referenced (remove path, add Github).
-COPY ./bc-node/runtime ./bc-node/runtime
-COPY ./bc-node/node ./bc-node/node
-COPY ./bc-node/pallets ./bc-node/pallets
+COPY ./node/runtime ./node/runtime
+COPY ./node/node ./node/node
+COPY ./node/pallets ./node/pallets
 COPY ./crypto ./crypto
-COPY ./bc-node/Cargo.toml ./bc-node
+COPY ./node/Cargo.toml ./node
 
 # Build node.
-RUN cd ./bc-node && cargo fetch # cache the result of the fetch in case the build gets interrupted
-RUN cd ./bc-node && cargo build --release --color=always
+RUN cd ./node && cargo fetch # cache the result of the fetch in case the build gets interrupted
+RUN cd ./node && cargo build --release --color=always
 
 # Final stage. Copy the node executable and the script
 FROM debian:stretch-slim
@@ -47,7 +47,7 @@ LABEL org.opencontainers.image.source https://github.com/meck93/provotum-mixnet
 
 WORKDIR /provotum
 
-COPY --from=builder /provotum/bc-node/target/release/provotum .
+COPY --from=builder /provotum/node/target/release/provotum .
 
 # curl is required for uploading to keystore
 # note: `subkey insert` is a potential alternarve to curl
@@ -63,7 +63,7 @@ RUN apt-get -y update \
 RUN useradd -m -u 1000 -U -s /bin/sh -d /provotum provotum-user
 
 # might need these for uploads to keytore
-COPY ./bc-node/scripts ./scripts
+COPY ./node/scripts ./scripts
 
 # include official chainspecs
 # TODO...

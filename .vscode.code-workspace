@@ -1,7 +1,7 @@
 {
   "folders": [
     {
-      "path": "bc-node"
+      "path": "node"
     },
     {
       "path": ".github"
@@ -24,21 +24,21 @@
         "type": "lldb",
         "request": "launch",
         "name": "Debug Shuffle Proof Test",
-        "program": "${workspaceFolder:bc-node}/target/debug/deps/pallet_mixnet-21f440ab907d9121",
+        "program": "${workspaceFolder:node}/target/debug/deps/pallet_mixnet-21f440ab907d9121",
         "args": [
           "test_shuffle_proof --nocapture"
         ],
-        "cwd": "${workspaceFolder:bc-node}",
+        "cwd": "${workspaceFolder:node}",
       },
       {
         "type": "lldb",
         "request": "launch",
         "name": "Debug",
-        "program": "${workspaceFolder:bc-node}/target/debug/provotum",
+        "program": "${workspaceFolder:node}/target/debug/provotum",
         "args": [
           "--dev"
         ],
-        "cwd": "${workspaceFolder:bc-node}",
+        "cwd": "${workspaceFolder:node}",
       }
     ]
   }

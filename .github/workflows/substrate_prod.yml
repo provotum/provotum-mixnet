@@ -24,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: ${{ github.workspace }}/bc-node
+        working-directory: ${{ github.workspace }}/node
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v2
@@ -50,30 +50,30 @@ jobs:
 
       - name: Build Prod Binary
         run: cargo +nightly-2021-01-20 build --release --features runtime-benchmarks
-        working-directory: ${{ github.workspace }}/bc-node/node
+        working-directory: ${{ github.workspace }}/node/node
 
       - name: Test Prod Binary
         run: cargo +nightly-2021-01-20 test --release
 
       - name: Perform Benchmark Tests
         run: cargo +nightly-2021-01-20 test -p pallet-mixnet --features runtime-benchmarks --release --verbose -- --nocapture
-        working-directory: ${{ github.workspace }}/bc-node/node
+        working-directory: ${{ github.workspace }}/node/node
 
       # this step uploads the built prod binary as an artifact (output)
       - name: Upload Prod Binary
         uses: actions/upload-artifact@v2
         with:
           name: provotum-prod-${{ github.sha }}-${{ github.run_id }}
-          path: ${{ github.workspace }}/bc-node/target/release/provotum
+          path: ${{ github.workspace }}/node/target/release/provotum
           retention-days: 30
 
       - name: Benchmark Pallet Mixnet
-        run: ${{ github.workspace }}/bc-node/target/release/provotum benchmark --chain dev --pallet "pallet_mixnet" --extrinsic "*" --repeat 3 > ${{ github.workspace }}/bc-node/benchmarking-results
+        run: ${{ github.workspace }}/node/target/release/provotum benchmark --chain dev --pallet "pallet_mixnet" --extrinsic "*" --repeat 3 > ${{ github.workspace }}/node/benchmarking-results
 
       # this step uploads the built prod binary as an artifact (output)
       - name: Upload Benchmark Results
         uses: actions/upload-artifact@v2
         with:
           name: provotum-benchmark-prod-${{ github.sha }}-${{ github.run_id }}
-          path: ${{ github.workspace }}/bc-node/benchmarking-results
+          path: ${{ github.workspace }}/node/benchmarking-results
           retention-days: 90

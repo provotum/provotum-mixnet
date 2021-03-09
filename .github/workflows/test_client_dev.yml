@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [master]
     paths:
-      - "bc-client/**"
+      - "client/**"
       - "!**.md"
   workflow_dispatch:
 
@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: ${{ github.workspace }}/bc-client
+        working-directory: ${{ github.workspace }}/client
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v2
@@ -45,4 +45,4 @@ jobs:
 
       - name: Build Binary
         run: cargo +nightly-2021-01-20 build --release --verbose
-        working-directory: ${{ github.workspace }}/bc-client
+        working-directory: ${{ github.workspace }}/client

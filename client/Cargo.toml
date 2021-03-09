@@ -1,5 +1,5 @@
 [package]
-name = "bc-client"
+name = "client"
 version = "0.1.0"
 authors = ["Moritz Eck"]
 edition = "2018"
@@ -16,4 +16,4 @@ rand = { version = "^0.7" }
 
 # crypto library from crypto crate
 crypto = { path = "../crypto" }
-pallet-mixnet = { path = "../bc-node/pallets/mixnet", version = "2.0.1" }
+pallet-mixnet = { path = "../node/pallets/mixnet", version = "2.0.1" }
