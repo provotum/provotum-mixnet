@@ -7,3 +7,8 @@ members = [
     'pallets/mixnet',
     'runtime',
 ]
+
+# 1. uncomment + save
+# 2. run cargo update -> will updated Cargo.lock
+# [patch.crates-io]
+# rocksdb = { path = "../../rust-rocksdb" }
