@@ -12,14 +12,9 @@ pub struct DecryptionProof {
 }
 
 impl DecryptionProof {
-    /// GenShuffleProof Algorithm 8.50 (CHVoteSpec 3.2)
+    /// GenDecryptionProof Algorithm 8.50 (CHVoteSpec 3.2)
     ///
     /// Generates a decryption proof relative to encryptions e and partial decryptions c. This is essentially a NIZKP of knowledge of the private key sk satisfying c_i = b_i ^ sk for all input encryptions e_i = (a_i, b_i) and pk = g^sk.
-    ///
-    /// Step by Step:
-    /// 1. generate a "second" key pair (a,b) = (random value from Z_q, g^a mod p)
-    /// 2. compute challenge
-    /// 3. compute d = a + c * sk
     pub fn generate(
         params: &ElGamalParams,
         sk: &BigUint, // private key of public key share
@@ -53,7 +48,7 @@ impl DecryptionProof {
         }
 
         // compute challenge
-        // hash public values (hash(unique_id, constant, pk, e, c, vec_t) mod q)
+        // hash public values (hash(unique_id, constant, pk, vec_e, vec_c, vec_t) mod q)
         let mut c = Helper::hash_decryption_proof_inputs(id, "decryption", pk, vec_e, vec_c, vec_t);
         c %= q;
 
@@ -69,12 +64,6 @@ impl DecryptionProof {
     /// CheckDecryptionProof Algorithm 8.51 (CHVoteSpec 3.2)
     ///
     /// Verifies a proof of knowledge of a secret key (sk) that belongs to a public key (pk = g^sk) using the Schnorr protocol. It is a proof of knowledge of a discrete logarithm of x = log_g(g^x).
-    ///
-    /// Step by Step:
-    /// 1. recompute b = g^d/h^c
-    /// 2. recompute the challenge c
-    /// 3. verify that the challenge is correct
-    /// 4. verify that: g^d == b * h^c
     pub fn verify(
         params: &ElGamalParams,
         pk: &BigUint, // public key of public key share -> not system public key
