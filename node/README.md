@@ -94,9 +94,30 @@ The command needs to be execute from the parent folder of: `/node` and `/crypto`
 
 Once the project has been published and is publicy available. The path requirement for the `crypto` crate inside `node/pallets/mixnet/Cargo.toml` can be replaced with a reference to the Github project in which the `crypto` crate is hosted.
 
+##### Different Architectures
+
+To build the project such that it can run on different underlying architectures (e.g., `amd64` and `arm64`), the necessary cross-compilation and emulation libraries need to be installed.
+On Linux (Ubuntu 20.04), the following needs to be installed:
+
+```bash
+sudo apt install qemu binfmt-support qemu-user-static
+```
+
+The Docker image can then be built using Docker Buildx.
+
+```
+~/.../provotum-mixnet: DOCKER_BUILDKIT=1 docker buildx build --platform "linux/amd64,linux/arm64" -f ./node/Dockerfile --tag provotum-docker .
+```
+
+_Note. This is not recommend because it takes a 1h+ to build the `arm64` image on Linux. I recommend to build the images natively whenever possible._
+
 #### Build Image (Github Action)
 
 A Github Action workflow exists to build the `provotum` docker container and push it to the Github container registry. Have a look at the `.github/workflows/build.yml` for more details.
+
+##### CI-built Images
+
+The GitHub-hosted runner can only build for the following architectures: `Windows, MacOS, Linux`
 
 ### Tests
 
