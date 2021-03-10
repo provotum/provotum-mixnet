@@ -136,7 +136,8 @@ impl ShuffleProof {
         }
     }
 
-    /// Algorithm 8.5: Computes n challenges 0 <= c_i <= 2^tau for a given of public value (vec_e, vec_e_tilde, vec_c).
+    /// GetChallenges Algorithm 8.5 (CHVoteSpec 3.2).
+    /// Computes n challenges 0 <= c_i <= 2^tau for a given of public value (vec_e, vec_e_tilde, vec_c).
     ///
     /// Inputs:
     /// - n: usize

@@ -119,10 +119,10 @@ impl ElGamal {
     }
 
     /// Similar to GetDecryptions Algorithm 8.49 (CHVoteSpec 3.2)
-    /// Computes the partial decryption of a given encryption e using a share sk of the private decryption key.
+    /// Computes the partial decryption of a given encryption e = (a,b) using a share sk of the private decryption key.
     ///
     /// Partially decrypts an ElGamal Encryption.
-    /// Returns the decrypted part: a (g^r) -> a^sk
+    /// Returns the decrypted part: a = (g^r) -> a^sk = (g^r)^sk
     ///
     /// ## Arguments
     ///
@@ -137,10 +137,13 @@ impl ElGamal {
     }
 
     /// Similar to GetVotes Algorithm 8.53 (CHVoteSpec 3.2)
-    /// Computes the decrypted plaintext vote m by deducting the combined partial decryptions vec_a (== decrypted_a) from the left-hand side b_i of the ElGamal Encryption e = (a_i, b_i)
+    /// Computes the decrypted plaintext vote m by
+    /// deducting the combined partial decryptions vec_a (== decrypted_a == a^sk == (g^r)^sk) from
+    /// the left-hand side b of the ElGamal Encryption e = (a, b) = (g^r, pk^r * m)
     ///
-    /// Partially decrypts an ElGamal Encryption.
-    /// Returns the decrypted part: a (g^r) -> a^sk
+    /// b = pk^r * m = (g^sk)^r * m = g^(sk*r) * m
+    /// m = b / g^(sk*r) = b * (g^(sk*r))^(-1) = b * inverse_mod(g^(sk*r)) mod p
+    /// Returns plaintext vote: m | encoded(m)
     ///
     /// ## Arguments
     ///
