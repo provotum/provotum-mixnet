@@ -298,22 +298,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b41b7ea54a0c9d92199de89e20e58d49f02f8e699814ef3fdf266f6f748d15c7"
 
 [[package]]
-name = "client"
-version = "0.1.0"
-dependencies = [
- "async-std",
- "crypto",
- "env_logger",
- "num-bigint 0.3.1",
- "num-traits",
- "pallet-mixnet",
- "parity-scale-codec",
- "rand 0.7.3",
- "sp-keyring",
- "substrate-subxt",
-]
-
-[[package]]
 name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -486,6 +470,22 @@ dependencies = [
  "num-traits",
  "time",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "client"
+version = "0.1.0"
+dependencies = [
+ "async-std",
+ "crypto",
+ "env_logger",
+ "num-bigint 0.3.1",
+ "num-traits",
+ "pallet-mixnet",
+ "parity-scale-codec",
+ "rand 0.7.3",
+ "sp-keyring",
+ "substrate-subxt",
 ]
 
 [[package]]

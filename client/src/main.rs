@@ -12,7 +12,7 @@ use pallet_mixnet::types::{
 };
 use sp_keyring::{sr25519::sr25519::Pair, AccountKeyring};
 use std::{thread, time};
-use substrate_subxt::{Call, Client, ExtrinsicSuccess};
+use substrate_subxt::{system::System, Call, Client, ExtrinsicSuccess};
 use substrate_subxt::{ClientBuilder, Error, NodeTemplateRuntime, PairSigner};
 
 #[async_std::main]
@@ -75,7 +75,8 @@ async fn main() -> Result<(), Error> {
         let cast_ballot_response = cast_ballot(&client, vote_id.clone(), ballot).await?;
         println!(
             "cast_ballot_response: {:?}",
-            cast_ballot_response.events[0].variant
+            // cast_ballot_response.events[0].variant
+            cast_ballot_response
         );
     }
 
@@ -145,14 +146,14 @@ pub async fn create_vote(
         vote_id,
         topics,
     };
-    return submit(&signer, client, call).await;
+    return watch(&signer, client, call).await;
 }
 
 pub async fn cast_ballot(
     client: &Client<NodeTemplateRuntime>,
     vote_id: VoteId,
     ballot: Ballot,
-) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
+) -> Result<<NodeTemplateRuntime as System>::Hash, Error> {
     let signer = PairSigner::<NodeTemplateRuntime, Pair>::new(AccountKeyring::Alice.pair());
     let call = CastBallot { vote_id, ballot };
     return submit(&signer, client, call).await;
@@ -165,7 +166,7 @@ pub async fn store_public_key(
 ) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
     let signer = PairSigner::<NodeTemplateRuntime, Pair>::new(AccountKeyring::Alice.pair());
     let call = StorePublicKey { vote_id, pk };
-    return submit(&signer, client, call).await;
+    return watch(&signer, client, call).await;
 }
 
 pub async fn set_vote_phase(
@@ -178,13 +179,21 @@ pub async fn set_vote_phase(
         vote_id,
         vote_phase,
     };
-    return submit(&signer, client, call).await;
+    return watch(&signer, client, call).await;
+}
+
+async fn watch<C: Call<NodeTemplateRuntime> + Send + Sync>(
+    signer: &PairSigner<NodeTemplateRuntime, Pair>,
+    client: &Client<NodeTemplateRuntime>,
+    call: C,
+) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
+    return client.watch(call, signer).await;
 }
 
 async fn submit<C: Call<NodeTemplateRuntime> + Send + Sync>(
     signer: &PairSigner<NodeTemplateRuntime, Pair>,
     client: &Client<NodeTemplateRuntime>,
     call: C,
-) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
-    return client.watch(call, signer).await;
+) -> Result<<NodeTemplateRuntime as System>::Hash, Error> {
+    return client.submit(call, signer).await;
 }
