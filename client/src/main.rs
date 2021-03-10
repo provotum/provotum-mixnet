@@ -12,7 +12,8 @@ use pallet_mixnet::types::{
 };
 use sp_keyring::{sr25519::sr25519::Pair, AccountKeyring};
 use std::{thread, time};
-use substrate_subxt::{system::System, Call, Client, ExtrinsicSuccess};
+use substrate_subxt::{system::{System}, 
+sp_core::Pair as KeyPairGenerator, Call, Client, ExtrinsicSuccess};
 use substrate_subxt::{ClientBuilder, Error, NodeTemplateRuntime, PairSigner};
 
 #[async_std::main]
@@ -62,23 +63,30 @@ async fn main() -> Result<(), Error> {
     get_vote_ids(&client).await?;
 
     // TODO: If possible make the number of moves configurable
-    let encryptions = random::Random::get_random_encryptions(&pk, q, 6, false);
-
+    // TODO: increase to 120
+    let encryptions = random::Random::get_random_encryptions(&pk, q, 30, false);
+    
     // submit some ballots
-    for cipher in encryptions.into_iter() {
+    for (index, cipher) in encryptions.into_iter().enumerate() {
+        let index_string = (index as u64).to_string();
+        let voter_keypair = KeyPairGenerator::from_string(&format!("//{}", index_string), None)?;
+        let voter = PairSigner::<NodeTemplateRuntime, Pair>::new(voter_keypair);
+
         // create ballot
         let ballot: Ballot = Ballot {
             answers: vec![(topic_id.clone(), cipher.into())],
         };
 
         // submit ballot
-        let cast_ballot_response = cast_ballot(&client, vote_id.clone(), ballot).await?;
+        let ballot_submission_hash = submit_ballot(&client, &voter, vote_id.clone(), ballot).await?;
         println!(
-            "cast_ballot_response: {:?}",
-            // cast_ballot_response.events[0].variant
-            cast_ballot_response
+            "ballot_submission_hash: {:?}",
+            ballot_submission_hash
         );
     }
+
+    // wait until the end of the block
+    thread::sleep(time::Duration::from_secs(6));
 
     // fetch all existing ciphers
     get_ciphers(&client, topic_id.clone(), 0).await?;
@@ -149,14 +157,24 @@ pub async fn create_vote(
     return watch(&signer, client, call).await;
 }
 
-pub async fn cast_ballot(
+pub async fn submit_ballot(
     client: &Client<NodeTemplateRuntime>,
+    signer: &PairSigner::<NodeTemplateRuntime, Pair>,
     vote_id: VoteId,
     ballot: Ballot,
 ) -> Result<<NodeTemplateRuntime as System>::Hash, Error> {
-    let signer = PairSigner::<NodeTemplateRuntime, Pair>::new(AccountKeyring::Alice.pair());
     let call = CastBallot { vote_id, ballot };
-    return submit(&signer, client, call).await;
+    return submit(signer, client, call).await;
+}
+
+pub async fn watch_ballot(
+    client: &Client<NodeTemplateRuntime>,
+    signer: &PairSigner::<NodeTemplateRuntime, Pair>,
+    vote_id: VoteId,
+    ballot: Ballot,
+) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
+    let call = CastBallot { vote_id, ballot };
+    return watch(signer, client, call).await;
 }
 
 pub async fn store_public_key(
