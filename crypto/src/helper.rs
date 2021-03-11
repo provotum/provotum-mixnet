@@ -49,6 +49,24 @@ impl Helper {
         Self::setup_system(p, x)
     }
 
+    pub fn setup_512bit_system() -> (ElGamalParams, PrivateKey, PublicKey) {
+        // 512bit key
+        let p = BigUint::parse_bytes(b"B7E151628AED2A6ABF7158809CF4F3C762E7160F38B4DA56A784D9045190CFEF324E7738926CFBE5F4BF8D8D8C31D763DA06C80ABB1185EB4F7C7B5757F5F9E3", 16).unwrap();
+        let x = BigUint::parse_bytes(b"38B4DA56A784D9045190CFEF324E77389", 16).unwrap();
+        Self::setup_system(p, x)
+    }
+
+    pub fn setup_256bit_system() -> (ElGamalParams, PrivateKey, PublicKey) {
+        // 256bit key
+        let p = BigUint::parse_bytes(
+            b"B7E151628AED2A6ABF7158809CF4F3C762E7160F38B4DA56A784D904519216D3",
+            16,
+        )
+        .unwrap();
+        let x = BigUint::parse_bytes(b"7158809CF4F3C762E7160F38B4DA56", 16).unwrap();
+        Self::setup_system(p, x)
+    }
+
     pub fn setup_sm_system() -> (ElGamalParams, PrivateKey, PublicKey) {
         // 48bit key
         let p = BigUint::parse_bytes(b"B7E151629927", 16).unwrap();
@@ -346,6 +364,30 @@ mod tests {
     #[test]
     fn it_should_create_tiny_system() {
         let (params, sk, pk) = Helper::setup_tiny_system();
+
+        // check that p & are prime
+        assert!(Random::is_prime(&params.p, 20));
+        assert!(Random::is_prime(&params.q(), 20));
+
+        // public key check: verify that h == g^x mod p
+        assert_eq!(pk.h, sk.params.g.modpow(&sk.x, &sk.params.p));
+    }
+
+    #[test]
+    fn it_should_create_256bit_system() {
+        let (params, sk, pk) = Helper::setup_256bit_system();
+
+        // check that p & are prime
+        assert!(Random::is_prime(&params.p, 20));
+        assert!(Random::is_prime(&params.q(), 20));
+
+        // public key check: verify that h == g^x mod p
+        assert_eq!(pk.h, sk.params.g.modpow(&sk.x, &sk.params.p));
+    }
+
+    #[test]
+    fn it_should_create_512bit_system() {
+        let (params, sk, pk) = Helper::setup_512bit_system();
 
         // check that p & are prime
         assert!(Random::is_prime(&params.p, 20));
