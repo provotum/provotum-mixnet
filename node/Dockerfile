@@ -30,15 +30,17 @@ ENV CXX g++
 # explicitly. This lets us cache build results while iterating on scripts.
 # Currently, the docker image can only be built from the root folder because the crypto crate needs to be copied manually.
 # TODO: remove as soon as project is public + change the way dependency is referenced (remove path, add Github).
+COPY ./crypto ./crypto
 COPY ./node/runtime ./node/runtime
 COPY ./node/node ./node/node
 COPY ./node/pallets ./node/pallets
-COPY ./crypto ./crypto
 COPY ./node/Cargo.toml ./node
 
+# Cache the result of the fetch in case the build gets interrupted
+WORKDIR /provotum/node
+RUN cargo fetch 
 # Build node.
-RUN cd ./node && cargo fetch # cache the result of the fetch in case the build gets interrupted
-RUN cd ./node && cargo build --release --color=always
+RUN cargo build --release --color=always
 
 # Final stage. Copy the node executable and the script
 FROM debian:stretch-slim
@@ -62,16 +64,10 @@ RUN apt-get -y update \
 # add non root user
 RUN useradd -m -u 1000 -U -s /bin/sh -d /provotum provotum-user
 
-# might need these for uploads to keytore
-COPY ./node/scripts ./scripts
-
-# include official chainspecs
-# TODO...
-
 # set required env variables
 ENV PATH /provotum:$PATH
 ENV CARGO_TERM_COLOR=always
-ENV RUST_BACKTRACE 1
+ENV RUST_BACKTRACE=1
 
 # set the user
 USER provotum-user

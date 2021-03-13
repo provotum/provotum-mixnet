@@ -10,14 +10,19 @@ async fn index(_req: HttpRequest) -> impl Responder {
     HttpResponse::Ok().body("Hello from the index page!")
 }
 
+#[get("/health")]
+async fn health(_req: HttpRequest) -> impl Responder {
+    HttpResponse::NoContent()
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .service(index)
+            .service(health)
             .route("/{name}", web::get().to(randomize))
     })
-    .bind(("127.0.0.1", 8080))?
-    .run()
-    .await
+    .bind(("0.0.0.0", 8080))?
+    .run().await
 }

@@ -6,3 +6,10 @@ edition = "2018"
 
 [dependencies]
 actix-web = "3"
+
+# crypto library from crypto crate
+crypto = { path = "../crypto" }
+
+[[bin]]
+name = "randomizer"
+path = "src/main.rs"
