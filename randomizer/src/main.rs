@@ -1,13 +1,11 @@
-use actix_web::{web, get, App, HttpResponse, HttpRequest, HttpServer, Responder};
+mod randomize;
 
-async fn randomize(req: HttpRequest) -> impl Responder {
-    let name = req.match_info().get("name").unwrap_or("World");
-    format!("Hello {}!", &name)
-}
+use actix_web::{web, get, App, HttpResponse, HttpRequest, HttpServer, Responder};
+use crate::randomize::randomize;
 
 #[get("/")]
 async fn index(_req: HttpRequest) -> impl Responder {
-    HttpResponse::Ok().body("Hello from the index page!")
+    HttpResponse::Ok().body("hi there!")
 }
 
 #[get("/health")]
