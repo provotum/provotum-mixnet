@@ -1,11 +1,13 @@
-name: build-test benchmark crypto crate
+name: build-test-benchmark crypto crate
 
 on:
+  release:
+    types: [created]
   pull_request:
-    branches: [master]
-    paths:
-      - "crypto/**"
-      - "!**.md"
+    branches:
+      - master
+    types:
+      - "closed"
   workflow_dispatch:
 
 env:
@@ -16,7 +18,9 @@ defaults:
     working-directory: crypto
 
 jobs:
-  build-test:
+    build-test-benchmark:
+    # this job will only run if the PR has been merged
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -40,7 +44,7 @@ jobs:
 
   benchmark:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2

@@ -11,8 +11,8 @@ use num_traits::One;
 fn setup_shuffling(
     nr_of_votes: usize,
     encoded: bool,
+    pk: PublicKey,
 ) -> (Vec<Cipher>, Vec<usize>, Vec<BigUint>, PublicKey) {
-    let (_, _, pk) = Helper::setup_lg_system();
     let q = pk.params.q();
 
     // encryption of three and one
@@ -234,103 +234,118 @@ fn bench_proofs(c: &mut Criterion) {
     });
 }
 
-fn bench_shuffling(c: &mut Criterion) {
-    // benchmark config
-    let mut group = c.benchmark_group("shuffling");
-    group.sample_size(10);
+fn bench_shuffle(c: &mut Criterion) {
+    let (_, _, pk1) = Helper::setup_256bit_system();
+    let (_, _, pk2) = Helper::setup_512bit_system();
+    let (_, _, pk3) = Helper::setup_md_system();
+    let (_, _, pk4) = Helper::setup_lg_system();
+    let (_, _, pk5) = Helper::setup_xl_system();
+    let setups = vec![
+        (pk1, "shuffling 256bit"),
+        (pk2, "shuffling 512bit"),
+        (pk3, "shuffling 1024bit"),
+        (pk4, "shuffling 2048bit"),
+        (pk5, "shuffling 3072bit"),
+    ];
 
-    group.bench_function("3 votes", |b| {
-        b.iter_with_setup(
-            || setup_shuffling(3, false),
-            |(encryptions, permutation, randoms, pk)| {
-                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
-            },
-        )
-    });
+    for (pk, name) in setups {
+        // benchmark config
+        let mut group = c.benchmark_group(name);
+        group.sample_size(10);
 
-    group.bench_function("10 votes", |b| {
-        b.iter_with_setup(
-            || setup_shuffling(10, false),
-            |(encryptions, permutation, randoms, pk)| {
-                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
-            },
-        )
-    });
+        group.bench_function("3 votes", |b| {
+            b.iter_with_setup(
+                || setup_shuffling(3, false, pk.clone()),
+                |(encryptions, permutation, randoms, pk)| {
+                    ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+                },
+            )
+        });
 
-    group.bench_function("30 votes", |b| {
-        b.iter_with_setup(
-            || setup_shuffling(30, false),
-            |(encryptions, permutation, randoms, pk)| {
-                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
-            },
-        )
-    });
+        group.bench_function("10 votes", |b| {
+            b.iter_with_setup(
+                || setup_shuffling(10, false, pk.clone()),
+                |(encryptions, permutation, randoms, pk)| {
+                    ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+                },
+            )
+        });
 
-    group.bench_function("100 votes", |b| {
-        b.iter_with_setup(
-            || setup_shuffling(100, false),
-            |(encryptions, permutation, randoms, pk)| {
-                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
-            },
-        )
-    });
+        group.bench_function("30 votes", |b| {
+            b.iter_with_setup(
+                || setup_shuffling(30, false, pk.clone()),
+                |(encryptions, permutation, randoms, pk)| {
+                    ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+                },
+            )
+        });
 
-    group.bench_function("1000 votes", |b| {
-        b.iter_with_setup(
-            || setup_shuffling(1000, false),
-            |(encryptions, permutation, randoms, pk)| {
-                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
-            },
-        )
-    });
+        group.bench_function("100 votes", |b| {
+            b.iter_with_setup(
+                || setup_shuffling(100, false, pk.clone()),
+                |(encryptions, permutation, randoms, pk)| {
+                    ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+                },
+            )
+        });
 
-    group.bench_function("3 votes (encoded)", |b| {
-        b.iter_with_setup(
-            || setup_shuffling(3, true),
-            |(encryptions, permutation, randoms, pk)| {
-                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
-            },
-        )
-    });
+        group.bench_function("1000 votes", |b| {
+            b.iter_with_setup(
+                || setup_shuffling(1000, false, pk.clone()),
+                |(encryptions, permutation, randoms, pk)| {
+                    ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+                },
+            )
+        });
 
-    group.bench_function("10 votes (encoded)", |b| {
-        b.iter_with_setup(
-            || setup_shuffling(10, true),
-            |(encryptions, permutation, randoms, pk)| {
-                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
-            },
-        )
-    });
+        group.bench_function("3 votes (encoded)", |b| {
+            b.iter_with_setup(
+                || setup_shuffling(3, true, pk.clone()),
+                |(encryptions, permutation, randoms, pk)| {
+                    ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+                },
+            )
+        });
 
-    group.bench_function("30 votes (encoded)", |b| {
-        b.iter_with_setup(
-            || setup_shuffling(30, true),
-            |(encryptions, permutation, randoms, pk)| {
-                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
-            },
-        )
-    });
+        group.bench_function("10 votes (encoded)", |b| {
+            b.iter_with_setup(
+                || setup_shuffling(10, true, pk.clone()),
+                |(encryptions, permutation, randoms, pk)| {
+                    ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+                },
+            )
+        });
 
-    group.bench_function("100 votes (encoded)", |b| {
-        b.iter_with_setup(
-            || setup_shuffling(100, true),
-            |(encryptions, permutation, randoms, pk)| {
-                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
-            },
-        )
-    });
+        group.bench_function("30 votes (encoded)", |b| {
+            b.iter_with_setup(
+                || setup_shuffling(30, true, pk.clone()),
+                |(encryptions, permutation, randoms, pk)| {
+                    ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+                },
+            )
+        });
 
-    group.bench_function("1000 votes (encoded)", |b| {
-        b.iter_with_setup(
-            || setup_shuffling(1000, true),
-            |(encryptions, permutation, randoms, pk)| {
-                ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
-            },
-        )
-    });
+        group.bench_function("100 votes (encoded)", |b| {
+            b.iter_with_setup(
+                || setup_shuffling(100, true, pk.clone()),
+                |(encryptions, permutation, randoms, pk)| {
+                    ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+                },
+            )
+        });
 
-    group.finish();
+        group.bench_function("1000 votes (encoded)", |b| {
+            b.iter_with_setup(
+                || setup_shuffling(1000, true, pk.clone()),
+                |(encryptions, permutation, randoms, pk)| {
+                    ElGamal::shuffle(&encryptions, &permutation, &randoms, &pk)
+                },
+            )
+        });
+
+        group.finish();
+    }
 }
 
-criterion_group!(benches, bench_elgamal, bench_proofs, bench_shuffling);
+criterion_group!(benches, bench_elgamal, bench_proofs, bench_shuffle);
 criterion_main!(benches);
