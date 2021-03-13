@@ -10,6 +10,7 @@ pub struct CreateVote {
     pub title: Title,
     pub params: PublicParameters,
     pub topics: Vec<Topic>,
+    pub batch_size: u64,
 }
 
 impl Call<NodeTemplateRuntime> for CreateVote {
@@ -20,6 +21,7 @@ impl Call<NodeTemplateRuntime> for CreateVote {
         _decoder.register_type_size::<Title>("Title");
         _decoder.register_type_size::<PublicParameters>("PublicParameters");
         _decoder.register_type_size::<Vec<Topic>>("Vec<Topic>");
+        _decoder.register_type_size::<u64>("batch_size");
     }
 }
 

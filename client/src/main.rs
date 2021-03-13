@@ -145,6 +145,7 @@ pub async fn create_vote(
     title: Title,
     vote_id: VoteId,
     topics: Vec<Topic>,
+    batch_size: u64
 ) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
     let signer = PairSigner::<NodeTemplateRuntime, Pair>::new(AccountKeyring::Alice.pair());
     let call = CreateVote {
@@ -152,6 +153,7 @@ pub async fn create_vote(
         title,
         vote_id,
         topics,
+        batch_size
     };
     return watch(&signer, client, call).await;
 }
