@@ -2,8 +2,9 @@ use alloc::vec::Vec;
 use core::ops::{Add, Div, Mul, Sub};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Zero};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+#[derive(Clone, Eq, PartialEq, Debug, Hash, Serialize, Deserialize)]
 pub struct ElGamalParams {
     // modulus: p
     pub p: BigUint,
@@ -23,7 +24,7 @@ impl ElGamalParams {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct PublicKey {
     // system parameters (p, g)
     pub params: ElGamalParams,
@@ -68,7 +69,7 @@ pub struct PrivateKey {
     pub x: BigUint,
 }
 
-#[derive(Eq, PartialEq, Clone, Debug, Hash)]
+#[derive(Eq, PartialEq, Clone, Debug, Hash, Serialize, Deserialize)]
 pub struct Cipher {
     // a = g^r mod p
     // - g: generator

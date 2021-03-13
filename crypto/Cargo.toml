@@ -18,10 +18,11 @@ name = "benchmarks"
 harness = false
 
 [dependencies]
-num-bigint = { version = "^0.3", default-features = false, features = ["rand"] }
+num-bigint = { version = "^0.3", default-features = false, features = ["rand", "serde"] }
 num-traits = { version = "^0.2", default-features = false }
 blake2 = { version = "^0.9", default-features = false }
-criterion = {version = "^0.3", default-features = false, optional = true }
+criterion = { version = "^0.3", default-features = false, optional = true }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
 
 [dev-dependencies]
 rand = { version = "^0.7" }

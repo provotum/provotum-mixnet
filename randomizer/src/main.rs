@@ -1,26 +1,23 @@
-mod randomize;
+mod health;
+mod helper;
+mod index;
+mod randomizer;
 
-use actix_web::{web, get, App, HttpResponse, HttpRequest, HttpServer, Responder};
-use crate::randomize::randomize;
-
-#[get("/")]
-async fn index(_req: HttpRequest) -> impl Responder {
-    HttpResponse::Ok().body("hi there!")
-}
-
-#[get("/health")]
-async fn health(_req: HttpRequest) -> impl Responder {
-    HttpResponse::NoContent()
-}
+use actix_web::{App, HttpServer};
+use health::get_health;
+use index::get_index;
+use randomizer::{random_hello_world, randomize_ballot};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
-            .service(index)
-            .service(health)
-            .route("/{name}", web::get().to(randomize))
+            .service(get_index)
+            .service(get_health)
+            .service(random_hello_world)
+            .service(randomize_ballot)
     })
     .bind(("0.0.0.0", 8080))?
-    .run().await
+    .run()
+    .await
 }

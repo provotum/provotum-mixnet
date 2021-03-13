@@ -542,6 +542,7 @@ dependencies = [
  "blake2",
  "num-bigint 0.3.1",
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -1664,6 +1665,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "rand 0.7.3",
+ "serde",
 ]
 
 [[package]]
