@@ -108,7 +108,7 @@ fn setup_vote(params: PublicParameters) -> (Vec<u8>, Vec<u8>) {
     let topics = vec![topic];
 
     let vote_created =
-        OffchainModule::create_vote(who, vote_id.clone(), vote_title, params, topics);
+        OffchainModule::create_vote(who, vote_id.clone(), vote_title, params, topics, 2);
     assert_ok!(vote_created);
     set_vote_phase(vote_id.clone(), VotePhase::Voting);
     (vote_id, topic_id)
@@ -324,7 +324,14 @@ fn test_create_vote_not_a_voting_authority() {
         let topics = vec![topic];
 
         assert_err!(
-            OffchainModule::create_vote(who, vote_id, vote_title, params.into(), topics),
+            OffchainModule::create_vote(
+                who,
+                vote_id,
+                vote_title,
+                params.into(),
+                topics,
+                2
+            ),
             Error::<TestRuntime>::NotAVotingAuthority
         )
     });
@@ -347,8 +354,14 @@ fn test_create_vote_works() {
         let topic: Topic = (topic_id, topic_question);
         let topics = vec![topic];
 
-        let vote_created =
-            OffchainModule::create_vote(who, vote_id, vote_title, params.into(), topics);
+        let vote_created = OffchainModule::create_vote(
+            who,
+            vote_id,
+            vote_title,
+            params.into(),
+            topics,
+            2,
+        );
         assert_ok!(vote_created);
     });
 }
@@ -371,7 +384,7 @@ fn test_store_question_not_a_voting_authority() {
 
         // Try to store the Topic (Question)
         assert_err!(
-            OffchainModule::store_question(who, vote_id, topic),
+            OffchainModule::store_question(who, vote_id, topic, 2),
             Error::<TestRuntime>::NotAVotingAuthority
         );
     });
@@ -395,7 +408,7 @@ fn test_store_question_no_vote_exists() {
 
         // Try to store the Topic (Question)
         assert_err!(
-            OffchainModule::store_question(who, vote_id, topic),
+            OffchainModule::store_question(who, vote_id, topic, 2),
             Error::<TestRuntime>::VoteDoesNotExist
         );
     });
@@ -419,7 +432,8 @@ fn test_store_question_works() {
         let topic: Topic = (new_topic_id.clone(), topic_question);
 
         // Store the Topic (Question)
-        let question_stored = OffchainModule::store_question(who, vote_id.clone(), topic);
+        let question_stored =
+            OffchainModule::store_question(who, vote_id.clone(), topic, 2);
         assert_ok!(question_stored);
 
         let topics = OffchainModule::topics(vote_id);

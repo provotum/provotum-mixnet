@@ -336,7 +336,7 @@ decl_module! {
         /// Create a vote and store public crypto parameters.
         /// Can only be called from a voting authority.
         #[weight = (10000, Pays::No)]
-        fn create_vote(origin, vote_id: VoteId, title: Title, params: PublicParameters, topics: Vec<Topic>) -> DispatchResult {
+        fn create_vote(origin, vote_id: VoteId, title: Title, params: PublicParameters, topics: Vec<Topic>, batch_size: u64) -> DispatchResult {
             let who: T::AccountId = ensure_signed(origin)?;
             ensure_voting_authority::<T>(&who)?;
 
@@ -362,7 +362,7 @@ decl_module! {
                 ShuffleStateStore::insert((&vote_id, &topic_id), ShuffleState {
                     iteration: 0,
                     start_position: 0,
-                    batch_size: 2,
+                    batch_size,
                     done: false
                 });
             }
@@ -379,7 +379,7 @@ decl_module! {
         /// Add a question to the vote.
         /// Can only be called from a voting authority.
         #[weight = (10000, Pays::No)]
-        fn store_question(origin, vote_id: VoteId, topic: Topic) -> DispatchResult {
+        fn store_question(origin, vote_id: VoteId, topic: Topic, batch_size: u64) -> DispatchResult {
             let who = ensure_signed(origin)?;
             ensure_voting_authority::<T>(&who)?;
             ensure_vote_exists::<T>(&vote_id)?;
@@ -392,7 +392,7 @@ decl_module! {
             ShuffleStateStore::insert((&vote_id, topic_id), ShuffleState {
                 iteration: 0,
                 start_position: 0,
-                batch_size: 2,
+                batch_size,
                 done: false,
             });
 

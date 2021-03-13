@@ -39,7 +39,7 @@ async fn main() -> Result<(), Error> {
 
     // create vote
     let create_vote_response =
-        create_vote(&client, params.into(), vote_title, vote_id.clone(), topics).await?;
+        create_vote(&client, params.into(), vote_title, vote_id.clone(), topics, 30).await?;
     println!(
         "create_vote_response: {:?}",
         create_vote_response.events[0].variant
@@ -63,8 +63,7 @@ async fn main() -> Result<(), Error> {
     get_vote_ids(&client).await?;
 
     // TODO: If possible make the number of moves configurable
-    // TODO: increase to 120
-    let encryptions = random::Random::get_random_encryptions(&pk, q, 30, false);
+    let encryptions = random::Random::get_random_encryptions(&pk, q, 150, false);
     
     // submit some ballots
     for (index, cipher) in encryptions.into_iter().enumerate() {

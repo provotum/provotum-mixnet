@@ -84,6 +84,7 @@ fn setup_vote<T: Trait>(
         vote_title,
         params,
         topics,
+        30,
     )?;
     set_vote_phase::<T>(vote_id.clone(), VotePhase::Voting)?;
 
@@ -505,7 +506,7 @@ benchmarks! {
         PalletMixnet::<T>::store_public_key(who.clone().into(), vote_id.clone(), pk.into())?;
 
     }: {
-        let _result = PalletMixnet::<T>::create_vote(who.into(), vote_id.clone(), vote_title.clone(), params.into(), topics)?;
+        let _result = PalletMixnet::<T>::create_vote(who.into(), vote_id.clone(), vote_title.clone(), params.into(), topics, 30)?;
     } verify {
         let vote: Vote<T::AccountId> = PalletMixnet::<T>::votes(vote_id);
         ensure!(vote_title == vote.title, "title are not the same!");
@@ -523,7 +524,7 @@ benchmarks! {
         let topic_question = "Moritz for King?".as_bytes().to_vec();
         let topic: Topic = (topic_id_2.clone(), topic_question.clone());
     }: {
-        let _result = PalletMixnet::<T>::store_question(who.into(), vote_id.clone(), topic);
+        let _result = PalletMixnet::<T>::store_question(who.into(), vote_id.clone(), topic, 30);
     } verify {
         let topic_: Vec<Topic> = PalletMixnet::<T>::topics(vote_id);
         ensure!(topic_id == topic_[0].0, "topic ids are not the same!");
