@@ -16,7 +16,7 @@ defaults:
     working-directory: crypto
 
 jobs:
-  build-test:
+  build-test-no-std:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -37,6 +37,27 @@ jobs:
         run: cargo +nightly build --verbose --release --target wasm32-unknown-unknown
       - name: Run Tests
         run: cargo +nightly test --verbose --no-fail-fast --release
+
+  build-test-std:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-crypto
+      - name: Install Latest Rust Nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+      - name: Build Crypto Library
+        run: cargo +nightly build --verbose --release --features std
+      - name: Run Tests
+        run: cargo +nightly test --verbose --no-fail-fast --release --features std
 
   lint:
     runs-on: ubuntu-latest
