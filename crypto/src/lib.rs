@@ -11,8 +11,10 @@
 #[macro_use]
 extern crate std;
 
-#[cfg(not(feature = "std"))]
 extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate serde;
 
 // crates which this library exposes
 #[allow(clippy::many_single_char_names)]

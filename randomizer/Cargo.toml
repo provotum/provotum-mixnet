@@ -13,7 +13,7 @@ num-traits = "^0.2"
 rand = "^0.7"
 
 # crypto library from crypto crate
-crypto = { path = "../crypto" }
+crypto = { path = "../crypto", features = ["std"] }
 
 [dev-dependencies]
 actix-rt = "2"

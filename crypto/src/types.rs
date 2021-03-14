@@ -7,7 +7,7 @@ use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
-#[cfg_attr(feature = "std,serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct ElGamalParams {
     // modulus: p
     pub p: BigUint,
@@ -28,7 +28,7 @@ impl ElGamalParams {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "std,serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct PublicKey {
     // system parameters (p, g)
     pub params: ElGamalParams,
@@ -74,7 +74,7 @@ pub struct PrivateKey {
 }
 
 #[derive(Eq, PartialEq, Clone, Debug, Hash)]
-#[cfg_attr(feature = "std,serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct Cipher {
     // a = g^r mod p
     // - g: generator

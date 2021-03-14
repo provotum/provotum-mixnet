@@ -1,3 +1,5 @@
+#![no_main]
+
 use criterion::{criterion_group, criterion_main, Criterion};
 use crypto::{
     encryption::ElGamal,
