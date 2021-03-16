@@ -1,107 +1,3 @@
-    Finished bench [optimized] target(s) in 0.03s
-     Running unittests (target/release/deps/crypto-89f73136510e3996)
-
-running 87 tests
-test encryption::tests::it_should_add_many_and_result_equals_five ... ignored
-test encryption::tests::it_should_add_one_and_zero_encoded ... ignored
-test encryption::tests::it_should_add_two_ones_encoded ... ignored
-test encryption::tests::it_should_add_two_zeros_encoded ... ignored
-test encryption::tests::it_should_decode_25 ... ignored
-test encryption::tests::it_should_decode_one ... ignored
-test encryption::tests::it_should_decode_zero ... ignored
-test encryption::tests::it_should_encode_a_message ... ignored
-test encryption::tests::it_should_encrypt ... ignored
-test encryption::tests::it_should_encrypt_decrypt_decode_two ... ignored
-test encryption::tests::it_should_encrypt_decrypt_two ... ignored
-test encryption::tests::it_should_encrypt_encode ... ignored
-test encryption::tests::it_should_re_encrypt_five ... ignored
-test encryption::tests::it_should_re_encrypt_five_by_addition ... ignored
-test encryption::tests::it_should_re_encrypt_five_encoded ... ignored
-test encryption::tests::it_should_show_that_both_re_encryptions_are_equal_encoded ... ignored
-test encryption::tests::it_should_show_that_combined_partial_decryptions_work ... ignored
-test encryption::tests::it_should_show_that_partial_decryption_works ... ignored
-test encryption::tests::it_should_shuffle_a_list_of_encrypted_votes ... ignored
-test encryption::tests::it_should_shuffle_a_list_of_encrypted_votes_encoded ... ignored
-test encryption::tests::shuffle_vectors_encryptions_permutations_different_size_should_panic ... ignored
-test encryption::tests::shuffle_vectors_encryptions_randoms_different_size_should_panic ... ignored
-test encryption::tests::shuffle_vectors_size_zero_should_panic ... ignored
-test helper::tests::check_if_5_is_a_generator_of_p7_failure ... ignored
-test helper::tests::check_if_g_and_h_are_generators_success ... ignored
-test helper::tests::it_should_create_256bit_system ... ignored
-test helper::tests::it_should_create_512bit_system ... ignored
-test helper::tests::it_should_create_a_key_pair ... ignored
-test helper::tests::it_should_create_lg_system ... ignored
-test helper::tests::it_should_create_md_system ... ignored
-test helper::tests::it_should_create_sm_system ... ignored
-test helper::tests::it_should_create_tiny_system ... ignored
-test helper::tests::it_should_create_xl_system ... ignored
-test helper::tests::it_should_get_generators ... ignored
-test helper::tests::it_should_hash_and_return_biguint ... ignored
-test helper::tests::it_should_hash_bigunit ... ignored
-test helper::tests::it_should_hash_vec_biguints ... ignored
-test helper::tests::it_should_hash_vec_biguints_to_biguint ... ignored
-test helper::tests::it_should_hash_vec_ciphers ... ignored
-test proofs::decryption::tests::it_should_verify_decryption_proof ... ignored
-test proofs::decryption::tests::it_should_verify_decryption_proof_multiple_partial_decryptions ... ignored
-test proofs::decryption::tests::it_should_verify_decryption_proof_multiple_partial_decryptions_encoded ... ignored
-test proofs::keygen::tests::it_should_create_keygen_proof_tiny ... ignored
-test proofs::keygen::tests::it_should_verify_keygen_proof ... ignored
-test proofs::shuffle::tests::it_should_generate_permutation_commitment ... ignored
-test proofs::shuffle::tests::it_should_get_challenges ... ignored
-test proofs::shuffle::tests::it_should_get_challenges_encoded ... ignored
-test proofs::shuffle::tests::it_should_panic_generate_commitment_chain ... ignored
-test proofs::shuffle::tests::it_should_panic_generate_commitment_chain_different_size_challenges_randoms ... ignored
-test proofs::shuffle::tests::it_should_panic_generate_commitment_chain_empty_inputs ... ignored
-test proofs::shuffle::tests::it_should_panic_generate_permutation_commitment_different_size_permutations_generators ... ignored
-test proofs::shuffle::tests::it_should_panic_generate_permutation_commitment_different_size_permutations_randoms ... ignored
-test proofs::shuffle::tests::it_should_panic_generate_permutation_commitment_empty_inputs ... ignored
-test proofs::shuffle::tests::it_should_panic_get_challenges_different_sizes_encryptions_randoms ... ignored
-test proofs::shuffle::tests::it_should_panic_get_challenges_different_sizes_encryptions_shuffled_encryptions ... ignored
-test proofs::shuffle::tests::it_should_panic_get_challenges_empty_inputs ... ignored
-test proofs::shuffle::tests::it_should_panic_get_challenges_zero_challenges ... ignored
-test random::tests::check_that_11_is_prime ... ignored
-test random::tests::check_that_2_is_prime ... ignored
-test random::tests::check_that_84532559_is_prime ... ignored
-test random::tests::check_that_84532560_is_not_prime ... ignored
-test random::tests::it_should_generate_a_permutation_for_three_numbers ... ignored
-test random::tests::it_should_generate_a_random_prime ... ignored
-test random::tests::it_should_generate_random_number ... ignored
-test random::tests::permutation_size_zero_should_panic ... ignored
-test types::tests::check_that_q_is_correctly_computed ... ignored
-test types::tests::is_modulo_addition ... ignored
-test types::tests::is_modulo_division ... ignored
-test types::tests::is_modulo_multiplication ... ignored
-test types::tests::is_modulo_substration_a_greater_b ... ignored
-test types::tests::is_modulo_substration_a_smaller_b ... ignored
-test types::tests::it_combine_public_keys_bigunits ... ignored
-test types::tests::it_should_combine_public_keys ... ignored
-test types::tests::it_should_combine_public_keys_bigunits_not_same_params ... ignored
-test types::tests::it_should_combine_public_keys_no_keys ... ignored
-test types::tests::it_should_compute_inverse_modulo_17_invmod_23 ... ignored
-test types::tests::it_should_compute_inverse_modulo_2_invmod_7 ... ignored
-test types::tests::it_should_create_a_private_key ... ignored
-test types::tests::it_should_create_a_public_key ... ignored
-test types::tests::it_should_not_use_modulus_zero_addition ... ignored
-test types::tests::it_should_not_use_modulus_zero_division ... ignored
-test types::tests::it_should_not_use_modulus_zero_multiplication ... ignored
-test types::tests::it_should_not_use_modulus_zero_substraction ... ignored
-test types::tests::it_should_panic_modulus_is_smaller_than_dividend ... ignored
-test types::tests::it_should_panic_modulus_is_smaller_than_divisior ... ignored
-test types::tests::it_should_panic_modulus_is_smaller_than_number_invmod ... ignored
-test types::tests::it_should_panic_modulus_is_zero ... ignored
-
-test result: ok. 0 passed; 0 failed; 87 ignored; 0 measured; 0 filtered out; finished in 0.00s
-
-     Running unittests (target/release/deps/benchmarks-709c9c96068bde0e)
-WARNING: HTML report generation will become a non-default optional feature in Criterion.rs 0.4.0.
-This feature is being moved to cargo-criterion (https://github.com/bheisler/cargo-criterion) and will be optional in a future version of Criterion.rs. To silence this warning, either switch to cargo-criterion or enable the 'html_reports' feature in your Cargo.toml.
-
-WARNING: In Criterion.rs 0.4.0, running criterion benchmarks outside of cargo-criterion will become a default optional feature.
-The statistical analysis and reporting is being moved to cargo-criterion (https://github.com/bheisler/cargo-criterion) and will be optional in a future version of Criterion.rs. To silence this warning, either switch to cargo-criterion or enable the 'cargo_bench_support' feature in your Cargo.toml.
-
-Gnuplot not found, using plotters backend
-Benchmarking elgamal/encryption_encoded
-Benchmarking elgamal/encryption_encoded: Warming up for 3.0000 s
 Benchmarking elgamal/encryption_encoded: Collecting 100 samples in estimated 5.2732 s (500 iterations)
 Benchmarking elgamal/encryption_encoded: Analyzing
 elgamal/encryption_encoded
@@ -111,8 +7,7 @@ elgamal/encryption_encoded
 Found 2 outliers among 100 measurements (2.00%)
   1 (1.00%) low mild
   1 (1.00%) high mild
-Benchmarking elgamal/decryption_encoded
-Benchmarking elgamal/decryption_encoded: Warming up for 3.0000 s
+
 Benchmarking elgamal/decryption_encoded: Collecting 100 samples in estimated 5.4446 s (400 iterations)
 Benchmarking elgamal/decryption_encoded: Analyzing
 elgamal/decryption_encoded
@@ -121,8 +16,7 @@ elgamal/decryption_encoded
                         Change within noise threshold.
 Found 2 outliers among 100 measurements (2.00%)
   2 (2.00%) high mild
-Benchmarking elgamal/encryption
-Benchmarking elgamal/encryption: Warming up for 3.0000 s
+
 Benchmarking elgamal/encryption: Collecting 100 samples in estimated 5.4565 s (400 iterations)
 Benchmarking elgamal/encryption: Analyzing
 elgamal/encryption      time:   [4.1557 ms 4.1586 ms 4.1631 ms]
@@ -131,8 +25,7 @@ elgamal/encryption      time:   [4.1557 ms 4.1586 ms 4.1631 ms]
 Found 2 outliers among 100 measurements (2.00%)
   1 (1.00%) high mild
   1 (1.00%) high severe
-Benchmarking elgamal/decryption
-Benchmarking elgamal/decryption: Warming up for 3.0000 s
+
 Benchmarking elgamal/decryption: Collecting 100 samples in estimated 6.5621 s (400 iterations)
 Benchmarking elgamal/decryption: Analyzing
 elgamal/decryption      time:   [2.7210 ms 2.7227 ms 2.7248 ms]

@@ -410,8 +410,7 @@ decl_module! {
           ensure_vote_exists::<T>(&vote_id)?;
           ensure_vote_phase::<T>(&vote_id, VotePhase::Voting)?;
 
-          // TODO: ensure that it is a legit voter
-          // TODO: in some other project where identity management is considered
+          // TODO: ensure that it is a legit voter -> in some other project where identity management is considered
 
           // store the ballot
           store_ballot::<T>(&who, &vote_id, ballot.clone());
