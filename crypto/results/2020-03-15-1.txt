@@ -1,0 +1,580 @@
+    Finished bench [optimized] target(s) in 0.03s
+     Running unittests (target/release/deps/crypto-89f73136510e3996)
+
+running 87 tests
+test encryption::tests::it_should_add_many_and_result_equals_five ... ignored
+test encryption::tests::it_should_add_one_and_zero_encoded ... ignored
+test encryption::tests::it_should_add_two_ones_encoded ... ignored
+test encryption::tests::it_should_add_two_zeros_encoded ... ignored
+test encryption::tests::it_should_decode_25 ... ignored
+test encryption::tests::it_should_decode_one ... ignored
+test encryption::tests::it_should_decode_zero ... ignored
+test encryption::tests::it_should_encode_a_message ... ignored
+test encryption::tests::it_should_encrypt ... ignored
+test encryption::tests::it_should_encrypt_decrypt_decode_two ... ignored
+test encryption::tests::it_should_encrypt_decrypt_two ... ignored
+test encryption::tests::it_should_encrypt_encode ... ignored
+test encryption::tests::it_should_re_encrypt_five ... ignored
+test encryption::tests::it_should_re_encrypt_five_by_addition ... ignored
+test encryption::tests::it_should_re_encrypt_five_encoded ... ignored
+test encryption::tests::it_should_show_that_both_re_encryptions_are_equal_encoded ... ignored
+test encryption::tests::it_should_show_that_combined_partial_decryptions_work ... ignored
+test encryption::tests::it_should_show_that_partial_decryption_works ... ignored
+test encryption::tests::it_should_shuffle_a_list_of_encrypted_votes ... ignored
+test encryption::tests::it_should_shuffle_a_list_of_encrypted_votes_encoded ... ignored
+test encryption::tests::shuffle_vectors_encryptions_permutations_different_size_should_panic ... ignored
+test encryption::tests::shuffle_vectors_encryptions_randoms_different_size_should_panic ... ignored
+test encryption::tests::shuffle_vectors_size_zero_should_panic ... ignored
+test helper::tests::check_if_5_is_a_generator_of_p7_failure ... ignored
+test helper::tests::check_if_g_and_h_are_generators_success ... ignored
+test helper::tests::it_should_create_256bit_system ... ignored
+test helper::tests::it_should_create_512bit_system ... ignored
+test helper::tests::it_should_create_a_key_pair ... ignored
+test helper::tests::it_should_create_lg_system ... ignored
+test helper::tests::it_should_create_md_system ... ignored
+test helper::tests::it_should_create_sm_system ... ignored
+test helper::tests::it_should_create_tiny_system ... ignored
+test helper::tests::it_should_create_xl_system ... ignored
+test helper::tests::it_should_get_generators ... ignored
+test helper::tests::it_should_hash_and_return_biguint ... ignored
+test helper::tests::it_should_hash_bigunit ... ignored
+test helper::tests::it_should_hash_vec_biguints ... ignored
+test helper::tests::it_should_hash_vec_biguints_to_biguint ... ignored
+test helper::tests::it_should_hash_vec_ciphers ... ignored
+test proofs::decryption::tests::it_should_verify_decryption_proof ... ignored
+test proofs::decryption::tests::it_should_verify_decryption_proof_multiple_partial_decryptions ... ignored
+test proofs::decryption::tests::it_should_verify_decryption_proof_multiple_partial_decryptions_encoded ... ignored
+test proofs::keygen::tests::it_should_create_keygen_proof_tiny ... ignored
+test proofs::keygen::tests::it_should_verify_keygen_proof ... ignored
+test proofs::shuffle::tests::it_should_generate_permutation_commitment ... ignored
+test proofs::shuffle::tests::it_should_get_challenges ... ignored
+test proofs::shuffle::tests::it_should_get_challenges_encoded ... ignored
+test proofs::shuffle::tests::it_should_panic_generate_commitment_chain ... ignored
+test proofs::shuffle::tests::it_should_panic_generate_commitment_chain_different_size_challenges_randoms ... ignored
+test proofs::shuffle::tests::it_should_panic_generate_commitment_chain_empty_inputs ... ignored
+test proofs::shuffle::tests::it_should_panic_generate_permutation_commitment_different_size_permutations_generators ... ignored
+test proofs::shuffle::tests::it_should_panic_generate_permutation_commitment_different_size_permutations_randoms ... ignored
+test proofs::shuffle::tests::it_should_panic_generate_permutation_commitment_empty_inputs ... ignored
+test proofs::shuffle::tests::it_should_panic_get_challenges_different_sizes_encryptions_randoms ... ignored
+test proofs::shuffle::tests::it_should_panic_get_challenges_different_sizes_encryptions_shuffled_encryptions ... ignored
+test proofs::shuffle::tests::it_should_panic_get_challenges_empty_inputs ... ignored
+test proofs::shuffle::tests::it_should_panic_get_challenges_zero_challenges ... ignored
+test random::tests::check_that_11_is_prime ... ignored
+test random::tests::check_that_2_is_prime ... ignored
+test random::tests::check_that_84532559_is_prime ... ignored
+test random::tests::check_that_84532560_is_not_prime ... ignored
+test random::tests::it_should_generate_a_permutation_for_three_numbers ... ignored
+test random::tests::it_should_generate_a_random_prime ... ignored
+test random::tests::it_should_generate_random_number ... ignored
+test random::tests::permutation_size_zero_should_panic ... ignored
+test types::tests::check_that_q_is_correctly_computed ... ignored
+test types::tests::is_modulo_addition ... ignored
+test types::tests::is_modulo_division ... ignored
+test types::tests::is_modulo_multiplication ... ignored
+test types::tests::is_modulo_substration_a_greater_b ... ignored
+test types::tests::is_modulo_substration_a_smaller_b ... ignored
+test types::tests::it_combine_public_keys_bigunits ... ignored
+test types::tests::it_should_combine_public_keys ... ignored
+test types::tests::it_should_combine_public_keys_bigunits_not_same_params ... ignored
+test types::tests::it_should_combine_public_keys_no_keys ... ignored
+test types::tests::it_should_compute_inverse_modulo_17_invmod_23 ... ignored
+test types::tests::it_should_compute_inverse_modulo_2_invmod_7 ... ignored
+test types::tests::it_should_create_a_private_key ... ignored
+test types::tests::it_should_create_a_public_key ... ignored
+test types::tests::it_should_not_use_modulus_zero_addition ... ignored
+test types::tests::it_should_not_use_modulus_zero_division ... ignored
+test types::tests::it_should_not_use_modulus_zero_multiplication ... ignored
+test types::tests::it_should_not_use_modulus_zero_substraction ... ignored
+test types::tests::it_should_panic_modulus_is_smaller_than_dividend ... ignored
+test types::tests::it_should_panic_modulus_is_smaller_than_divisior ... ignored
+test types::tests::it_should_panic_modulus_is_smaller_than_number_invmod ... ignored
+test types::tests::it_should_panic_modulus_is_zero ... ignored
+
+test result: ok. 0 passed; 0 failed; 87 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests (target/release/deps/benchmarks-709c9c96068bde0e)
+WARNING: HTML report generation will become a non-default optional feature in Criterion.rs 0.4.0.
+This feature is being moved to cargo-criterion (https://github.com/bheisler/cargo-criterion) and will be optional in a future version of Criterion.rs. To silence this warning, either switch to cargo-criterion or enable the 'html_reports' feature in your Cargo.toml.
+
+WARNING: In Criterion.rs 0.4.0, running criterion benchmarks outside of cargo-criterion will become a default optional feature.
+The statistical analysis and reporting is being moved to cargo-criterion (https://github.com/bheisler/cargo-criterion) and will be optional in a future version of Criterion.rs. To silence this warning, either switch to cargo-criterion or enable the 'cargo_bench_support' feature in your Cargo.toml.
+
+Gnuplot not found, using plotters backend
+Benchmarking elgamal/encryption_encoded
+Benchmarking elgamal/encryption_encoded: Warming up for 3.0000 s
+Benchmarking elgamal/encryption_encoded: Collecting 100 samples in estimated 5.2732 s (500 iterations)
+Benchmarking elgamal/encryption_encoded: Analyzing
+elgamal/encryption_encoded
+                        time:   [662.04 us 662.29 us 662.54 us]
+                        change: [-0.6273% -0.5628% -0.4997%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) low mild
+  1 (1.00%) high mild
+Benchmarking elgamal/decryption_encoded
+Benchmarking elgamal/decryption_encoded: Warming up for 3.0000 s
+Benchmarking elgamal/decryption_encoded: Collecting 100 samples in estimated 5.4446 s (400 iterations)
+Benchmarking elgamal/decryption_encoded: Analyzing
+elgamal/decryption_encoded
+                        time:   [3.0188 ms 3.0199 ms 3.0209 ms]
+                        change: [-0.9630% -0.9128% -0.8557%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+Benchmarking elgamal/encryption
+Benchmarking elgamal/encryption: Warming up for 3.0000 s
+Benchmarking elgamal/encryption: Collecting 100 samples in estimated 5.4565 s (400 iterations)
+Benchmarking elgamal/encryption: Analyzing
+elgamal/encryption      time:   [4.1557 ms 4.1586 ms 4.1631 ms]
+                        change: [-5.4432% -5.3303% -5.2128%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking elgamal/decryption
+Benchmarking elgamal/decryption: Warming up for 3.0000 s
+Benchmarking elgamal/decryption: Collecting 100 samples in estimated 6.5621 s (400 iterations)
+Benchmarking elgamal/decryption: Analyzing
+elgamal/decryption      time:   [2.7210 ms 2.7227 ms 2.7248 ms]
+                        change: [-5.1743% -5.0845% -4.9926%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
+Benchmarking elgamal/homomorphic addition
+Benchmarking elgamal/homomorphic addition: Warming up for 3.0000 s
+Benchmarking elgamal/homomorphic addition: Collecting 100 samples in estimated 5.3718 s (500 iterations)
+Benchmarking elgamal/homomorphic addition: Analyzing
+elgamal/homomorphic addition
+                        time:   [5.8337 us 5.8481 us 5.8678 us]
+                        change: [+3.1033% +3.4533% +3.8401%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high severe
+Benchmarking elgamal/re_encryption_encoded
+Benchmarking elgamal/re_encryption_encoded: Warming up for 3.0000 s
+Benchmarking elgamal/re_encryption_encoded: Collecting 100 samples in estimated 5.3149 s (500 iterations)
+Benchmarking elgamal/re_encryption_encoded: Analyzing
+elgamal/re_encryption_encoded
+                        time:   [504.20 us 504.56 us 504.92 us]
+                        change: [-4.2697% -4.1884% -4.1129%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+Benchmarking elgamal/re_encryption
+Benchmarking elgamal/re_encryption: Warming up for 3.0000 s
+Benchmarking elgamal/re_encryption: Collecting 100 samples in estimated 5.8850 s (400 iterations)
+Benchmarking elgamal/re_encryption: Analyzing
+elgamal/re_encryption   time:   [523.59 us 523.91 us 524.24 us]
+                        change: [-0.9326% -0.8601% -0.7812%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking elgamal/re_encryption by homomorphic addition zero (g^0)
+Benchmarking elgamal/re_encryption by homomorphic addition zero (g^0): Warming up for 3.0000 s
+Benchmarking elgamal/re_encryption by homomorphic addition zero (g^0): Collecting 100 samples in estimated 5.4020 s (500 iterations)
+Benchmarking elgamal/re_encryption by homomorphic addition zero (g^0): Analyzing
+elgamal/re_encryption by homomorphic addition zero (g^0)
+                        time:   [539.76 us 540.18 us 540.61 us]
+                        change: [-2.8798% -2.7957% -2.7111%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+
+Benchmarking proofs/keygen proof: generate proof
+Benchmarking proofs/keygen proof: generate proof: Warming up for 3.0000 s
+Benchmarking proofs/keygen proof: generate proof: Collecting 100 samples in estimated 5.8907 s (600 iterations)
+Benchmarking proofs/keygen proof: generate proof: Analyzing
+proofs/keygen proof: generate proof
+                        time:   [253.66 us 253.83 us 254.01 us]
+                        change: [-3.5924% -3.5130% -3.4311%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Benchmarking proofs/keygen proof: verify proof
+Benchmarking proofs/keygen proof: verify proof: Warming up for 3.0000 s
+Benchmarking proofs/keygen proof: verify proof: Collecting 100 samples in estimated 5.7668 s (400 iterations)
+Benchmarking proofs/keygen proof: verify proof: Analyzing
+proofs/keygen proof: verify proof
+                        time:   [4.6196 ms 4.6214 ms 4.6232 ms]
+                        change: [-4.1823% -4.1377% -4.0918%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 4 outliers among 100 measurements (4.00%)
+  4 (4.00%) high mild
+
+Benchmarking shuffling 256bit/3 votes
+Benchmarking shuffling 256bit/3 votes: Warming up for 3.0000 s
+Benchmarking shuffling 256bit/3 votes: Collecting 10 samples in estimated 5.0014 s (27k iterations)
+Benchmarking shuffling 256bit/3 votes: Analyzing
+shuffling 256bit/3 votes
+                        time:   [63.729 us 63.746 us 63.776 us]
+Benchmarking shuffling 256bit/10 votes
+Benchmarking shuffling 256bit/10 votes: Warming up for 3.0000 s
+Benchmarking shuffling 256bit/10 votes: Collecting 10 samples in estimated 5.0256 s (7810 iterations)
+Benchmarking shuffling 256bit/10 votes: Analyzing
+shuffling 256bit/10 votes
+                        time:   [396.69 us 397.39 us 398.03 us]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking shuffling 256bit/30 votes
+Benchmarking shuffling 256bit/30 votes: Warming up for 3.0000 s
+Benchmarking shuffling 256bit/30 votes: Collecting 10 samples in estimated 5.0390 s (2585 iterations)
+Benchmarking shuffling 256bit/30 votes: Analyzing
+shuffling 256bit/30 votes
+                        time:   [1.3463 ms 1.3466 ms 1.3471 ms]
+Benchmarking shuffling 256bit/100 votes
+Benchmarking shuffling 256bit/100 votes: Warming up for 3.0000 s
+Benchmarking shuffling 256bit/100 votes: Collecting 10 samples in estimated 5.0172 s (770 iterations)
+Benchmarking shuffling 256bit/100 votes: Analyzing
+shuffling 256bit/100 votes
+                        time:   [4.6674 ms 4.6698 ms 4.6732 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking shuffling 256bit/1000 votes
+Benchmarking shuffling 256bit/1000 votes: Warming up for 3.0000 s
+Benchmarking shuffling 256bit/1000 votes: Collecting 10 samples in estimated 7.1831 s (110 iterations)
+Benchmarking shuffling 256bit/1000 votes: Analyzing
+shuffling 256bit/1000 votes
+                        time:   [47.772 ms 47.788 ms 47.809 ms]
+Benchmarking shuffling 256bit/3 votes (encoded)
+Benchmarking shuffling 256bit/3 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 256bit/3 votes (encoded): Collecting 10 samples in estimated 5.0032 s (31k iterations)
+Benchmarking shuffling 256bit/3 votes (encoded): Analyzing
+shuffling 256bit/3 votes (encoded)
+                        time:   [64.738 us 64.791 us 64.839 us]
+Benchmarking shuffling 256bit/10 votes (encoded)
+Benchmarking shuffling 256bit/10 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 256bit/10 votes (encoded): Collecting 10 samples in estimated 5.0191 s (8195 iterations)
+Benchmarking shuffling 256bit/10 votes (encoded): Analyzing
+shuffling 256bit/10 votes (encoded)
+                        time:   [396.56 us 396.78 us 397.15 us]
+Benchmarking shuffling 256bit/30 votes (encoded)
+Benchmarking shuffling 256bit/30 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 256bit/30 votes (encoded): Collecting 10 samples in estimated 5.0329 s (2640 iterations)
+Benchmarking shuffling 256bit/30 votes (encoded): Analyzing
+shuffling 256bit/30 votes (encoded)
+                        time:   [1.3468 ms 1.3472 ms 1.3477 ms]
+Benchmarking shuffling 256bit/100 votes (encoded)
+Benchmarking shuffling 256bit/100 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 256bit/100 votes (encoded): Collecting 10 samples in estimated 5.0753 s (770 iterations)
+Benchmarking shuffling 256bit/100 votes (encoded): Analyzing
+shuffling 256bit/100 votes (encoded)
+                        time:   [4.7118 ms 4.7186 ms 4.7325 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking shuffling 256bit/1000 votes (encoded)
+Benchmarking shuffling 256bit/1000 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 256bit/1000 votes (encoded): Collecting 10 samples in estimated 7.1476 s (110 iterations)
+Benchmarking shuffling 256bit/1000 votes (encoded): Analyzing
+shuffling 256bit/1000 votes (encoded)
+                        time:   [47.207 ms 47.305 ms 47.459 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+
+Benchmarking shuffling 512bit/3 votes
+Benchmarking shuffling 512bit/3 votes: Warming up for 3.0000 s
+Benchmarking shuffling 512bit/3 votes: Collecting 10 samples in estimated 5.0149 s (8305 iterations)
+Benchmarking shuffling 512bit/3 votes: Analyzing
+shuffling 512bit/3 votes
+                        time:   [233.70 us 234.13 us 234.68 us]
+Benchmarking shuffling 512bit/10 votes
+Benchmarking shuffling 512bit/10 votes: Warming up for 3.0000 s
+Benchmarking shuffling 512bit/10 votes: Collecting 10 samples in estimated 5.0281 s (2255 iterations)
+Benchmarking shuffling 512bit/10 votes: Analyzing
+shuffling 512bit/10 votes
+                        time:   [1.6238 ms 1.6267 ms 1.6297 ms]
+Benchmarking shuffling 512bit/30 votes
+Benchmarking shuffling 512bit/30 votes: Warming up for 3.0000 s
+Benchmarking shuffling 512bit/30 votes: Collecting 10 samples in estimated 5.1620 s (770 iterations)
+Benchmarking shuffling 512bit/30 votes: Analyzing
+shuffling 512bit/30 votes
+                        time:   [5.3419 ms 5.3483 ms 5.3556 ms]
+Benchmarking shuffling 512bit/100 votes
+Benchmarking shuffling 512bit/100 votes: Warming up for 3.0000 s
+Benchmarking shuffling 512bit/100 votes: Collecting 10 samples in estimated 6.1542 s (275 iterations)
+Benchmarking shuffling 512bit/100 votes: Analyzing
+shuffling 512bit/100 votes
+                        time:   [18.498 ms 18.522 ms 18.545 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking shuffling 512bit/1000 votes
+Benchmarking shuffling 512bit/1000 votes: Warming up for 3.0000 s
+Benchmarking shuffling 512bit/1000 votes: Collecting 10 samples in estimated 7.0085 s (30 iterations)
+Benchmarking shuffling 512bit/1000 votes: Analyzing
+shuffling 512bit/1000 votes
+                        time:   [196.70 ms 198.10 ms 199.86 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) high mild
+  1 (10.00%) high severe
+Benchmarking shuffling 512bit/3 votes (encoded)
+Benchmarking shuffling 512bit/3 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 512bit/3 votes (encoded): Collecting 10 samples in estimated 5.0053 s (12k iterations)
+Benchmarking shuffling 512bit/3 votes (encoded): Analyzing
+shuffling 512bit/3 votes (encoded)
+                        time:   [232.35 us 232.56 us 232.99 us]
+Benchmarking shuffling 512bit/10 votes (encoded)
+Benchmarking shuffling 512bit/10 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 512bit/10 votes (encoded): Collecting 10 samples in estimated 5.0208 s (2475 iterations)
+Benchmarking shuffling 512bit/10 votes (encoded): Analyzing
+shuffling 512bit/10 votes (encoded)
+                        time:   [1.5772 ms 1.5811 ms 1.5877 ms]
+Benchmarking shuffling 512bit/30 votes (encoded)
+Benchmarking shuffling 512bit/30 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 512bit/30 votes (encoded): Collecting 10 samples in estimated 5.2152 s (770 iterations)
+Benchmarking shuffling 512bit/30 votes (encoded): Analyzing
+shuffling 512bit/30 votes (encoded)
+                        time:   [5.5551 ms 5.5609 ms 5.5669 ms]
+Benchmarking shuffling 512bit/100 votes (encoded)
+Benchmarking shuffling 512bit/100 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 512bit/100 votes (encoded): Collecting 10 samples in estimated 6.1379 s (275 iterations)
+Benchmarking shuffling 512bit/100 votes (encoded): Analyzing
+shuffling 512bit/100 votes (encoded)
+                        time:   [18.592 ms 18.626 ms 18.650 ms]
+Benchmarking shuffling 512bit/1000 votes (encoded)
+Benchmarking shuffling 512bit/1000 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 512bit/1000 votes (encoded): Collecting 10 samples in estimated 7.0287 s (30 iterations)
+Benchmarking shuffling 512bit/1000 votes (encoded): Analyzing
+shuffling 512bit/1000 votes (encoded)
+                        time:   [196.12 ms 196.28 ms 196.47 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  2 (20.00%) high mild
+
+Benchmarking shuffling 1024bit/3 votes
+Benchmarking shuffling 1024bit/3 votes: Warming up for 3.0000 s
+Benchmarking shuffling 1024bit/3 votes: Collecting 10 samples in estimated 5.0846 s (1815 iterations)
+Benchmarking shuffling 1024bit/3 votes: Analyzing
+shuffling 1024bit/3 votes
+                        time:   [1.1970 ms 1.1984 ms 1.1992 ms]
+Benchmarking shuffling 1024bit/10 votes
+Benchmarking shuffling 1024bit/10 votes: Warming up for 3.0000 s
+Benchmarking shuffling 1024bit/10 votes: Collecting 10 samples in estimated 5.0552 s (440 iterations)
+Benchmarking shuffling 1024bit/10 votes: Analyzing
+shuffling 1024bit/10 votes
+                        time:   [8.9353 ms 8.9578 ms 9.0123 ms]
+Benchmarking shuffling 1024bit/30 votes
+Benchmarking shuffling 1024bit/30 votes: Warming up for 3.0000 s
+Benchmarking shuffling 1024bit/30 votes: Collecting 10 samples in estimated 6.1731 s (165 iterations)
+Benchmarking shuffling 1024bit/30 votes: Analyzing
+shuffling 1024bit/30 votes
+                        time:   [32.252 ms 32.355 ms 32.475 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking shuffling 1024bit/100 votes
+Benchmarking shuffling 1024bit/100 votes: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 7.1s or enable flat sampling.
+Benchmarking shuffling 1024bit/100 votes: Collecting 10 samples in estimated 7.1213 s (55 iterations)
+Benchmarking shuffling 1024bit/100 votes: Analyzing
+shuffling 1024bit/100 votes
+                        time:   [116.31 ms 116.43 ms 116.58 ms]
+Benchmarking shuffling 1024bit/1000 votes
+Benchmarking shuffling 1024bit/1000 votes: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 13.1s.
+Benchmarking shuffling 1024bit/1000 votes: Collecting 10 samples in estimated 13.071 s (10 iterations)
+Benchmarking shuffling 1024bit/1000 votes: Analyzing
+shuffling 1024bit/1000 votes
+                        time:   [1.1865 s 1.1899 s 1.1931 s]
+Benchmarking shuffling 1024bit/3 votes (encoded)
+Benchmarking shuffling 1024bit/3 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 1024bit/3 votes (encoded): Collecting 10 samples in estimated 5.0449 s (2750 iterations)
+Benchmarking shuffling 1024bit/3 votes (encoded): Analyzing
+shuffling 1024bit/3 votes (encoded)
+                        time:   [1.2368 ms 1.2404 ms 1.2454 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking shuffling 1024bit/10 votes (encoded)
+Benchmarking shuffling 1024bit/10 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 1024bit/10 votes (encoded): Collecting 10 samples in estimated 5.3114 s (495 iterations)
+Benchmarking shuffling 1024bit/10 votes (encoded): Analyzing
+shuffling 1024bit/10 votes (encoded)
+                        time:   [9.2906 ms 9.2955 ms 9.3018 ms]
+Benchmarking shuffling 1024bit/30 votes (encoded)
+Benchmarking shuffling 1024bit/30 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 1024bit/30 votes (encoded): Collecting 10 samples in estimated 6.0908 s (165 iterations)
+Benchmarking shuffling 1024bit/30 votes (encoded): Analyzing
+shuffling 1024bit/30 votes (encoded)
+                        time:   [32.953 ms 33.043 ms 33.122 ms]
+Benchmarking shuffling 1024bit/100 votes (encoded)
+Benchmarking shuffling 1024bit/100 votes (encoded): Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 7.1s or enable flat sampling.
+Benchmarking shuffling 1024bit/100 votes (encoded): Collecting 10 samples in estimated 7.0711 s (55 iterations)
+Benchmarking shuffling 1024bit/100 votes (encoded): Analyzing
+shuffling 1024bit/100 votes (encoded)
+                        time:   [116.77 ms 116.96 ms 117.32 ms]
+Benchmarking shuffling 1024bit/1000 votes (encoded)
+Benchmarking shuffling 1024bit/1000 votes (encoded): Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 13.1s.
+Benchmarking shuffling 1024bit/1000 votes (encoded): Collecting 10 samples in estimated 13.057 s (10 iterations)
+Benchmarking shuffling 1024bit/1000 votes (encoded): Analyzing
+shuffling 1024bit/1000 votes (encoded)
+                        time:   [1.1864 s 1.1896 s 1.1933 s]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) low mild
+  1 (10.00%) high severe
+
+Benchmarking shuffling 2048bit/3 votes
+Benchmarking shuffling 2048bit/3 votes: Warming up for 3.0000 s
+Benchmarking shuffling 2048bit/3 votes: Collecting 10 samples in estimated 5.5244 s (330 iterations)
+Benchmarking shuffling 2048bit/3 votes: Analyzing
+shuffling 2048bit/3 votes
+                        time:   [7.6847 ms 7.6897 ms 7.6998 ms]
+Benchmarking shuffling 2048bit/10 votes
+Benchmarking shuffling 2048bit/10 votes: Warming up for 3.0000 s
+Benchmarking shuffling 2048bit/10 votes: Collecting 10 samples in estimated 7.8492 s (110 iterations)
+Benchmarking shuffling 2048bit/10 votes: Analyzing
+shuffling 2048bit/10 votes
+                        time:   [59.470 ms 59.527 ms 59.577 ms]
+Benchmarking shuffling 2048bit/30 votes
+Benchmarking shuffling 2048bit/30 votes: Warming up for 3.0000 s
+Benchmarking shuffling 2048bit/30 votes: Collecting 10 samples in estimated 6.8706 s (30 iterations)
+Benchmarking shuffling 2048bit/30 votes: Analyzing
+shuffling 2048bit/30 votes
+                        time:   [208.88 ms 208.96 ms 209.05 ms]
+Benchmarking shuffling 2048bit/100 votes
+Benchmarking shuffling 2048bit/100 votes: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 7.7s.
+Benchmarking shuffling 2048bit/100 votes: Collecting 10 samples in estimated 7.6987 s (10 iterations)
+Benchmarking shuffling 2048bit/100 votes: Analyzing
+shuffling 2048bit/100 votes
+                        time:   [722.09 ms 723.42 ms 724.95 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking shuffling 2048bit/1000 votes
+Benchmarking shuffling 2048bit/1000 votes: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 81.6s.
+Benchmarking shuffling 2048bit/1000 votes: Collecting 10 samples in estimated 81.645 s (10 iterations)
+Benchmarking shuffling 2048bit/1000 votes: Analyzing
+shuffling 2048bit/1000 votes
+                        time:   [7.7335 s 7.7643 s 7.7970 s]
+Benchmarking shuffling 2048bit/3 votes (encoded)
+Benchmarking shuffling 2048bit/3 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 2048bit/3 votes (encoded): Collecting 10 samples in estimated 5.0137 s (495 iterations)
+Benchmarking shuffling 2048bit/3 votes (encoded): Analyzing
+shuffling 2048bit/3 votes (encoded)
+                        time:   [8.0957 ms 8.1120 ms 8.1290 ms]
+Found 3 outliers among 10 measurements (30.00%)
+  1 (10.00%) low severe
+  1 (10.00%) low mild
+  1 (10.00%) high severe
+Benchmarking shuffling 2048bit/10 votes (encoded)
+Benchmarking shuffling 2048bit/10 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 2048bit/10 votes (encoded): Collecting 10 samples in estimated 7.1113 s (110 iterations)
+Benchmarking shuffling 2048bit/10 votes (encoded): Analyzing
+shuffling 2048bit/10 votes (encoded)
+                        time:   [59.556 ms 59.648 ms 59.751 ms]
+Benchmarking shuffling 2048bit/30 votes (encoded)
+Benchmarking shuffling 2048bit/30 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 2048bit/30 votes (encoded): Collecting 10 samples in estimated 6.9220 s (30 iterations)
+Benchmarking shuffling 2048bit/30 votes (encoded): Analyzing
+shuffling 2048bit/30 votes (encoded)
+                        time:   [217.43 ms 217.58 ms 217.74 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) low mild
+  1 (10.00%) high mild
+Benchmarking shuffling 2048bit/100 votes (encoded)
+Benchmarking shuffling 2048bit/100 votes (encoded): Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 8.0s.
+Benchmarking shuffling 2048bit/100 votes (encoded): Collecting 10 samples in estimated 7.9860 s (10 iterations)
+Benchmarking shuffling 2048bit/100 votes (encoded): Analyzing
+shuffling 2048bit/100 votes (encoded)
+                        time:   [755.03 ms 757.40 ms 759.93 ms]
+Benchmarking shuffling 2048bit/1000 votes (encoded)
+Benchmarking shuffling 2048bit/1000 votes (encoded): Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 81.3s.
+Benchmarking shuffling 2048bit/1000 votes (encoded): Collecting 10 samples in estimated 81.302 s (10 iterations)
+Benchmarking shuffling 2048bit/1000 votes (encoded): Analyzing
+shuffling 2048bit/1000 votes (encoded)
+                        time:   [7.4435 s 7.5235 s 7.6197 s]
+Found 2 outliers among 10 measurements (20.00%)
+  2 (20.00%) high mild
+
+Benchmarking shuffling 3072bit/3 votes
+Benchmarking shuffling 3072bit/3 votes: Warming up for 3.0000 s
+Benchmarking shuffling 3072bit/3 votes: Collecting 10 samples in estimated 5.7316 s (110 iterations)
+Benchmarking shuffling 3072bit/3 votes: Analyzing
+shuffling 3072bit/3 votes
+                        time:   [24.514 ms 24.525 ms 24.543 ms]
+Benchmarking shuffling 3072bit/10 votes
+Benchmarking shuffling 3072bit/10 votes: Warming up for 3.0000 s
+Benchmarking shuffling 3072bit/10 votes: Collecting 10 samples in estimated 6.8106 s (30 iterations)
+Benchmarking shuffling 3072bit/10 votes: Analyzing
+shuffling 3072bit/10 votes
+                        time:   [193.12 ms 193.18 ms 193.26 ms]
+Benchmarking shuffling 3072bit/30 votes
+Benchmarking shuffling 3072bit/30 votes: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 7.6s.
+Benchmarking shuffling 3072bit/30 votes: Collecting 10 samples in estimated 7.5536 s (10 iterations)
+Benchmarking shuffling 3072bit/30 votes: Analyzing
+shuffling 3072bit/30 votes
+                        time:   [699.41 ms 700.20 ms 701.13 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking shuffling 3072bit/100 votes
+Benchmarking shuffling 3072bit/100 votes: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 25.7s.
+Benchmarking shuffling 3072bit/100 votes: Collecting 10 samples in estimated 25.720 s (10 iterations)
+Benchmarking shuffling 3072bit/100 votes: Analyzing
+shuffling 3072bit/100 votes
+                        time:   [2.4032 s 2.4325 s 2.4548 s]
+Found 2 outliers among 10 measurements (20.00%)
+  2 (20.00%) low severe
+Benchmarking shuffling 3072bit/1000 votes
+Benchmarking shuffling 3072bit/1000 votes: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 249.7s.
+Benchmarking shuffling 3072bit/1000 votes: Collecting 10 samples in estimated 249.67 s (10 iterations)
+Benchmarking shuffling 3072bit/1000 votes: Analyzing
+shuffling 3072bit/1000 votes
+                        time:   [24.121 s 24.163 s 24.209 s]
+Found 3 outliers among 10 measurements (30.00%)
+  1 (10.00%) low severe
+  2 (20.00%) high severe
+Benchmarking shuffling 3072bit/3 votes (encoded)
+Benchmarking shuffling 3072bit/3 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 3072bit/3 votes (encoded): Collecting 10 samples in estimated 6.3815 s (220 iterations)
+Benchmarking shuffling 3072bit/3 votes (encoded): Analyzing
+shuffling 3072bit/3 votes (encoded)
+                        time:   [24.723 ms 24.743 ms 24.770 ms]
+Benchmarking shuffling 3072bit/10 votes (encoded)
+Benchmarking shuffling 3072bit/10 votes (encoded): Warming up for 3.0000 s
+Benchmarking shuffling 3072bit/10 votes (encoded): Collecting 10 samples in estimated 6.0167 s (30 iterations)
+Benchmarking shuffling 3072bit/10 votes (encoded): Analyzing
+shuffling 3072bit/10 votes (encoded)
+                        time:   [190.05 ms 190.26 ms 190.48 ms]
+Benchmarking shuffling 3072bit/30 votes (encoded)
+Benchmarking shuffling 3072bit/30 votes (encoded): Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 6.9s.
+Benchmarking shuffling 3072bit/30 votes (encoded): Collecting 10 samples in estimated 6.9490 s (10 iterations)
+Benchmarking shuffling 3072bit/30 votes (encoded): Analyzing
+shuffling 3072bit/30 votes (encoded)
+                        time:   [667.31 ms 667.82 ms 668.29 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking shuffling 3072bit/100 votes (encoded)
+Benchmarking shuffling 3072bit/100 votes (encoded): Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 24.4s.
+Benchmarking shuffling 3072bit/100 votes (encoded): Collecting 10 samples in estimated 24.438 s (10 iterations)
+Benchmarking shuffling 3072bit/100 votes (encoded): Analyzing
+shuffling 3072bit/100 votes (encoded)
+                        time:   [2.3520 s 2.3549 s 2.3574 s]
+Benchmarking shuffling 3072bit/1000 votes (encoded)
+Benchmarking shuffling 3072bit/1000 votes (encoded): Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 246.7s.
+Benchmarking shuffling 3072bit/1000 votes (encoded): Collecting 10 samples in estimated 246.73 s (10 iterations)
+Benchmarking shuffling 3072bit/1000 votes (encoded): Analyzing
+shuffling 3072bit/1000 votes (encoded)
+                        time:   [23.752 s 23.779 s 23.806 s]
+Found 3 outliers among 10 measurements (30.00%)
+  1 (10.00%) low severe
+  2 (20.00%) high severe
+
