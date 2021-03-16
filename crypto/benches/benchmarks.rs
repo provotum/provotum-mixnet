@@ -347,5 +347,100 @@ fn bench_shuffle(c: &mut Criterion) {
     }
 }
 
-criterion_group!(benches, bench_elgamal, bench_proofs, bench_shuffle);
+fn bench_decryption_encoded_different_votes(c: &mut Criterion) {
+    // benchmark config
+    let mut group = c.benchmark_group("decryption_encoded different votes");
+
+    group.bench_function("decryption_encoded - vote 0", |b| {
+        b.iter_with_setup(
+            || {
+                let (_, sk, pk) = Helper::setup_lg_system();
+                let message = BigUint::from(0u32);
+                let random =
+                    BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+
+                // encrypt the message
+                let encrypted_message = ElGamal::encrypt_encode(&message, &random, &pk);
+                (encrypted_message, sk)
+            },
+            |(encrypted_message, sk)| ElGamal::decrypt_decode(&encrypted_message, &sk),
+        )
+    });
+
+    group.bench_function("decryption_encoded - vote 1", |b| {
+        b.iter_with_setup(
+            || {
+                let (_, sk, pk) = Helper::setup_lg_system();
+                let message = BigUint::from(1u32);
+                let random =
+                    BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+
+                // encrypt the message
+                let encrypted_message = ElGamal::encrypt_encode(&message, &random, &pk);
+                (encrypted_message, sk)
+            },
+            |(encrypted_message, sk)| ElGamal::decrypt_decode(&encrypted_message, &sk),
+        )
+    });
+
+    group.bench_function("decryption_encoded - votes from 0-10", |b| {
+        for vote in 0..10 {
+            b.iter_with_setup(
+                || {
+                    let (_, sk, pk) = Helper::setup_lg_system();
+                    let message = BigUint::from(vote as u32);
+                    let random =
+                    BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+                    
+                    // encrypt the message
+                    let encrypted_message = ElGamal::encrypt_encode(&message, &random, &pk);
+                    (encrypted_message, sk)
+                },
+                |(encrypted_message, sk)| ElGamal::decrypt_decode(&encrypted_message, &sk),
+            )
+        }
+    });
+
+    // takes long...
+    // group.bench_function("decryption_encoded - votes from 0-100", |b| {
+    //     for vote in 0..100 {
+    //         b.iter_with_setup(
+    //             || {
+    //                 let (_, sk, pk) = Helper::setup_lg_system();
+    //                 let message = BigUint::from(vote as u32);
+    //                 let random =
+    //                 BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+                    
+    //                 // encrypt the message
+    //                 let encrypted_message = ElGamal::encrypt_encode(&message, &random, &pk);
+    //                 (encrypted_message, sk)
+    //             },
+    //             |(encrypted_message, sk)| ElGamal::decrypt_decode(&encrypted_message, &sk),
+    //         )
+    //     }
+    // });
+
+    // takes very long...
+    // group.bench_function("decryption_encoded - votes from 0-1000", |b| {
+    //     for vote in 0..1000 {
+    //         b.iter_with_setup(
+    //             || {
+    //                 let (_, sk, pk) = Helper::setup_lg_system();
+    //                 let message = BigUint::from(vote as u32);
+    //                 let random =
+    //                 BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+                    
+    //                 // encrypt the message
+    //                 let encrypted_message = ElGamal::encrypt_encode(&message, &random, &pk);
+    //                 (encrypted_message, sk)
+    //             },
+    //             |(encrypted_message, sk)| ElGamal::decrypt_decode(&encrypted_message, &sk),
+    //         )
+    //     }
+    // });
+
+    group.finish();
+}
+
+criterion_group!(benches, bench_elgamal, bench_proofs, bench_shuffle, bench_decryption_encoded_different_votes);
 criterion_main!(benches);

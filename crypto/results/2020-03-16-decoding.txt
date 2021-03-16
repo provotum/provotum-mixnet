@@ -1,0 +1,38 @@
+Benchmarking decryption_encoded different votes/decryption_encoded - vote 0
+Benchmarking decryption_encoded different votes/decryption_encoded - vote 0: Warming up for 3.0000s
+Benchmarking decryption_encoded different votes/decryption_encoded - vote 0: Collecting 100 samples in estimated 5.3388 s (400 iterations)
+Benchmarking decryption_encoded different votes/decryption_encoded - vote 0: Analyzing
+decryption_encoded different votes/decryption_encoded - vote 0
+                        time:   [2.8501 ms 2.8526 ms 2.8557 ms]
+                        change: [-0.1899% -0.0776% +0.0554%] (p = 0.22 > 0.05)
+
+Benchmarking decryption_encoded different votes/decryption_encoded - vote 1
+Benchmarking decryption_encoded different votes/decryption_encoded - vote 1: Warming up for 3.0000s
+Benchmarking decryption_encoded different votes/decryption_encoded - vote 1: Collecting 100 samples in estimated 5.4566 s (400 iterations)
+Benchmarking decryption_encoded different votes/decryption_encoded - vote 1: Analyzing
+decryption_encoded different votes/decryption_encoded - vote 1
+                        time:   [3.0302 ms 3.0347 ms 3.0395 ms]
+                        change: [+0.0575% +0.2073% +0.3937%] (p = 0.02 < 0.05)
+
+Benchmarking decryption_encoded different votes/decryption_encoded - votes from 0-10
+Benchmarking decryption_encoded different votes/decryption_encoded - votes from 0-10: Warming up for 3.0000s
+Benchmarking decryption_encoded different votes/decryption_encoded - votes from 0-10: Collecting 100 samples in estimated 5.9365 s (400 iterations)
+Benchmarking decryption_encoded different votes/decryption_encoded - votes from 0-10: Analyzing
+decryption_encoded different votes/decryption_encoded - votes from 0-10
+                        time:   [4.2033 ms 4.2097 ms 4.2166 ms]
+
+Benchmarking decryption_encoded different votes/decryption_encoded - votes from 0-100
+Benchmarking decryption_encoded different votes/decryption_encoded - votes from 0-100: Warming up for 3.0000s
+Benchmarking decryption_encoded different votes/decryption_encoded - votes from 0-100: Collecting 100 samples in estimated 5.5616 s (200 iterations)
+Benchmarking decryption_encoded different votes/decryption_encoded - votes from 0-100: Analyzing
+decryption_encoded different votes/decryption_encoded - votes from 0-100
+                        time:   [17.076 ms 17.093 ms 17.111 ms]
+
+Benchmarking decryption_encoded different votes/decryption_encoded - votes from 0-1000
+Benchmarking decryption_encoded different votes/decryption_encoded - votes from 0-1000: Warming up for 3.0000s
+Benchmarking decryption_encoded different votes/decryption_encoded - votes from 0-1000: Collecting 100 samples in estimated 15.520 s (100 iterations)
+Benchmarking decryption_encoded different votes/decryption_encoded - votes from 0-1000: Analyzing
+decryption_encoded different votes/decryption_encoded - votes from 0-1000
+                        time:   [144.79 ms 144.93 ms 145.06 ms]
+                        change: [+3374.5% +3377.9% +3381.6%] (p = 0.00 < 0.05)
+

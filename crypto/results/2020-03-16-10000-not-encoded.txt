@@ -1,0 +1,15 @@
+test proofs::decryption::tests::it_should_verify_decryption_proof_multiple_partial_decryptions
+results:[
+    generate_random_encryptions: 156.358708147s, 
+    bob_partial_decrytpions: 39.092909226s, 
+    DecryptionProof::generate: 38.860175769s, 
+    DecryptionProof::verify: 48.891211009s, 
+    charlie_partial_decrytpions: 39.288907375s, 
+    DecryptionProof::generate: 38.964713208s, 
+    DecryptionProof::verify: 48.917477733s, 
+    combine_partial_decrypted_as: 29.996098ms, 
+    partial_decrypt_b: 6.39822005s
+]
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 4168.07s
+

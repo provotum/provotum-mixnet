@@ -1,0 +1,32 @@
+running 2 tests
+test proofs::decryption::tests::it_should_verify_decryption_proof_multiple_partial_decryptions_encoded ... 
+results ENCODED:	[
+    generate_random_encryptions: 7.838893401s, 
+    bob_partial_decrytpions: 3.859471589s, 
+    DecryptionProof::generate: 3.863672959s, 
+    DecryptionProof::verify: 4.853958851s, 
+    charlie_partial_decrytpions: 3.863891307s, 
+    DecryptionProof::generate: 3.86801917s, 
+    DecryptionProof::verify: 4.868639649s, 
+    combine_partial_decrypted_as: 2.975166ms, 
+    partial_decrypt_b: 688.586341ms, 
+    decode_message: 70.61357627s
+]
+ok
+
+test proofs::decryption::tests::it_should_verify_decryption_proof_multiple_partial_decryptions
+results:	[
+    generate_random_encryptions: 15.331232968s, 
+    bob_partial_decrytpions: 3.887546223s, 
+    DecryptionProof::generate: 3.860664437s, 
+    DecryptionProof::verify: 4.857563154s, 
+    charlie_partial_decrytpions: 3.899513905s, 
+    DecryptionProof::generate: 3.857724392s, 
+    DecryptionProof::verify: 4.859425616s, 
+    combine_partial_decrypted_as: 2.978295ms, 
+    partial_decrypt_b: 695.534103ms
+]
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 85 filtered out; finished in 1455.81s
+
