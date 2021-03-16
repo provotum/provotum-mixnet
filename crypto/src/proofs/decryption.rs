@@ -132,7 +132,7 @@ mod tests {
         helper::Helper,
         proofs::decryption::DecryptionProof,
         random::Random,
-        types::{ElGamalParams, ModuloOperations, PublicKey},
+        types::{ModuloOperations, PublicKey},
     };
     use alloc::vec::Vec;
     use num_bigint::BigUint;
@@ -175,12 +175,7 @@ mod tests {
     #[test]
     fn it_should_verify_decryption_proof_multiple_partial_decryptions() {
         // create system parameters
-        let params = ElGamalParams {
-            // 48bit key -> sm_system
-            p: BigUint::parse_bytes(b"B7E151629927", 16).unwrap(),
-            g: BigUint::parse_bytes(b"4", 10).unwrap(),
-            h: BigUint::parse_bytes(b"9", 10).unwrap(),
-        };
+        let (params, _, _) = Helper::setup_sm_system();
         let q = &params.q();
 
         // create bob's public and private key
@@ -312,12 +307,7 @@ mod tests {
     #[test]
     fn it_should_verify_decryption_proof_multiple_partial_decryptions_encoded() {
         // create system parameters
-        let params = ElGamalParams {
-            // 48bit key -> sm_system
-            p: BigUint::parse_bytes(b"B7E151629927", 16).unwrap(),
-            g: BigUint::parse_bytes(b"4", 10).unwrap(),
-            h: BigUint::parse_bytes(b"9", 10).unwrap(),
-        };
+        let (params, _, _) = Helper::setup_sm_system();
         let q = &params.q();
 
         // create bob's public and private key
