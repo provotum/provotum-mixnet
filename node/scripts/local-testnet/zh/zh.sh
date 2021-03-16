@@ -43,7 +43,7 @@ done
 
 # start the node
 $projectDir/target/$mode/provotum \
-  --chain $projectDir/customLocalChainSpecRaw.json \
+  --chain $parentDir/localRaw.json \
   --validator \
   --port 30333 \
   --ws-port 9944 \

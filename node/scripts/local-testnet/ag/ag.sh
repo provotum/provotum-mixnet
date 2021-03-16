@@ -51,7 +51,7 @@ if [[ -z ${bootnode_ip} ]]; then
 fi
 
 $projectDir/target/$mode/provotum \
-  --chain $projectDir/customLocalChainSpecRaw.json \
+  --chain $parentDir/localRaw.json \
   --validator \
   --port 30334 \
   --ws-port 9945 \
