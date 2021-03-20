@@ -3,14 +3,32 @@ mod rpc;
 mod stores;
 
 use crypto::{helper::Helper, random::Random};
+use crypto::{
+    proofs::re_encryption::ReEncryptionProof,
+    types::{Cipher, PublicKey},
+};
 use pallet_mixnet::types::{Ballot, Topic, VotePhase};
 use rpc::{
     create_vote, get_ciphers, get_vote_ids, set_vote_phase, store_public_key, submit_ballot,
 };
+use serde::{Deserialize, Serialize};
 use sp_keyring::sr25519::sr25519::Pair;
 use std::{thread, time};
 use substrate_subxt::sp_core::Pair as KeyPairGenerator;
 use substrate_subxt::{ClientBuilder, Error, NodeTemplateRuntime, PairSigner};
+use surf::Body;
+
+#[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Clone)]
+pub struct RequestBody {
+    pub pk: PublicKey,
+    pub cipher: Cipher,
+}
+
+#[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Clone)]
+pub struct ResponseBody {
+    pub proof: ReEncryptionProof,
+    pub cipher: Cipher,
+}
 
 #[async_std::main]
 async fn main() -> Result<(), Error> {
@@ -74,9 +92,23 @@ async fn main() -> Result<(), Error> {
         let voter_keypair = KeyPairGenerator::from_string(&format!("//{}", index_string), None)?;
         let voter = PairSigner::<NodeTemplateRuntime, Pair>::new(voter_keypair);
 
+        let body = RequestBody {
+            pk: pk.clone(),
+            cipher: cipher.clone(),
+        };
+        let response: ResponseBody = randomize_cipher(&body).await.unwrap();
+        let proof_is_valid =
+            ReEncryptionProof::verify(&pk, &response.proof, &cipher, &response.cipher);
+        assert!(proof_is_valid);
+        let re_encrypted_cipher = response.cipher;
+        println!(
+            "randomized ballot + verified proof for voter: {:?}",
+            index_string
+        );
+
         // create ballot
         let ballot: Ballot = Ballot {
-            answers: vec![(topic_id.clone(), cipher.into())],
+            answers: vec![(topic_id.clone(), re_encrypted_cipher.into())],
         };
 
         // submit ballot
@@ -103,4 +135,13 @@ async fn main() -> Result<(), Error> {
     get_ciphers(&client, topic_id, 1).await?;
 
     Ok(())
+}
+
+pub async fn randomize_cipher(body: &RequestBody) -> Result<ResponseBody, surf::Error> {
+    let body = Body::from_json(body)?;
+    let response = surf::post("http://0.0.0.0:8080/randomize")
+        .body(body)
+        .recv_json::<ResponseBody>()
+        .await?;
+    Ok(response)
 }
