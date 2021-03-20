@@ -1,7 +1,7 @@
-use crate::helper::get_random_less_than;
 use actix_web::{post, web, Responder};
 use crypto::{
     encryption::ElGamal,
+    random::Random,
     types::{Cipher, PublicKey},
 };
 use serde::{Deserialize, Serialize};
@@ -21,7 +21,7 @@ pub struct ResponseBody {
 #[post("/randomize")]
 pub async fn randomize_ballot(body: web::Json<RequestBody>) -> impl Responder {
     // get a new random number
-    let r = get_random_less_than(&body.pk.params.q());
+    let r = Random::get_random_less_than(&body.pk.params.q());
 
     // re-encrypt the cipher using the provided public key
     let cipher = ElGamal::re_encrypt(&body.cipher, &r, &body.pk);
@@ -32,9 +32,9 @@ pub async fn randomize_ballot(body: web::Json<RequestBody>) -> impl Responder {
 
 #[cfg(test)]
 mod tests {
-    use super::{super::helper::get_random_less_than, randomize_ballot, RequestBody, ResponseBody};
+    use super::{randomize_ballot, RequestBody, ResponseBody};
     use actix_web::{test, App};
-    use crypto::{encryption::ElGamal, helper::Helper};
+    use crypto::{encryption::ElGamal, helper::Helper, random::Random};
     use num_bigint::BigUint;
     use num_traits::One;
 
@@ -55,7 +55,7 @@ mod tests {
         let (_, sk, pk) = Helper::setup_tiny_system();
         let q = &pk.params.q();
         let vote = &BigUint::one();
-        let r = get_random_less_than(q);
+        let r = Random::get_random_less_than(q);
         let cipher = ElGamal::encrypt(vote, &r, &pk);
         let request_body = RequestBody {
             pk,

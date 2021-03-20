@@ -494,6 +494,7 @@ dependencies = [
  "blake2",
  "num-bigint",
  "num-traits",
+ "rand",
  "serde",
 ]
 

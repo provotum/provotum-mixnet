@@ -23,6 +23,7 @@ num-traits = { version = "^0.2", default-features = false }
 blake2 = { version = "^0.9", default-features = false }
 criterion = { version = "^0.3", default-features = false, optional = true }
 serde = { version = "1", default-features = false, features = ["derive"], optional = true }
+rand = { version = "^0.7", optional = true }
 
 [dev-dependencies]
 rand = { version = "^0.7" }
@@ -32,6 +33,7 @@ std = [
     'num-bigint/std',
     'num-traits/std',
     'serde/std',
+    'rand/std'
 ]
 
-bench = ["criterion"]
+bench = ["criterion", "rand"]

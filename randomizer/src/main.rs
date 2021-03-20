@@ -1,5 +1,4 @@
 mod health;
-mod helper;
 mod index;
 mod randomizer;
 

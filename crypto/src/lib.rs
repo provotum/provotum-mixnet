@@ -13,9 +13,6 @@ extern crate std;
 
 extern crate alloc;
 
-#[cfg(feature = "std")]
-extern crate serde;
-
 // crates which this library exposes
 #[allow(clippy::many_single_char_names)]
 #[macro_use]
@@ -24,8 +21,9 @@ pub mod encryption;
 #[allow(clippy::many_single_char_names)]
 #[macro_use]
 pub mod helper;
-// externing crate for test-only use
-#[cfg(test)]
+
+#[cfg(any(feature = "std", test))]
+#[macro_use]
 pub mod random;
 
 #[allow(clippy::many_single_char_names)]
