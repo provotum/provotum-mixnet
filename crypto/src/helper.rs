@@ -256,6 +256,26 @@ impl Helper {
     }
 
     /// Computes the hash of all inputs.
+    /// Used in the multiplicative homomorphic re-encryption proof
+    pub fn hash_re_encryption_proof_inputs(
+        constant: &str,
+        c_one: &Cipher,
+        c_one_prime: &Cipher,
+        t2: &BigUint,
+    ) -> BigUint {
+        let hasher = Blake2b::new();
+        let hash = hasher
+            .chain(constant.as_bytes())
+            .chain(c_one.a.to_bytes_be())
+            .chain(c_one.b.to_bytes_be())
+            .chain(c_one_prime.a.to_bytes_be())
+            .chain(c_one_prime.b.to_bytes_be())
+            .chain(t2.to_bytes_be())
+            .finalize();
+        BigUint::from_bytes_be(&hash)
+    }
+
+    /// Computes the hash of all inputs.
     ///
     /// Inputs:
     /// - encryptions: Vec<Cipher>
