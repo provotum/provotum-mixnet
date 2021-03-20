@@ -138,7 +138,7 @@ fn bench_elgamal(c: &mut Criterion) {
 
                 (enc_one, enc_one_, params.p)
             },
-            |(enc_one, enc_one_, p)| ElGamal::add(&enc_one, &enc_one_, &p),
+            |(enc_one, enc_one_, p)| ElGamal::homomorphic_addition(&enc_one, &enc_one_, &p),
         )
     });
 
@@ -390,8 +390,8 @@ fn bench_decryption_encoded_different_votes(c: &mut Criterion) {
                     let (_, sk, pk) = Helper::setup_lg_system();
                     let message = BigUint::from(vote as u32);
                     let random =
-                    BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
-                    
+                        BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
+
                     // encrypt the message
                     let encrypted_message = ElGamal::encrypt_encode(&message, &random, &pk);
                     (encrypted_message, sk)
@@ -410,7 +410,7 @@ fn bench_decryption_encoded_different_votes(c: &mut Criterion) {
     //                 let message = BigUint::from(vote as u32);
     //                 let random =
     //                 BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
-                    
+
     //                 // encrypt the message
     //                 let encrypted_message = ElGamal::encrypt_encode(&message, &random, &pk);
     //                 (encrypted_message, sk)
@@ -429,7 +429,7 @@ fn bench_decryption_encoded_different_votes(c: &mut Criterion) {
     //                 let message = BigUint::from(vote as u32);
     //                 let random =
     //                 BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
-                    
+
     //                 // encrypt the message
     //                 let encrypted_message = ElGamal::encrypt_encode(&message, &random, &pk);
     //                 (encrypted_message, sk)
@@ -442,5 +442,11 @@ fn bench_decryption_encoded_different_votes(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_elgamal, bench_proofs, bench_shuffle, bench_decryption_encoded_different_votes);
+criterion_group!(
+    benches,
+    bench_elgamal,
+    bench_proofs,
+    bench_shuffle,
+    bench_decryption_encoded_different_votes
+);
 criterion_main!(benches);

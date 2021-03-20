@@ -232,7 +232,7 @@ impl ElGamal {
         message
     }
 
-    /// Homomorphically adds two ElGamal encryptions.
+    /// Homomorphically sums two ElGamal encryptions.
     /// Returns an ElGamal encryption.
     ///
     /// ## Arguments
@@ -240,12 +240,41 @@ impl ElGamal {
     /// * `this`   - a Cipher { a, b } (ElGamal encryption)
     /// * `other`  - a Cipher { a, b } (ElGamal encryption)
     /// * `p` - The group modulus p (BigUint)    
-    pub fn add(this: &Cipher, other: &Cipher, p: &BigUint) -> Cipher {
-        let (a1, b1) = (this.a.clone(), this.b.clone());
-        let (a2, b2) = (other.a.clone(), other.b.clone());
+    pub fn homomorphic_addition(this: &Cipher, other: &Cipher, p: &BigUint) -> Cipher {
         Cipher {
-            a: a1.modmul(&a2, p),
-            b: b1.modmul(&b2, p),
+            a: this.a.modmul(&other.a, p),
+            b: this.b.modmul(&other.b, p),
+        }
+    }
+
+    /// Homomorphically substracts one ElGamal encryption from another.
+    /// Returns an ElGamal encryption.
+    ///
+    /// ## Arguments
+    ///
+    /// * `this`   - a Cipher { a, b } (ElGamal encryption)
+    /// * `other`  - a Cipher { a, b } (ElGamal encryption)
+    /// * `p` - The group modulus p (BigUint)    
+    pub fn homomorphic_subtraction(this: &Cipher, other: &Cipher, p: &BigUint) -> Cipher {
+        let inverse = Cipher {
+            a: other.a.invmod(p).expect("cannot compute mod_inverse!"),
+            b: other.b.invmod(p).expect("cannot compute mod_inverse!"),
+        };
+        Self::homomorphic_addition(this, &inverse, p)
+    }
+
+    /// Homomorphically multiplies a scalar with an ElGamal encryption.
+    /// Returns an ElGamal encryption.
+    ///
+    /// ## Arguments
+    ///
+    /// * `this`   - a Cipher { a, b } (ElGamal encryption)
+    /// * `scalar`  - a BigUint
+    /// * `p` - The group modulus p (BigUint)    
+    pub fn homomorphic_multiply(this: &Cipher, scalar: &BigUint, p: &BigUint) -> Cipher {
+        Cipher {
+            a: this.a.modpow(scalar, p),
+            b: this.b.modpow(scalar, p),
         }
     }
 
@@ -282,7 +311,7 @@ impl ElGamal {
     /// * `pk`     - The public key used to re-encrypt_encode the vote
     pub fn re_encrypt_via_addition(cipher: &Cipher, r: &BigUint, pk: &PublicKey) -> Cipher {
         let zero = Self::encrypt_encode(&BigUint::zero(), &r, &pk);
-        Self::add(cipher, &zero, &pk.params.p)
+        Self::homomorphic_addition(cipher, &zero, &pk.params.p)
     }
 
     /// Returns a shuffled (permuted & re-encrypted) list of ElGamal encryptions.
@@ -483,6 +512,56 @@ mod tests {
     }
 
     #[test]
+    fn it_should_homomorphically_multiply_two_values() {
+        let (params, sk, pk) = Helper::setup_sm_system();
+        let two = BigUint::from(2u32);
+        let three = BigUint::from(3u32);
+        let expected_result = BigUint::from(6u32);
+
+        // encryption of two
+        let r_one = BigUint::from(7u32);
+        let this = ElGamal::encrypt(&two, &r_one, &pk);
+
+        // encryption of three
+        let r_two = BigUint::from(5u32);
+        let other = ElGamal::encrypt(&three, &r_two, &pk);
+
+        // homomorphically multiply both values
+        // only works if messages are NOT encoded
+        // OTHERWISE, if g^m -> result is addition
+        let multiplication = ElGamal::homomorphic_addition(&this, &other, &params.p);
+
+        // decrypt result: 6
+        let decrypted_multiplication = ElGamal::decrypt(&multiplication, &sk);
+        assert_eq!(decrypted_multiplication, expected_result);
+    }
+
+    #[test]
+    fn it_should_homomorphically_divide_two_values() {
+        let (params, sk, pk) = Helper::setup_sm_system();
+        let six = BigUint::from(6u32);
+        let three = BigUint::from(3u32);
+        let expected_result = BigUint::from(2u32);
+
+        // encryption of six
+        let r_one = BigUint::from(7u32);
+        let this = ElGamal::encrypt(&six, &r_one, &pk);
+
+        // encryption of three
+        let r_two = BigUint::from(5u32);
+        let other = ElGamal::encrypt(&three, &r_two, &pk);
+
+        // homomorphically divides both values
+        // only works if messages are NOT encoded
+        // OTHERWISE, if g^m -> result is subtraction
+        let multiplication = ElGamal::homomorphic_subtraction(&this, &other, &params.p);
+
+        // decrypt result: 2
+        let decrypted_multiplication = ElGamal::decrypt(&multiplication, &sk);
+        assert_eq!(decrypted_multiplication, expected_result);
+    }
+
+    #[test]
     fn it_should_add_two_zeros_encoded() {
         let (params, sk, pk) = Helper::setup_sm_system();
         let zero = BigUint::zero();
@@ -497,7 +576,7 @@ mod tests {
 
         // add both encryptions: 0 + 0
         // only works if messages are encoded i.e. g^m
-        let addition = ElGamal::add(&this, &other, &params.p);
+        let addition = ElGamal::homomorphic_addition(&this, &other, &params.p);
 
         // decrypt result: 0
         let decrypted_addition = ElGamal::decrypt_decode(&addition, &sk);
@@ -520,7 +599,7 @@ mod tests {
 
         // add both encryptions: 0 + 1
         // only works if messages are encoded i.e. g^m
-        let addition = ElGamal::add(&this, &other, &params.p);
+        let addition = ElGamal::homomorphic_addition(&this, &other, &params.p);
 
         // decrypt result: 1
         let decrypted_addition = ElGamal::decrypt_decode(&addition, &sk);
@@ -543,7 +622,7 @@ mod tests {
 
         // add both encryptions: 1 + 1
         // only works if messages are encoded i.e. g^m
-        let addition = ElGamal::add(&this, &other, &params.p);
+        let addition = ElGamal::homomorphic_addition(&this, &other, &params.p);
 
         // decrypt result: 2
         let decrypted_addition = ElGamal::decrypt_decode(&addition, &sk);
@@ -551,7 +630,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_add_many_and_result_equals_five() {
+    fn it_should_add_many_and_result_equals_five_encoded() {
         let (params, sk, pk) = Helper::setup_md_system();
 
         let q = params.q();
@@ -568,14 +647,14 @@ mod tests {
         for _ in 0..5 {
             let r = Random::get_random_less_than(&q);
             let encryption_of_one = ElGamal::encrypt_encode(&one, &r, &pk);
-            base = ElGamal::add(&base, &encryption_of_one, &params.p);
+            base = ElGamal::homomorphic_addition(&base, &encryption_of_one, &params.p);
         }
 
         // add five encryptions of zero
         for _ in 0..5 {
             let r = Random::get_random_less_than(&q);
             let encryption_of_zero = ElGamal::encrypt_encode(&zero, &r, &pk);
-            base = ElGamal::add(&base, &encryption_of_zero, &params.p);
+            base = ElGamal::homomorphic_addition(&base, &encryption_of_zero, &params.p);
         }
 
         // decrypt result: 5
