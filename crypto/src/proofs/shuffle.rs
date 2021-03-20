@@ -137,7 +137,7 @@ impl ShuffleProof {
     }
 
     /// GetChallenges Algorithm 8.5 (CHVoteSpec 3.2).
-    /// Computes n challenges 0 <= c_i <= 2^tau for a given of public value (vec_e, vec_e_tilde, vec_c).
+    /// Computes n challenges 0 <= c_i <= 2^τ for a given of public value (vec_e, vec_e_tilde, vec_c).
     ///
     /// Inputs:
     /// - n: usize
@@ -172,7 +172,10 @@ impl ShuffleProof {
             let i_ = Helper::hash_vec_usize_to_biguint(&[i].to_vec());
             let mut c_i = Helper::hash_vec_biguints_to_biguint([h.clone(), i_].to_vec());
 
-            // hash(h,i_) mod 2^T
+            // The minimal privacy σ defines the amount of computational work for a polynomially bounded adversary to break the privacy of the votes to be greater or equal to c * 2^σ for some constant value c > 0. This is equivalent to brute-force searching a key of length σ bits. 
+            // Recommended values today are σ = 112, σ = 128, or higher.
+            // The minimal integrity τ defines the amount of computational work for breaking the integrity of a vote in the same way as σ for breaking the privacy of the vote. In other words, the actual choice of τ determines the risk that an adversary succeeds in manipulating an election. Recommendations for τ are similar to the above-mentioned values for σ, but since manipulating an election is only possible during the election period or during tallying, a less conservative value may be chosen.
+            // hash(h,i_) mod 2^τ
             // Verifiable Re-Encryption Mixnets (Haenni, Locher, Koenig, Dubuis) uses c_i ∈ Z_q
             // therefore, we use mod q
             c_i %= q;
