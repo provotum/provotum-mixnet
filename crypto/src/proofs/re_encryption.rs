@@ -175,7 +175,7 @@ mod tests {
             let proof = ReEncryptionProof::generate(&r1, &r2, &h2, &s2, &c_one, &pk);
 
             // 4. the voter verifies the re-encryption proof
-            let proof_is_valid = ReEncryptionProof::verify(&pk, &proof, &ballot, &&ballot_prime);
+            let proof_is_valid = ReEncryptionProof::verify(&pk, &proof, &ballot, &ballot_prime);
             assert!(proof_is_valid);
         }
     }
