@@ -370,7 +370,7 @@ pub struct PublicKeyShare {
 
 pub type DecryptedShare = Vec<u8>;
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
 pub struct DecryptedShareProof {
     pub challenge: Vec<u8>,
     pub response: Vec<u8>,
