@@ -7,6 +7,7 @@ use core::ops::{AddAssign, Sub};
 use num_bigint::{BigUint, RandBigInt};
 use num_traits::{One, Zero};
 use rand::Rng;
+use std::boxed::Box;
 use std::panic;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
@@ -29,6 +30,45 @@ impl Random {
         encryptions
     }
 
+    /// used to suppress the panic message when using panic::catch_unwind
+    fn catch_unwind_silent<F: FnOnce() -> R + panic::UnwindSafe, R>(
+        f: F,
+    ) -> std::thread::Result<R> {
+        let prev_hook = panic::take_hook();
+        panic::set_hook(Box::new(|_| {}));
+        let result = panic::catch_unwind(f);
+        panic::set_hook(prev_hook);
+        result
+    }
+
+    pub fn generate_encryptions(
+        pk: &PublicKey,
+        q: &BigUint,
+        number: usize,
+        votes: Vec<u32>,
+    ) -> Vec<Cipher> {
+        assert!(!votes.is_empty(), "there must be at least one value!");
+        let mut encryptions: Vec<Cipher> = Vec::new();
+
+        'outer: loop {
+            for vote in votes.iter() {
+                // once sufficient encryptions have been generate
+                // leave both loops
+                if encryptions.len() == number {
+                    break 'outer;
+                }
+                let r = Random::get_random_less_than(q);
+                let nr = BigUint::from(*vote);
+                let result = Self::catch_unwind_silent(|| ElGamal::encrypt(&nr, &r, pk));
+                if result.is_ok() {
+                    let enc = result.unwrap();
+                    encryptions.push(enc.clone());
+                }
+            }
+        }
+        encryptions
+    }
+
     pub fn generate_random_encryptions(pk: &PublicKey, q: &BigUint, number: usize) -> Vec<Cipher> {
         let mut encryptions: Vec<Cipher> = Vec::new();
         let mut i: u32 = 0;
@@ -37,7 +77,7 @@ impl Random {
             let nr = BigUint::from(i);
 
             let r = Random::get_random_less_than(q);
-            let result = panic::catch_unwind(|| ElGamal::encrypt(&nr, &r, pk));
+            let result = Self::catch_unwind_silent(|| ElGamal::encrypt(&nr, &r, pk));
             if result.is_ok() {
                 let enc = result.unwrap();
                 encryptions.push(enc.clone());
@@ -197,8 +237,11 @@ impl Random {
 
 #[cfg(test)]
 mod tests {
+    use crate::encryption::ElGamal;
+    use crate::helper::Helper;
     use crate::random::Random;
     use num_bigint::BigUint;
+    use std::vec::Vec;
 
     #[test]
     fn it_should_generate_random_number() {
@@ -274,5 +317,44 @@ mod tests {
         assert!(permutation.iter().any(|&value| value == 0));
         assert!(permutation.iter().any(|&value| value == 1));
         assert!(permutation.iter().any(|&value| value == 2));
+    }
+
+    #[test]
+    fn it_should_generate_a_random_encryptions_encoded() {
+        let number = 2usize;
+        let (params, _, pk) = Helper::setup_sm_system();
+        let q = params.q();
+        let encryptions = Random::generate_random_encryptions_encoded(&pk, &q, number);
+        assert_eq!(encryptions.len(), number);
+    }
+
+    #[test]
+    fn it_should_generate_a_random_encryptions() {
+        let number = 2usize;
+        let (params, _, pk) = Helper::setup_sm_system();
+        let q = params.q();
+        let encryptions = Random::generate_random_encryptions(&pk, &q, number);
+        assert_eq!(encryptions.len(), number);
+    }
+
+    #[test]
+    fn it_should_generate_an_encryption_of_one_and_two() {
+        let votes = vec![1u32, 2u32];
+        let number = 2usize;
+        let (params, sk, pk) = Helper::setup_sm_system();
+        let q = params.q();
+        let encryptions = Random::generate_encryptions(&pk, &q, number, votes.clone());
+        let decryptions = encryptions
+            .iter()
+            .map(|cipher| ElGamal::decrypt(cipher, &sk))
+            .collect::<Vec<BigUint>>();
+
+        // check that 1, 2 occur once each
+        for vote in votes {
+            assert!(decryptions
+                .iter()
+                .any(|value| value == &BigUint::from(vote)));
+        }
+        assert_eq!(decryptions.len(), number);
     }
 }

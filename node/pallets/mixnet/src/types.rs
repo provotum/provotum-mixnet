@@ -1,3 +1,4 @@
+use alloc::str::FromStr;
 use codec::{Decode, Encode};
 use crypto::proofs::{decryption::DecryptionProof, keygen::KeyGenerationProof};
 use crypto::types::{Cipher as BigCipher, ElGamalParams, PublicKey as ElGamalPK};
@@ -310,6 +311,18 @@ pub enum VotePhase {
 impl Default for VotePhase {
     fn default() -> Self {
         Self::KeyGeneration
+    }
+}
+
+impl FromStr for VotePhase {
+    type Err = ();
+    fn from_str(input: &str) -> Result<VotePhase, Self::Err> {
+        match input {
+            "KeyGeneration" => Ok(VotePhase::KeyGeneration),
+            "Voting" => Ok(VotePhase::Voting),
+            "Tallying" => Ok(VotePhase::Tallying),
+            _ => Err(()),
+        }
     }
 }
 
