@@ -1,4 +1,4 @@
-use crate::rpc::submit_ballot;
+use crate::voting::substrate::rpc::submit_ballot;
 use crypto::{helper::Helper, random::Random};
 use crypto::{
     proofs::re_encryption::ReEncryptionProof,

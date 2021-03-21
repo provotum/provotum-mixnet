@@ -1,5 +1,5 @@
-use crate::calls::{CastBallot, CreateVote, SetVotePhase, StorePublicKey};
-use crate::stores::{CiphersStore, VotesStore};
+use crate::voting::substrate::calls::{CastBallot, CreateVote, SetVotePhase, StorePublicKey};
+use crate::voting::substrate::stores::{CiphersStore, VotesStore};
 use pallet_mixnet::types::{
     Ballot, NrOfShuffles, PublicKey as SubstratePK, PublicParameters, Title, Topic, TopicId,
     VoteId, VotePhase,

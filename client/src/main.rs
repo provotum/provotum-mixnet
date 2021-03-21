@@ -1,15 +1,11 @@
-mod calls;
 mod cli;
-mod rpc;
-mod stores;
-mod va;
-mod voter;
+mod voting;
 
 use async_std::task;
 use clap::Clap;
-use cli::{Opts, SealerSubCommand, SubCommand, VASubCommand};
-use va::{change_vote_phase, setup_vote};
-use voter::create_votes;
+use cli::cli::{Opts, SealerSubCommand, SubCommand, VASubCommand};
+use voting::va::{change_vote_phase, setup_vote};
+use voting::voter::create_votes;
 
 fn main() {
     let opts: Opts = Opts::parse();

@@ -1,4 +1,4 @@
-use crate::rpc::{create_vote, set_vote_phase, store_public_key};
+use crate::voting::substrate::rpc::{create_vote, set_vote_phase, store_public_key};
 use crypto::helper::Helper;
 use crypto::{
     proofs::re_encryption::ReEncryptionProof,
