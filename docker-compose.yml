@@ -38,3 +38,9 @@ services:
     #   - 9946:9946
     #   - 30335:30335
     #   - 9935:9935
+
+  # Randomizer is a simple web service to re-encrypt the voter's ballots
+  randomizer:
+    container_name: charlie
+    image: ghcr.io/meck93/provotum-mixnet-randomizer:latest
+    network_mode: host
