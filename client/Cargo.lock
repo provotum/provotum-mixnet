@@ -604,6 +604,7 @@ dependencies = [
  "clap",
  "crypto",
  "env_logger",
+ "hex-literal",
  "num-bigint 0.3.1",
  "num-traits",
  "pallet-mixnet",

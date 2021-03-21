@@ -1,12 +1,14 @@
 use crate::voting::substrate::calls::{CastBallot, CreateVote, SetVotePhase, StorePublicKey};
 use crate::voting::substrate::stores::{CiphersStore, VotesStore};
 use pallet_mixnet::types::{
-    Ballot, NrOfShuffles, PublicKey as SubstratePK, PublicParameters, Title, Topic, TopicId,
-    VoteId, VotePhase,
+    Ballot, NrOfShuffles, PublicKey as SubstratePK, PublicKeyShare, PublicParameters, Title, Topic,
+    TopicId, VoteId, VotePhase,
 };
 use sp_keyring::{sr25519::sr25519::Pair, AccountKeyring};
 use substrate_subxt::{system::System, Call, Client, ExtrinsicSuccess};
 use substrate_subxt::{Error, NodeTemplateRuntime, PairSigner};
+
+use super::calls::{CombinePublicKeyShares, StorePublicKeyShare};
 
 pub async fn get_vote_ids(client: &Client<NodeTemplateRuntime>) -> Result<Vec<String>, Error> {
     let store = VotesStore {};
@@ -92,6 +94,16 @@ pub async fn store_public_key(
     return watch(&signer, client, call).await;
 }
 
+pub async fn store_public_key_share(
+    client: &Client<NodeTemplateRuntime>,
+    signer: &PairSigner<NodeTemplateRuntime, Pair>,
+    vote_id: VoteId,
+    pk_share: PublicKeyShare,
+) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
+    let call = StorePublicKeyShare { vote_id, pk_share };
+    return watch(&signer, client, call).await;
+}
+
 pub async fn set_vote_phase(
     client: &Client<NodeTemplateRuntime>,
     vote_id: VoteId,
@@ -102,6 +114,15 @@ pub async fn set_vote_phase(
         vote_id,
         vote_phase,
     };
+    return watch(&signer, client, call).await;
+}
+
+pub async fn combine_pk_shares(
+    client: &Client<NodeTemplateRuntime>,
+    vote_id: VoteId,
+) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
+    let signer = PairSigner::<NodeTemplateRuntime, Pair>::new(AccountKeyring::Alice.pair());
+    let call = CombinePublicKeyShares { vote_id };
     return watch(&signer, client, call).await;
 }
 

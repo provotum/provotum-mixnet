@@ -17,6 +17,7 @@ num-traits = "^0.2"
 rand = { version = "^0.7" }
 surf = { version = "2.2.0" }
 clap = { version = "3.0.0-beta.2" }
+hex-literal = { version = "^0.3" }
 
 # crypto library from crypto crate
 crypto = { path = "../crypto", features = ["std"] }

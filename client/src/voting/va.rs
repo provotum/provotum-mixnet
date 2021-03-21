@@ -1,26 +1,11 @@
 use crate::voting::substrate::rpc::{create_vote, set_vote_phase, store_public_key};
 use crypto::helper::Helper;
-use crypto::{
-    proofs::re_encryption::ReEncryptionProof,
-    types::{Cipher, PublicKey},
-};
 use pallet_mixnet::types::{Topic, VotePhase};
-use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use substrate_subxt::Client;
 use substrate_subxt::{ClientBuilder, Error, NodeTemplateRuntime};
 
-#[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Clone)]
-pub struct RequestBody {
-    pub pk: PublicKey,
-    pub cipher: Cipher,
-}
-
-#[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Clone)]
-pub struct ResponseBody {
-    pub proof: ReEncryptionProof,
-    pub cipher: Cipher,
-}
+use super::substrate::rpc::combine_pk_shares;
 
 async fn init() -> Result<Client<NodeTemplateRuntime>, Error> {
     env_logger::init();
@@ -81,5 +66,17 @@ pub async fn change_vote_phase(vote: String, vote_phase: String) -> Result<(), E
 
     // update vote phase to Voting
     set_vote_phase(&client, vote_id.clone(), vote_phase).await?;
+    Ok(())
+}
+
+pub async fn combine_public_key_shares(vote: String) -> Result<(), Error> {
+    // init substrate client
+    let client = init().await?;
+
+    // create input parameters
+    let vote_id = vote.as_bytes().to_vec();
+
+    // update vote phase to Voting
+    combine_pk_shares(&client, vote_id.clone()).await?;
     Ok(())
 }

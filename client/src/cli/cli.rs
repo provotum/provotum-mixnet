@@ -56,6 +56,8 @@ pub enum VASubCommand {
     StoreQuestion(StoreQuestion),
     #[clap(name = "set_phase")]
     SetVotePhase(SetVotePhase),
+    #[clap(name = "combine_pk_shares")]
+    CombinePublicKeyShares(CombinePublicKeyShares),
 }
 
 /// A subcommand for setting up the vote
@@ -91,6 +93,14 @@ pub struct SetVotePhase {
     pub phase: String,
 }
 
+/// A subcommand to combine the public key shares
+#[derive(Clap, Debug)]
+pub struct CombinePublicKeyShares {
+    /// The id of the vote to associate the question with
+    #[clap(short, long)]
+    pub vote: String,
+}
+
 /// A subcommand for controlling the Sealer
 #[derive(Clap, Debug)]
 pub struct Sealer {
@@ -110,8 +120,14 @@ pub enum SealerSubCommand {
 /// A subcommand for controlling the key generation
 #[derive(Clap, Debug)]
 pub struct KeyGeneration {
+    /// The id of the vote
+    #[clap(short, long)]
+    pub vote: String,
+    /// The private key as string
+    #[clap(short, long)]
+    pub sk: String,
     /// The name of the sealer to use
-    #[clap(short, long, required = true)]
+    #[clap(short, long, required = true, possible_values = &["bob", "charlie"])]
     pub who: String,
 }
 
@@ -119,6 +135,6 @@ pub struct KeyGeneration {
 #[derive(Clap, Debug)]
 pub struct PartialDecryption {
     /// The name of the sealer to use
-    #[clap(short, long, required = true)]
+    #[clap(short, long, required = true, possible_values = &["bob", "charlie"])]
     pub who: String,
 }

@@ -4,8 +4,11 @@ mod voting;
 use async_std::task;
 use clap::Clap;
 use cli::cli::{Opts, SealerSubCommand, SubCommand, VASubCommand};
-use voting::va::{change_vote_phase, setup_vote};
-use voting::voter::create_votes;
+use voting::{
+    sealer::keygen,
+    va::{change_vote_phase, setup_vote},
+};
+use voting::{va::combine_public_key_shares, voter::create_votes};
 
 fn main() {
     let opts: Opts = Opts::parse();
@@ -48,10 +51,27 @@ fn main() {
                     }
                 });
             }
+            VASubCommand::CombinePublicKeyShares(t) => {
+                println!("VA. Combining Public Key Shares... {:?}", t);
+                task::block_on(async {
+                    let result = task::spawn(combine_public_key_shares(t.vote)).await;
+                    match result {
+                        Ok(_) => println!("successfully create public key!"),
+                        Err(err) => println!("failed to create public key: {:?}", err),
+                    }
+                });
+            }
         },
         SubCommand::Sealer(t) => match t.subcmd {
             SealerSubCommand::KeyGeneration(t) => {
                 println!("Printing sealer - key generation... {:?}", t);
+                task::block_on(async {
+                    let result = task::spawn(keygen(t.vote, t.sk, t.who)).await;
+                    match result {
+                        Ok(_) => println!("successfully submitted public key share!"),
+                        Err(err) => println!("failed to submitted public key share: {:?}", err),
+                    }
+                });
             }
             SealerSubCommand::PartialDecryption(t) => {
                 println!("Printing sealer - partial decryption... {:?}", t);

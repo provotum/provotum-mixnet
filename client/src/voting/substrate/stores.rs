@@ -1,5 +1,5 @@
 use codec::Encode;
-use pallet_mixnet::types::{NrOfShuffles, TopicId, VoteId};
+use pallet_mixnet::types::{NrOfShuffles, PublicKey as SubstratePK, TopicId, VoteId};
 use substrate_subxt::{
     sp_core::storage::StorageKey, Metadata, MetadataError, NodeTemplateRuntime, Store,
 };
@@ -63,6 +63,40 @@ impl Store<NodeTemplateRuntime> for CiphersStore {
         let storage = metadata.module(Self::MODULE)?.storage(Self::FIELD)?;
         let item = storage.double_map()?;
         Ok(item.key(&self.topic_id, &self.nr_of_shuffles))
+    }
+    /// Returns the default value.
+    fn default(&self, metadata: &Metadata) -> Result<Self::Returns, MetadataError> {
+        metadata
+            .module(Self::MODULE)?
+            .storage(Self::FIELD)?
+            .default()
+    }
+}
+
+#[derive(Clone, Debug, Eq, Encode, PartialEq)]
+pub struct PubliyKeyStore {
+    pub vote_id: VoteId,
+}
+
+impl Store<NodeTemplateRuntime> for PubliyKeyStore {
+    /// Module name.
+    const MODULE: &'static str = "PalletMixnet";
+    /// Field name.
+    const FIELD: &'static str = "PublicKey";
+    /// Return type.
+    type Returns = Option<SubstratePK>;
+    /// Returns the key prefix for storage maps
+    fn prefix(metadata: &Metadata) -> Result<StorageKey, MetadataError> {
+        Ok(metadata
+            .module(Self::MODULE)?
+            .storage(Self::FIELD)?
+            .prefix())
+    }
+    /// Returns the `StorageKey`.
+    fn key(&self, metadata: &Metadata) -> Result<StorageKey, MetadataError> {
+        let storage = metadata.module(Self::MODULE)?.storage(Self::FIELD)?;
+        let item = storage.map()?;
+        Ok(item.key(&self.vote_id))
     }
     /// Returns the default value.
     fn default(&self, metadata: &Metadata) -> Result<Self::Returns, MetadataError> {
