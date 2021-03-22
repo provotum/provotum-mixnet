@@ -1,35 +1,22 @@
 {
   "folders": [
     {
-      "path": "node"
+      "path": ".github"
     },
     {
-      "path": ".github"
+      "path": "client"
+    },
+    {
+      "path": "node"
     },
     {
       "path": "crypto"
     },
-    {
-      "path": "wasm-app"
-    },
-    {
-      "path": "wasm-pkg"
-    }
   ],
   "settings": {},
   "launch": {
     "version": "0.2.0",
     "configurations": [
-      {
-        "type": "lldb",
-        "request": "launch",
-        "name": "Debug Shuffle Proof Test",
-        "program": "${workspaceFolder:node}/target/debug/deps/pallet_mixnet-21f440ab907d9121",
-        "args": [
-          "test_shuffle_proof --nocapture"
-        ],
-        "cwd": "${workspaceFolder:node}",
-      },
       {
         "type": "lldb",
         "request": "launch",
