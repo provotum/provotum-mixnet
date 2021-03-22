@@ -1,17 +1,15 @@
-use crate::voting::substrate::calls::{CastBallot, CreateVote, SetVotePhase, StorePublicKey};
-use crate::voting::substrate::stores::{CiphersStore, PublicKeyStore};
+use crate::voting::substrate::calls::{
+    CastBallot, CombineDecryptedShares, CombinePublicKeyShares, CreateVote, SetVotePhase,
+    StorePublicKey, StorePublicKeyShare, StoreQuestion, SubmitPartialDecryption,
+};
+use crate::voting::substrate::stores::{CiphersStore, PublicKeyStore, TallyStore};
 use pallet_mixnet::types::{
     Ballot, Cipher, DecryptedShare, DecryptedShareProof, NrOfShuffles, PublicKey as SubstratePK,
-    PublicKeyShare, PublicParameters, Title, Topic, TopicId, VoteId, VotePhase,
+    PublicKeyShare, PublicParameters, Title, Topic, TopicId, TopicResult, VoteId, VotePhase,
 };
 use sp_keyring::{sr25519::sr25519::Pair, AccountKeyring};
 use substrate_subxt::{system::System, Call, Client, ExtrinsicSuccess};
 use substrate_subxt::{Error, NodeTemplateRuntime, PairSigner};
-
-use super::calls::{
-    CombineDecryptedShares, CombinePublicKeyShares, StorePublicKeyShare, StoreQuestion,
-    SubmitPartialDecryption,
-};
 
 pub async fn get_ciphers(
     client: &Client<NodeTemplateRuntime>,
@@ -39,6 +37,17 @@ pub async fn get_vote_public_key(
         .await?
         .ok_or("failed to fetch public key!")?;
     Ok(pk)
+}
+pub async fn get_tally(
+    client: &Client<NodeTemplateRuntime>,
+    topic_id: TopicId,
+) -> Result<TopicResult, Error> {
+    let store = TallyStore { topic_id };
+    let tally = client
+        .fetch(&store, None)
+        .await?
+        .ok_or("failed to fetch tally!")?;
+    Ok(tally)
 }
 
 pub async fn create_vote(

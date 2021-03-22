@@ -1,11 +1,12 @@
+use crate::voting::substrate::rpc::{
+    combine_decrypted_shares, combine_pk_shares, create_vote, get_tally, set_vote_phase,
+    store_question,
+};
 use crypto::helper::Helper;
 use pallet_mixnet::types::{Topic, VotePhase};
 use std::str::FromStr;
 use substrate_subxt::Client;
 use substrate_subxt::{ClientBuilder, Error, NodeTemplateRuntime};
-
-use super::substrate::rpc::{combine_decrypted_shares, combine_pk_shares, store_question};
-use super::substrate::rpc::{create_vote, set_vote_phase};
 
 async fn init() -> Result<Client<NodeTemplateRuntime>, Error> {
     env_logger::init();
@@ -39,7 +40,7 @@ pub async fn setup_vote(vote_title: String, topic_question: String) -> Result<()
         vote_title,
         vote_id.clone(),
         topics,
-        100,
+        75,
     )
     .await?;
     println!(
@@ -67,7 +68,7 @@ pub async fn setup_question(vote: String, question: String) -> Result<(), Error>
     let topic: Topic = (topic_id.clone(), topic_question);
 
     // store question
-    let response = store_question(&client, vote_id, topic, 100).await?;
+    let response = store_question(&client, vote_id, topic, 75).await?;
     println!("response: {:?}", response.events[0].variant);
     Ok(())
 }
@@ -110,6 +111,25 @@ pub async fn tally_question(vote: String, question: String) -> Result<(), Error>
 
     // update vote phase to Voting
     let response = combine_decrypted_shares(&client, vote_id, topic_id).await?;
-    println!("response: {:?}", response.events[0].variant);
+    println!(
+        "response: {:?}, data: {:?}",
+        response.events[0].variant, response.events[0]
+    );
+    Ok(())
+}
+
+pub async fn get_result(question: String) -> Result<(), Error> {
+    // init substrate client
+    let client = init().await?;
+
+    // create input parameters
+    let topic_id = question.as_bytes().to_vec();
+
+    // update vote phase to Voting
+    let result = get_tally(&client, topic_id).await?;
+    println!("The result of the question: {:?} is...", question);
+    for (vote, count) in result {
+        println!("\tVote: {:?}, Count: {:?}", vote, count);
+    }
     Ok(())
 }

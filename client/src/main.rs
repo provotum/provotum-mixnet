@@ -6,7 +6,7 @@ use clap::Clap;
 use cli::cli::{Opts, SealerSubCommand, SubCommand, VASubCommand};
 use voting::{
     sealer::{decrypt, keygen},
-    va::{change_vote_phase, setup_question, setup_vote},
+    va::{change_vote_phase, get_result, setup_question, setup_vote},
 };
 use voting::{va::combine_public_key_shares, va::tally_question, voter::create_votes};
 
@@ -75,6 +75,16 @@ fn main() {
                     match result {
                         Ok(_) => println!("successfully tallied question!"),
                         Err(err) => println!("failed to tally question: {:?}", err),
+                    }
+                });
+            }
+            VASubCommand::GetResult(t) => {
+                println!("VA. Get Result... {:?}", t);
+                task::block_on(async {
+                    let result = task::spawn(get_result(t.question)).await;
+                    match result {
+                        Ok(_) => (),
+                        Err(err) => println!("failed to fetch result: {:?}", err),
                     }
                 });
             }

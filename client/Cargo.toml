@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["Moritz Eck"]
 edition = "2018"
 
+[[bin]]
+name = "provotum-cli"
+path = "src/main.rs"
+
 [dependencies]
 async-std = { version = "1.8.0", features= ["attributes"] }
 sp-keyring = "2.0.1"

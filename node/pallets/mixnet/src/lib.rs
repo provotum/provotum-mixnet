@@ -43,7 +43,7 @@ use crate::helpers::{
     phase::set_phase,
 };
 use crate::types::{
-    Ballot, Cipher, Count, DecryptedShare, DecryptedShareProof, NrOfShuffles, Plaintext,
+    Ballot, Cipher, DecryptedShare, DecryptedShareProof, NrOfShuffles,
     PublicKey as SubstratePK, PublicKeyShare, PublicParameters, ShufflePayload,
     ShuffleState, Title, Topic, TopicId, TopicResult, Vote, VoteId, VotePhase,
 };
@@ -55,7 +55,7 @@ use frame_system::{
     ensure_signed,
     offchain::{AppCrypto, CreateSignedTransaction},
 };
-use sp_std::{collections::btree_map::BTreeMap, prelude::*, str, vec::Vec};
+use sp_std::{prelude::*, str, vec::Vec};
 
 /// This is the pallet's configuration trait
 pub trait Trait:
@@ -106,7 +106,7 @@ decl_storage! {
         ShuffleStateStore: map hasher(blake2_128_concat) (VoteId, TopicId) => Option<ShuffleState>;
 
         /// Maps a topic to a map of results. [topic_id -> {message/vote: count}]
-        Tally get(fn tally): map hasher(blake2_128_concat) TopicId => Option<BTreeMap<Plaintext, Count>>;
+        Tally get(fn tally): map hasher(blake2_128_concat) TopicId => Option<TopicResult>;
 
         /// Maps a sealer and a topic to a vector of decrypted shares.
         DecryptedShares get(fn decrypted_shares): double_map hasher(blake2_128_concat) TopicId, hasher(blake2_128_concat) T::AccountId  => Vec<Vec<u8>>;

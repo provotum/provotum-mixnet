@@ -18,7 +18,7 @@ use frame_support::{assert_err, assert_ok};
 use hex_literal::hex;
 use num_bigint::BigUint;
 use num_traits::Zero;
-use sp_std::vec;
+use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
 const NR_OF_SHUFFLES: u8 = 0;
 
@@ -1955,7 +1955,7 @@ fn test_combine_decrypted_shares() {
         ));
 
         // retrieve the tallied result from the storage on chain
-        let result: BTreeMap<Plaintext, Count> = OffchainModule::tally(topic_id).unwrap();
+        let result: TopicResult = OffchainModule::tally(topic_id).unwrap();
 
         // transform the result from Vec<u8> (bytes) back to Vec<BigUint>
         let mut big_result: BTreeMap<BigUint, BigUint> = BTreeMap::new();

@@ -1,6 +1,6 @@
 use crate::types::{
-    Cipher, Count, DecryptedShare, NrOfShuffles, Plaintext, PublicParameters, TopicId,
-    TopicResult, VoteId, Wrapper,
+    Cipher, DecryptedShare, NrOfShuffles, PublicParameters, TopicId, TopicResult, VoteId,
+    Wrapper,
 };
 use crate::{
     helpers::params::get_public_params, Ciphers, DecryptedShares, Error, Sealers, Tally,
@@ -76,7 +76,7 @@ pub fn combine_shares_and_tally_topic<T: Trait>(
     }
 
     // get the tally for the vote with topic id: topic_id
-    let tally: Option<BTreeMap<Plaintext, Count>> = Tally::get::<&TopicId>(topic_id);
+    let tally: Option<TopicResult> = Tally::get::<&TopicId>(topic_id);
 
     // check that topic has not been tallied yet
     ensure!(tally.is_none(), Error::<T>::TopicHasAlreadyBeenTallied);
@@ -91,12 +91,12 @@ pub fn combine_shares_and_tally_topic<T: Trait>(
 
     // type conversion: BTreeMap<BigUint, BigUint> to BTreeMap<Vec<u8>, Vec<u8>>
     // to be able to store the results on chain
-    let mut results: BTreeMap<Plaintext, Count> = BTreeMap::new();
+    let mut results: TopicResult = BTreeMap::new();
     for (key, value) in big_results.iter() {
         results.insert(key.to_bytes_be(), value.to_bytes_be());
     }
 
     // store the results on chain
-    Tally::insert::<&TopicId, BTreeMap<Plaintext, Count>>(topic_id, results.clone());
+    Tally::insert::<&TopicId, TopicResult>(topic_id, results.clone());
     Ok(results)
 }

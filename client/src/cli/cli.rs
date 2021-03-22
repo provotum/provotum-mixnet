@@ -1,10 +1,9 @@
 use clap::Clap;
 
-/// This doc string acts as a help message when the user runs '--help'
-/// as do all doc strings on fields
+/// The Provotum CLI to impersonate voters, the voting-authority and sealers
 #[derive(Clap, Debug)]
 #[clap(
-    name = "provotum",
+    name = "provotum-cli",
     version = "1.0",
     author = "Moritz Eck <moritz.eck@gmail.com>"
 )]
@@ -60,6 +59,8 @@ pub enum VASubCommand {
     CombinePublicKeyShares(CombinePublicKeyShares),
     #[clap(name = "tally_question")]
     TallyQuestion(TallyQuestion),
+    #[clap(name = "result")]
+    GetResult(GetResult),
 }
 
 /// A subcommand for setting up the vote
@@ -109,6 +110,14 @@ pub struct TallyQuestion {
     /// The id of the vote
     #[clap(short, long)]
     pub vote: String,
+    /// The id of the question
+    #[clap(short, long)]
+    pub question: String,
+}
+
+/// A subcommand to fetch result for a question
+#[derive(Clap, Debug)]
+pub struct GetResult {
     /// The id of the question
     #[clap(short, long)]
     pub question: String,

@@ -87,7 +87,7 @@ echo $CR_PAT | docker login ghcr.io -u $GITHUB_USER --password-stdin
 The command needs to be execute from the parent folder of: `/node` and `/crypto` (in this case called: `provotum-mixnet`) since both folders are required inside the Docker context during the build.
 
 ```bash
-~/.../provotum-mixnet: DOCKER_BUILDKIT=1 docker build . -f ./node/Dockerfile
+~/.../provotum-mixnet: DOCKER_BUILDKIT=1 docker build . -f ./node/Dockerfile --tag provotum-dev .
 ```
 
 ##### Note.
