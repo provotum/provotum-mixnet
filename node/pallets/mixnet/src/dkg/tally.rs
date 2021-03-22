@@ -1,6 +1,6 @@
 use crate::types::{
     Cipher, Count, DecryptedShare, NrOfShuffles, Plaintext, PublicParameters, TopicId,
-    VoteId, Wrapper,
+    TopicResult, VoteId, Wrapper,
 };
 use crate::{
     helpers::params::get_public_params, Ciphers, DecryptedShares, Error, Sealers, Tally,
@@ -21,7 +21,7 @@ pub fn combine_shares_and_tally_topic<T: Trait>(
     topic_id: &TopicId,
     encoded: bool,
     nr_of_shuffles: &NrOfShuffles,
-) -> Result<BTreeMap<Plaintext, Count>, Error<T>> {
+) -> Result<TopicResult, Error<T>> {
     // get the public parameters and the system public key
     let params: PublicParameters = get_public_params::<T>(vote_id)?;
     let big_p: BigUint = BigUint::from_bytes_be(&params.p);

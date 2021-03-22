@@ -1,38 +1,23 @@
 use crate::voting::substrate::calls::{CastBallot, CreateVote, SetVotePhase, StorePublicKey};
-use crate::voting::substrate::stores::{CiphersStore, VotesStore};
+use crate::voting::substrate::stores::{CiphersStore, PublicKeyStore};
 use pallet_mixnet::types::{
-    Ballot, NrOfShuffles, PublicKey as SubstratePK, PublicKeyShare, PublicParameters, Title, Topic,
-    TopicId, VoteId, VotePhase,
+    Ballot, Cipher, DecryptedShare, DecryptedShareProof, NrOfShuffles, PublicKey as SubstratePK,
+    PublicKeyShare, PublicParameters, Title, Topic, TopicId, VoteId, VotePhase,
 };
 use sp_keyring::{sr25519::sr25519::Pair, AccountKeyring};
 use substrate_subxt::{system::System, Call, Client, ExtrinsicSuccess};
 use substrate_subxt::{Error, NodeTemplateRuntime, PairSigner};
 
-use super::calls::{CombinePublicKeyShares, StorePublicKeyShare};
-
-pub async fn get_vote_ids(client: &Client<NodeTemplateRuntime>) -> Result<Vec<String>, Error> {
-    let store = VotesStore {};
-    let vote_ids_as_bytes = client
-        .fetch(&store, None)
-        .await?
-        .ok_or("failed to fetch vote_ids!")?;
-    let vote_ids = vote_ids_as_bytes
-        .iter()
-        .map(|v| {
-            std::str::from_utf8(v)
-                .expect("cannot convert &[u8] to str")
-                .to_owned()
-        })
-        .collect::<Vec<String>>();
-    println!("vote_ids: {:?}", vote_ids);
-    Ok(vote_ids)
-}
+use super::calls::{
+    CombineDecryptedShares, CombinePublicKeyShares, StorePublicKeyShare, StoreQuestion,
+    SubmitPartialDecryption,
+};
 
 pub async fn get_ciphers(
     client: &Client<NodeTemplateRuntime>,
     topic_id: TopicId,
     nr_of_shuffles: NrOfShuffles,
-) -> Result<(), Error> {
+) -> Result<Vec<Cipher>, Error> {
     let store = CiphersStore {
         topic_id,
         nr_of_shuffles,
@@ -41,8 +26,19 @@ pub async fn get_ciphers(
         .fetch(&store, None)
         .await?
         .ok_or("failed to fetch ciphers!")?;
-    println!("# of ciphers: {:?}", ciphers_as_bytes.len());
-    Ok(())
+    Ok(ciphers_as_bytes)
+}
+
+pub async fn get_vote_public_key(
+    client: &Client<NodeTemplateRuntime>,
+    vote_id: VoteId,
+) -> Result<SubstratePK, Error> {
+    let store = PublicKeyStore { vote_id };
+    let pk = client
+        .fetch(&store, None)
+        .await?
+        .ok_or("failed to fetch public key!")?;
+    Ok(pk)
 }
 
 pub async fn create_vote(
@@ -64,6 +60,21 @@ pub async fn create_vote(
     return watch(&signer, client, call).await;
 }
 
+pub async fn store_question(
+    client: &Client<NodeTemplateRuntime>,
+    vote_id: VoteId,
+    topic: Topic,
+    batch_size: u64,
+) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
+    let signer = PairSigner::<NodeTemplateRuntime, Pair>::new(AccountKeyring::Alice.pair());
+    let call = StoreQuestion {
+        vote_id,
+        topic,
+        batch_size,
+    };
+    return watch(&signer, client, call).await;
+}
+
 pub async fn submit_ballot(
     client: &Client<NodeTemplateRuntime>,
     signer: &PairSigner<NodeTemplateRuntime, Pair>,
@@ -72,16 +83,6 @@ pub async fn submit_ballot(
 ) -> Result<<NodeTemplateRuntime as System>::Hash, Error> {
     let call = CastBallot { vote_id, ballot };
     return submit(signer, client, call).await;
-}
-
-pub async fn watch_ballot(
-    client: &Client<NodeTemplateRuntime>,
-    signer: &PairSigner<NodeTemplateRuntime, Pair>,
-    vote_id: VoteId,
-    ballot: Ballot,
-) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
-    let call = CastBallot { vote_id, ballot };
-    return watch(signer, client, call).await;
 }
 
 pub async fn store_public_key(
@@ -123,6 +124,40 @@ pub async fn combine_pk_shares(
 ) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
     let signer = PairSigner::<NodeTemplateRuntime, Pair>::new(AccountKeyring::Alice.pair());
     let call = CombinePublicKeyShares { vote_id };
+    return watch(&signer, client, call).await;
+}
+
+pub async fn combine_decrypted_shares(
+    client: &Client<NodeTemplateRuntime>,
+    vote_id: VoteId,
+    topic_id: TopicId,
+) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
+    let signer = PairSigner::<NodeTemplateRuntime, Pair>::new(AccountKeyring::Alice.pair());
+    let call = CombineDecryptedShares {
+        vote_id,
+        topic_id,
+        encoded: false,
+        nr_of_shuffles: 3,
+    };
+    return watch(&signer, client, call).await;
+}
+
+pub async fn submit_partial_decryptions(
+    client: &Client<NodeTemplateRuntime>,
+    signer: &PairSigner<NodeTemplateRuntime, Pair>,
+    vote_id: VoteId,
+    topic_id: TopicId,
+    shares: Vec<DecryptedShare>,
+    proof: DecryptedShareProof,
+    nr_of_shuffles: NrOfShuffles,
+) -> Result<ExtrinsicSuccess<NodeTemplateRuntime>, Error> {
+    let call = SubmitPartialDecryption {
+        vote_id,
+        topic_id,
+        shares,
+        proof,
+        nr_of_shuffles,
+    };
     return watch(&signer, client, call).await;
 }
 

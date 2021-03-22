@@ -1,5 +1,5 @@
-use codec::Encode;
-use pallet_mixnet::types::{NrOfShuffles, PublicKey as SubstratePK, TopicId, VoteId};
+use codec::{Decode, Encode};
+use pallet_mixnet::types::{Cipher, NrOfShuffles, PublicKey as SubstratePK, TopicId, VoteId};
 use substrate_subxt::{
     sp_core::storage::StorageKey, Metadata, MetadataError, NodeTemplateRuntime, Store,
 };
@@ -50,7 +50,7 @@ impl Store<NodeTemplateRuntime> for CiphersStore {
     /// Field name.
     const FIELD: &'static str = "Ciphers";
     /// Return type.
-    type Returns = Vec<VoteId>;
+    type Returns = Vec<Cipher>;
     /// Returns the key prefix for storage maps
     fn prefix(metadata: &Metadata) -> Result<StorageKey, MetadataError> {
         Ok(metadata
@@ -73,18 +73,18 @@ impl Store<NodeTemplateRuntime> for CiphersStore {
     }
 }
 
-#[derive(Clone, Debug, Eq, Encode, PartialEq)]
-pub struct PubliyKeyStore {
+#[derive(Clone, Debug, Eq, Encode, PartialEq, Decode)]
+pub struct PublicKeyStore {
     pub vote_id: VoteId,
 }
 
-impl Store<NodeTemplateRuntime> for PubliyKeyStore {
+impl Store<NodeTemplateRuntime> for PublicKeyStore {
     /// Module name.
     const MODULE: &'static str = "PalletMixnet";
     /// Field name.
     const FIELD: &'static str = "PublicKey";
     /// Return type.
-    type Returns = Option<SubstratePK>;
+    type Returns = SubstratePK;
     /// Returns the key prefix for storage maps
     fn prefix(metadata: &Metadata) -> Result<StorageKey, MetadataError> {
         Ok(metadata

@@ -1,7 +1,7 @@
 use codec::Encode;
 use pallet_mixnet::types::{
     Ballot, DecryptedShare, DecryptedShareProof, NrOfShuffles, PublicKey as SubstratePK,
-    PublicKeyShare, PublicParameters, Title, Topic, TopicId, VoteId, VotePhase,
+    PublicKeyShare, PublicParameters, Title, Topic, TopicId, TopicResult, VoteId, VotePhase,
 };
 use substrate_subxt::{Call, EventsDecoder, NodeTemplateRuntime};
 
@@ -22,6 +22,23 @@ impl Call<NodeTemplateRuntime> for CreateVote {
         _decoder.register_type_size::<Title>("Title");
         _decoder.register_type_size::<PublicParameters>("PublicParameters");
         _decoder.register_type_size::<Vec<Topic>>("Vec<Topic>");
+        _decoder.register_type_size::<u64>("batch_size");
+    }
+}
+
+#[derive(Encode)]
+pub struct StoreQuestion {
+    pub vote_id: VoteId,
+    pub topic: Topic,
+    pub batch_size: u64,
+}
+
+impl Call<NodeTemplateRuntime> for StoreQuestion {
+    const MODULE: &'static str = "PalletMixnet";
+    const FUNCTION: &'static str = "store_question";
+    fn events_decoder(_decoder: &mut EventsDecoder<NodeTemplateRuntime>) {
+        _decoder.register_type_size::<VoteId>("VoteId");
+        _decoder.register_type_size::<Topic>("Topic");
         _decoder.register_type_size::<u64>("batch_size");
     }
 }
@@ -66,6 +83,7 @@ impl Call<NodeTemplateRuntime> for CombinePublicKeyShares {
     const FUNCTION: &'static str = "combine_public_key_shares";
     fn events_decoder(_decoder: &mut EventsDecoder<NodeTemplateRuntime>) {
         _decoder.register_type_size::<VoteId>("VoteId");
+        _decoder.register_type_size::<SubstratePK>("SubstratePK");
     }
 }
 
@@ -122,10 +140,10 @@ impl Call<NodeTemplateRuntime> for SubmitPartialDecryption {
 
 #[derive(Encode)]
 pub struct CombineDecryptedShares {
-    vote_id: VoteId,
-    topic_id: TopicId,
-    encoded: bool,
-    nr_of_shuffles: NrOfShuffles,
+    pub vote_id: VoteId,
+    pub topic_id: TopicId,
+    pub encoded: bool,
+    pub nr_of_shuffles: NrOfShuffles,
 }
 
 impl Call<NodeTemplateRuntime> for CombineDecryptedShares {
@@ -136,5 +154,6 @@ impl Call<NodeTemplateRuntime> for CombineDecryptedShares {
         _decoder.register_type_size::<TopicId>("TopicId");
         _decoder.register_type_size::<bool>("bool");
         _decoder.register_type_size::<NrOfShuffles>("NrOfShuffles");
+        _decoder.register_type_size::<TopicResult>("TopicResult");
     }
 }

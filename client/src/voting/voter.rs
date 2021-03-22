@@ -1,15 +1,17 @@
 use crate::voting::substrate::rpc::submit_ballot;
-use crypto::{helper::Helper, random::Random};
 use crypto::{
     proofs::re_encryption::ReEncryptionProof,
     types::{Cipher, PublicKey},
 };
+use crypto::{random::Random, types::PublicKey as ElGamalPK};
 use pallet_mixnet::types::Ballot;
 use serde::{Deserialize, Serialize};
 use sp_keyring::sr25519::sr25519::Pair;
 use substrate_subxt::{sp_core::Pair as KeyPairGenerator, Client};
 use substrate_subxt::{ClientBuilder, Error, NodeTemplateRuntime, PairSigner};
 use surf::Body;
+
+use super::substrate::rpc::get_vote_public_key;
 
 #[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Clone)]
 pub struct RequestBody {
@@ -43,10 +45,10 @@ pub async fn create_votes(
     let client = init().await?;
 
     // create the vote
-    let (params, _, pk) = Helper::setup_lg_system();
-    let q = &params.q();
     let vote_id = vote.as_bytes().to_vec();
     let topic_id = question.as_bytes().to_vec();
+    let pk: ElGamalPK = get_vote_public_key(&client, vote_id.clone()).await?.into();
+    let q = &pk.params.q();
 
     // generate random encryptions
     let encryptions = Random::generate_encryptions(&pk, q, nr_of_votes, votes);

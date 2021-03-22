@@ -45,7 +45,7 @@ use crate::helpers::{
 use crate::types::{
     Ballot, Cipher, Count, DecryptedShare, DecryptedShareProof, NrOfShuffles, Plaintext,
     PublicKey as SubstratePK, PublicKeyShare, PublicParameters, ShufflePayload,
-    ShuffleState, Title, Topic, TopicId, Vote, VoteId, VotePhase,
+    ShuffleState, Title, Topic, TopicId, TopicResult, Vote, VoteId, VotePhase,
 };
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
@@ -153,7 +153,7 @@ decl_event!(
         DecryptedShareSubmitted(TopicId, AccountId),
 
         /// A decrypted share was submitted for a vote. [paritial decryptions with its proof]
-        TopicTallied(TopicId),
+        TopicTallied(VoteId, TopicId, TopicResult),
 
         /// A decrypted share was submitted for a vote. [paritial decryptions with its proof]
         ShuffleProofSubmitted(TopicId, AccountId),
@@ -471,12 +471,12 @@ decl_module! {
 
             // combine the decrypted shares
             // tally the topic
-            let results = combine_shares_and_tally_topic::<T>(&vote_id, &topic_id, encoded, &nr_of_shuffles)?;
+            let result: TopicResult = combine_shares_and_tally_topic::<T>(&vote_id, &topic_id, encoded, &nr_of_shuffles)?;
 
             // notify that the decrypted shares have been combined
             // and that the result has been tallied!
-            debug::info!("results for vote: {:?} and topic: {:?} are: {:?}", vote_id, topic_id, results);
-            Self::deposit_event(RawEvent::TopicTallied(topic_id));
+            debug::info!("result for vote: {:?} and topic: {:?} is: {:?}", vote_id, topic_id, result);
+            Self::deposit_event(RawEvent::TopicTallied(vote_id, topic_id, result));
             Ok(())
         }
 

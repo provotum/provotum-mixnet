@@ -6,7 +6,7 @@ use frame_system::offchain::{SignedPayload, SigningTypes};
 use num_bigint::BigUint;
 use num_traits::One;
 use sp_runtime::RuntimeDebug;
-use sp_std::vec::Vec;
+use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
 /// the BigCipher from the crypto crate.
 /// different types which the blockchain can handle.
@@ -290,6 +290,7 @@ pub type TopicQuestion = Vec<u8>;
 // result types
 pub type Plaintext = Vec<u8>;
 pub type Count = Vec<u8>;
+pub type TopicResult = BTreeMap<Plaintext, Count>;
 
 // topicId and question (string as Vec<u8>)
 pub type Topic = (TopicId, TopicQuestion);

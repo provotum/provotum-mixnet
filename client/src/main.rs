@@ -5,10 +5,10 @@ use async_std::task;
 use clap::Clap;
 use cli::cli::{Opts, SealerSubCommand, SubCommand, VASubCommand};
 use voting::{
-    sealer::keygen,
-    va::{change_vote_phase, setup_vote},
+    sealer::{decrypt, keygen},
+    va::{change_vote_phase, setup_question, setup_vote},
 };
-use voting::{va::combine_public_key_shares, voter::create_votes};
+use voting::{va::combine_public_key_shares, va::tally_question, voter::create_votes};
 
 fn main() {
     let opts: Opts = Opts::parse();
@@ -40,6 +40,13 @@ fn main() {
             }
             VASubCommand::StoreQuestion(t) => {
                 println!("VA. Store Question... {:?}", t);
+                task::block_on(async {
+                    let result = task::spawn(setup_question(t.vote, t.question)).await;
+                    match result {
+                        Ok(_) => println!("successfully setup question!"),
+                        Err(err) => println!("failed to setup question: {:?}", err),
+                    }
+                });
             }
             VASubCommand::SetVotePhase(t) => {
                 println!("VA. Changing Vote Phase... {:?}", t);
@@ -61,6 +68,16 @@ fn main() {
                     }
                 });
             }
+            VASubCommand::TallyQuestion(t) => {
+                println!("VA. Tallying Question... {:?}", t);
+                task::block_on(async {
+                    let result = task::spawn(tally_question(t.vote, t.question)).await;
+                    match result {
+                        Ok(_) => println!("successfully tallied question!"),
+                        Err(err) => println!("failed to tally question: {:?}", err),
+                    }
+                });
+            }
         },
         SubCommand::Sealer(t) => match t.subcmd {
             SealerSubCommand::KeyGeneration(t) => {
@@ -75,6 +92,13 @@ fn main() {
             }
             SealerSubCommand::PartialDecryption(t) => {
                 println!("Printing sealer - partial decryption... {:?}", t);
+                task::block_on(async {
+                    let result = task::spawn(decrypt(t.vote, t.question, t.sk, t.who)).await;
+                    match result {
+                        Ok(_) => println!("successfully submitted partial decryption!"),
+                        Err(err) => println!("failed to submit partial decryption: {:?}", err),
+                    }
+                });
             }
         },
     }

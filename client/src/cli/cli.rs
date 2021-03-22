@@ -26,10 +26,10 @@ pub enum SubCommand {
 /// A subcommand for controlling the Voter
 #[derive(Clap, Debug)]
 pub struct Voter {
-    /// The name of the vote
+    /// The id of the vote
     #[clap(short, long)]
     pub vote: String,
-    /// The name of the question
+    /// The id of the question
     #[clap(short, long)]
     pub question: String,
     /// The number of votes to create
@@ -58,6 +58,8 @@ pub enum VASubCommand {
     SetVotePhase(SetVotePhase),
     #[clap(name = "combine_pk_shares")]
     CombinePublicKeyShares(CombinePublicKeyShares),
+    #[clap(name = "tally_question")]
+    TallyQuestion(TallyQuestion),
 }
 
 /// A subcommand for setting up the vote
@@ -74,7 +76,7 @@ pub struct SetupVote {
 /// A subcommand for setting up vote questions
 #[derive(Clap, Debug)]
 pub struct StoreQuestion {
-    /// The name of the vote
+    /// The id of the vote
     #[clap(short, long)]
     pub vote: String,
     /// The question to store
@@ -85,10 +87,10 @@ pub struct StoreQuestion {
 /// A subcommand for changing the vote phase
 #[derive(Clap, Debug)]
 pub struct SetVotePhase {
-    /// The id of the vote to associate the question with
+    /// The id of the vote
     #[clap(short, long)]
     pub vote: String,
-    /// The  of the vote to create
+    /// The vote phase
     #[clap(short, long, possible_values = &["KeyGeneration", "Voting", "Tallying"])]
     pub phase: String,
 }
@@ -96,9 +98,20 @@ pub struct SetVotePhase {
 /// A subcommand to combine the public key shares
 #[derive(Clap, Debug)]
 pub struct CombinePublicKeyShares {
-    /// The id of the vote to associate the question with
+    /// The id of the vote
     #[clap(short, long)]
     pub vote: String,
+}
+
+/// A subcommand to combine the decrypted shares for a question
+#[derive(Clap, Debug)]
+pub struct TallyQuestion {
+    /// The id of the vote
+    #[clap(short, long)]
+    pub vote: String,
+    /// The id of the question
+    #[clap(short, long)]
+    pub question: String,
 }
 
 /// A subcommand for controlling the Sealer
@@ -134,6 +147,15 @@ pub struct KeyGeneration {
 /// A subcommand for controlling the partial decryption
 #[derive(Clap, Debug)]
 pub struct PartialDecryption {
+    /// The id of the vote
+    #[clap(short, long)]
+    pub vote: String,
+    /// The id of the question
+    #[clap(short, long)]
+    pub question: String,
+    /// The private key as string
+    #[clap(short, long)]
+    pub sk: String,
     /// The name of the sealer to use
     #[clap(short, long, required = true, possible_values = &["bob", "charlie"])]
     pub who: String,
