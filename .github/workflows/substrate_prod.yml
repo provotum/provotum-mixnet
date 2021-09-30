@@ -9,6 +9,11 @@ on:
     types:
       - "closed"
   workflow_dispatch:
+    inputs:
+      manual:
+        description: 'input to trigger manual release'
+        required: true
+        default: 'yes'
 
 env:
   CARGO_TERM_COLOR: always
@@ -16,7 +21,7 @@ env:
 jobs:
   build-test-benchmark:
     # this job will only run if the PR has been merged
-    if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true || contains(github.event.inputs.manual, 'yes')
     strategy:
       fail-fast: false
       matrix:
