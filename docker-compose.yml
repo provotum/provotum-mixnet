@@ -5,7 +5,7 @@ services:
   # Alice doesn't validate any blocks -> just runs a full node
   alice:
     container_name: alice
-    image: ghcr.io/meck93/provotum-mixnet:latest
+    image: ghcr.io/provotum/provotum-mixnet:latest
     command: --chain=local --name Alice --base-path /tmp/alice --port 30333 --ws-port 9944 --rpc-port 9933 --execution Native
     network_mode: host
     # network_mode: bridge
@@ -18,7 +18,7 @@ services:
   # Bob authors and validates blocks
   bob:
     container_name: bob
-    image: ghcr.io/meck93/provotum-mixnet:latest
+    image: ghcr.io/provotum/provotum-mixnet:latest
     command: --chain=local --bob --validator --base-path /tmp/bob --port 30334 --ws-port 9945 --rpc-port 9934 --execution Native
     network_mode: host
     # network_mode: bridge
@@ -31,7 +31,7 @@ services:
   # Charlie authors and validates blocks
   charlie:
     container_name: charlie
-    image: ghcr.io/meck93/provotum-mixnet:latest
+    image: ghcr.io/provotum/provotum-mixnet:latest
     command: --chain=local --charlie --validator --base-path /tmp/charlie --port 30335 --ws-port 9946 --rpc-port 9935 --execution Native
     network_mode: host
     # ports:
@@ -42,5 +42,5 @@ services:
   # Randomizer is a simple web service to re-encrypt the voter's ballots
   randomizer:
     container_name: charlie
-    image: ghcr.io/meck93/provotum-mixnet-randomizer:latest
+    image: ghcr.io/provotum/provotum-mixnet-randomizer:latest
     network_mode: host
