@@ -118,7 +118,7 @@ impl ReEncryptionProof {
         // verify that lhs == rhs
         let v2 = lhs == rhs;
 
-        // 3. test: verify that g^s2 == pk^c2 * t2
+        // 3. test: verify that g^s2 == pk^h2 * t2
         let lhs = g.modpow(s2, p);
         let pk_pow_h2 = pk.h.modpow(h2, p);
         let rhs = pk_pow_h2.modmul(t2, p);
